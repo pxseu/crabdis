@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 
-use tokio::io::AsyncReadExt;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 use tokio::net::TcpStream;
 use tokio::time::Duration;
 
@@ -46,43 +47,65 @@ impl Value {
         }
     }
 
-    pub async fn from_resp(stream: TcpStream) -> Result<Self> {
-        let reader = BufReader::new(stream);
+    pub fn from_resp<'a>(
+        mut stream: &'a mut TcpStream,
+    ) -> Pin<Box<dyn Future<Output = Result<Self>> + Send + 'a>> {
+        Box::pin(async move {
+            let mut reader = BufReader::new(&mut stream);
 
-        let mut line = String::new();
+            let mut line = String::new();
 
-        reader.read_line(&mut line).await;
+            reader.read_line(&mut line).await?;
 
-        match line.chars().next() {
-            Some('$') if line == "$-1\r\n" => Ok(Self::Nil),
+            match line.chars().next() {
+                Some('$') if line == "$-1\r\n" => Ok(Self::Nil),
 
-            Some('$') => {
-                let len: usize = line[1..].trim().parse().map_err(|e| {
-                    std::io::Error::new(std::io::ErrorKind::InvalidData, "Could not parse intiger")
-                })?;
+                Some('$') => {
+                    let len: usize = line[1..].trim().parse().map_err(|_| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Could not parse intiger",
+                        )
+                    })?;
 
-                let mut value = vec![0; len];
-                reader.read_exact(&mut value).await?;
+                    let mut value = vec![0; len];
+                    reader.read_exact(&mut value).await?;
 
-                Ok(Self::String(String::from_utf8(value)?))
-            }
-            Some(':') => {
-                let value: i64 = line[1..].trim().parse()?;
-
-                Ok(Self::Integer(value))
-            }
-            Some('*') => {
-                let len: usize = line[1..].trim().parse()?;
-                let mut values = Vec::with_capacity(len);
-
-                for _ in 0..len {
-                    values.push(Value::from_resp(stream).await?);
+                    Ok(Self::String(String::from_utf8(value).map_err(|_| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Could not parse string",
+                        )
+                    })?))
                 }
+                Some(':') => {
+                    let value: i64 = line[1..].trim().parse().map_err(|_| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Could not parse intiger",
+                        )
+                    })?;
 
-                Ok(Self::Multi(values))
+                    Ok(Self::Integer(value))
+                }
+                Some('*') => {
+                    let len: usize = line[1..].trim().parse().map_err(|_| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "Could not parse intiger",
+                        )
+                    })?;
+                    let mut values = Vec::with_capacity(len);
+
+                    for _ in 0..len {
+                        values.push(Self::from_resp(&mut stream).await?);
+                    }
+
+                    Ok(Self::Multi(values))
+                }
+                Some('+') => Ok(Self::String(line[1..].trim().to_string())),
+                _ => Ok(Self::Error("Invalid response".to_string())),
             }
-            Some('+') => Ok(Self::String(line[1..].trim().to_string())),
-            _ => Ok(Self::Error("Invalid response".to_string())),
-        }
+        })
     }
 }

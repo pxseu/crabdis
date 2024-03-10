@@ -17,6 +17,10 @@ impl TcpListener {
         })
     }
 
+    pub fn local_addr(&self) -> std::io::Result<SocketAddr> {
+        self.listener.local_addr()
+    }
+
     pub async fn accept(&self) -> std::io::Result<(TcpStream, std::net::SocketAddr)> {
         let (stream, addr) = self.listener.accept().await?;
 
