@@ -7,6 +7,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     Io(IoError),
+    ParseIntError(std::num::ParseIntError),
 }
 
 impl From<IoError> for Error {
@@ -19,6 +20,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(inner) => fmt::Display::fmt(&inner, f),
+            Self::ParseIntError(inner) => fmt::Display::fmt(&inner, f),
         }
     }
 }
@@ -27,6 +29,7 @@ impl StdError for Error {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Self::Io(inner) => Some(inner),
+            Self::ParseIntError(inner) => Some(inner),
         }
     }
 }
