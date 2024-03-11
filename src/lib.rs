@@ -1,3 +1,4 @@
+mod commands;
 pub mod error;
 mod handler;
 mod prelude;
@@ -7,6 +8,7 @@ mod utils;
 use std::net::{IpAddr, SocketAddr};
 
 use clap::Parser;
+use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
 
 use self::prelude::*;
@@ -36,11 +38,14 @@ pub async fn run() -> Result<()> {
     log::info!("Listening on {}", listener.local_addr()?);
 
     loop {
-        let (stream, _) = listener.accept().await?;
+        let (mut stream, _) = listener.accept().await?;
         let store = store.clone();
 
         tokio::spawn(async move {
-            let _ = handle_client(stream, store).await;
+            if let Err(e) = handle_client(&mut stream, store).await {
+                log::error!("Error: {e}");
+                stream.shutdown().await.ok();
+            }
         });
     }
 }

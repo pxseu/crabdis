@@ -1,11 +1,10 @@
-mod value;
+pub mod value;
 
-use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
 
-pub use self::value::*;
+use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Store {
@@ -25,6 +24,10 @@ impl Store {
 
     pub async fn get(&self, key: &str) -> Value {
         self.inner.read().await.get(key).cloned().into()
+    }
+
+    pub async fn mset(&mut self, data: HashMap<String, Value>) {
+        self.inner.write().await.extend(data);
     }
 
     pub async fn mget(&self, keys: &[String]) -> Value {
