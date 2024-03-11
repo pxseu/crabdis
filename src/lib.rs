@@ -43,7 +43,11 @@ pub async fn run() -> Result<()> {
 
         tokio::spawn(async move {
             if let Err(e) = handle_client(&mut stream, store).await {
-                log::error!("Error: {e}");
+                match e {
+                    Error::Io(e) if matches!(e.kind(), std::io::ErrorKind::ConnectionAborted) => {}
+                    _ => log::error!("Error: {e:?}"),
+                }
+
                 stream.shutdown().await.ok();
             }
         });

@@ -23,7 +23,12 @@ impl Store {
     }
 
     pub async fn get(&self, key: &str) -> Value {
-        self.inner.read().await.get(key).cloned().into()
+        match self.inner.read().await.get(key) {
+            Some(Value::Hashmap(_)) => Value::Error(
+                "WRONGTYPE Operation against a key holding the wrong kind of value".to_string(),
+            ),
+            a => a.cloned().into(),
+        }
     }
 
     pub async fn mset(&mut self, data: HashMap<String, Value>) {
@@ -39,7 +44,7 @@ impl Store {
             .into()
     }
 
-    pub async fn remove(&mut self, key: &[String]) -> Value {
+    pub async fn del(&mut self, key: &[String]) -> Value {
         let mut count: i64 = 0;
 
         for k in key {
@@ -68,5 +73,54 @@ impl Store {
 
     pub async fn clear(&mut self) {
         self.inner.write().await.clear();
+    }
+
+    pub async fn hset(&mut self, key: String, hashmap: HashMap<String, Value>) -> Value {
+        let mut lock = self.inner.write().await;
+
+        match lock
+            .entry(key)
+            .or_insert_with(|| Value::Hashmap(Default::default()))
+        {
+            Value::Hashmap(entry) => {
+                let len = entry.len() as i64;
+                entry.extend(hashmap);
+                Value::Integer(len)
+            }
+            _ => Value::Error(
+                "WRONGTYPE Operation against a key holding the wrong kind of value".to_string(),
+            ),
+        }
+    }
+
+    pub async fn hget(&self, key: &str, field: &str) -> Value {
+        self.inner
+            .read()
+            .await
+            .get(key)
+            .and_then(|value| match value {
+                Value::Hashmap(hashmap) => hashmap.get(field).cloned(),
+                _ => Some(Value::Error(
+                    "WRONGTYPE Operation against a key holding the wrong kind of value".to_string(),
+                )),
+            })
+            .unwrap_or(Value::Nil)
+    }
+
+    pub async fn hgetall(&self, key: &str) -> Value {
+        let value = self
+            .inner
+            .read()
+            .await
+            .get(key)
+            .unwrap_or(&Value::Nil)
+            .clone();
+
+        match value {
+            Value::Hashmap(_) => value,
+            _ => Value::Error(
+                "WRONGTYPE Operation against a key holding the wrong kind of value".to_string(),
+            ),
+        }
     }
 }

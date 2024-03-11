@@ -1,4 +1,4 @@
-pub use crate::prelude::*;
+use crate::prelude::*;
 
 pub async fn handle_command(
     command: &str,
@@ -13,13 +13,13 @@ pub async fn handle_command(
 
         "GET" => {
             if args.len() != 1 {
-                return Ok(Value::Error("Invalid number of arguments".to_string()));
+                return Ok(value_error!("Invalid number of arguments"));
             }
 
             let key = match args.pop_front() {
                 Some(Value::String(key)) => key,
                 _ => {
-                    return Ok(Value::Error("Invalid key".to_string()));
+                    return Ok(value_error!("Invalid key"));
                 }
             };
 
@@ -33,7 +33,7 @@ pub async fn handle_command(
                 if let Value::String(key) = key {
                     keys.push(key.to_owned());
                 } else {
-                    return Ok(Value::Error("Invalid key".to_string()));
+                    return Ok(value_error!("Invalid key"));
                 }
             }
 
@@ -42,20 +42,20 @@ pub async fn handle_command(
 
         "SET" => {
             if args.len() != 2 {
-                return Ok(Value::Error("Invalid number of arguments".to_string()));
+                return Ok(value_error!("Invalid number of arguments"));
             }
 
             let key = match args.pop_front() {
                 Some(Value::String(key)) => key,
                 _ => {
-                    return Ok(Value::Error("Invalid key".to_string()));
+                    return Ok(value_error!("Invalid key"));
                 }
             };
 
             let value = match args.pop_front() {
                 Some(value) => value,
                 _ => {
-                    return Ok(Value::Error("Invalid value".to_string()));
+                    return Ok(value_error!("Invalid value"));
                 }
             };
 
@@ -68,23 +68,18 @@ pub async fn handle_command(
             let mut data = HashMap::new();
 
             if args.len() % 2 != 0 {
-                return Ok(Value::Error("Invalid number of arguments".to_string()));
+                return Ok(value_error!("Invalid number of arguments"));
             }
 
-            let args = args.iter().collect::<Vec<_>>();
-
-            for kv in args.chunks_exact(2) {
-                let key = kv[0].to_owned();
-                let value = kv[1].to_owned();
-
-                let key = match key {
+            for kv in args.iter().collect::<Vec<_>>().chunks_exact(2) {
+                let key = match kv[0].to_owned() {
                     Value::String(key) => key,
                     _ => {
-                        return Ok(Value::Error("Invalid key".to_string()));
+                        return Ok(value_error!("Invalid key"));
                     }
                 };
 
-                data.insert(key, value);
+                data.insert(key, kv[1].to_owned());
             }
 
             store.mset(data).await;
@@ -94,7 +89,7 @@ pub async fn handle_command(
 
         "DEL" => {
             if args.len() < 1 {
-                return Ok(Value::Error("Invalid number of arguments".to_string()));
+                return Ok(value_error!("Invalid number of arguments"));
             }
 
             let mut keys = vec![];
@@ -103,15 +98,16 @@ pub async fn handle_command(
                 if let Value::String(key) = key {
                     keys.push(key.to_owned());
                 } else {
-                    return Ok(Value::Error("Invalid key".to_string()));
+                    return Ok(value_error!("Invalid key"));
                 }
             }
 
-            store.remove(&keys).await
+            store.del(&keys).await
         }
+
         "KEYS" => {
             if args.len() > 1 {
-                return Ok(Value::Error("Invalid number of arguments".to_string()));
+                return Ok(value_error!("Invalid number of arguments"));
             }
 
             let _pattern = match args.pop_front() {
@@ -121,15 +117,16 @@ pub async fn handle_command(
 
             store.keys().await
         }
+
         "EXISTS" => {
             if args.len() != 1 {
-                return Ok(Value::Error("Invalid number of arguments".to_string()));
+                return Ok(value_error!("Invalid number of arguments"));
             }
 
             let key = match args.pop_front() {
                 Some(Value::String(key)) => key,
                 _ => {
-                    return Ok(Value::Error("Invalid key".to_string()));
+                    return Ok(value_error!("Invalid key"));
                 }
             };
 
@@ -138,13 +135,83 @@ pub async fn handle_command(
             Value::Integer(exists as i64)
         }
 
+        "HGET" => {
+            if args.len() != 2 {
+                return Ok(value_error!("Invalid number of arguments"));
+            }
+
+            let key = match args.pop_front() {
+                Some(Value::String(key)) => key,
+                _ => {
+                    return Ok(value_error!("Invalid key"));
+                }
+            };
+
+            let field = match args.pop_front() {
+                Some(Value::String(field)) => field,
+                _ => {
+                    return Ok(value_error!("Invalid field"));
+                }
+            };
+
+            store.hget(&key, &field).await
+        }
+
+        "HSET" => {
+            if args.len() < 3 || args.len() % 2 != 1 {
+                return Ok(value_error!("Invalid number of arguments"));
+            }
+
+            let key = match args.pop_front() {
+                Some(Value::String(key)) => key,
+                _ => {
+                    return Ok(value_error!("Invalid key"));
+                }
+            };
+
+            let mut hashmap = HashMap::new();
+
+            for kv in args.iter().collect::<Vec<_>>().chunks_exact(2) {
+                let field = match kv[0].to_owned() {
+                    Value::String(field) => field,
+                    _ => {
+                        return Ok(value_error!("Invalid field"));
+                    }
+                };
+
+                hashmap.insert(field, kv[1].to_owned());
+            }
+
+            store.hset(key, hashmap).await
+        }
+
+        "HGETALL" => {
+            if args.len() != 1 {
+                return Ok(value_error!("Invalid number of arguments"));
+            }
+
+            let key = match args.pop_front() {
+                Some(Value::String(key)) => key,
+                _ => {
+                    return Ok(value_error!("Invalid key"));
+                }
+            };
+
+            store.hgetall(&key).await
+        }
+
         "FLUSHDB" => {
+            // there is a weird asnyc/sync arg which is pointless here
+            if args.len() > 1 {
+                return Ok(value_error!("Invalid number of arguments"));
+            }
+
             store.clear().await;
 
             Value::Ok
         }
 
-        _ => Value::Error("Unknown command".to_string()),
+        _ => value_error!("Unknown command"),
     };
 
     Ok(response)

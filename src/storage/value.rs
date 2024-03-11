@@ -17,13 +17,20 @@ pub enum Value {
     Integer(i64),
     String(String),
     Multi(VecDeque<Value>),
+    Hashmap(HashMap<String, Value>),
 
     // i promise i will implement this
     #[allow(dead_code)]
-    Hashmap(HashMap<String, Value>),
-    #[allow(dead_code)]
     Expire((Box<Value>, Duration)),
 }
+
+macro_rules! value_error {
+    ($($arg:tt)*) => {
+        Value::Error(format!($($arg)*))
+    };
+}
+
+pub(crate) use value_error;
 
 impl Value {
     pub fn bytes(&self) -> Vec<u8> {
