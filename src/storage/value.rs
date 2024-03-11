@@ -17,7 +17,11 @@ pub enum Value {
     Integer(i64),
     String(String),
     Multi(VecDeque<Value>),
+
+    // i promise i will implement this
+    #[allow(dead_code)]
     Hashmap(HashMap<String, Value>),
+    #[allow(dead_code)]
     Expire((Box<Value>, Duration)),
 }
 

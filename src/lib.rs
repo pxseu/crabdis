@@ -1,8 +1,8 @@
 pub mod error;
-pub mod handler;
-pub mod prelude;
-pub mod storage;
-pub mod utils;
+mod handler;
+mod prelude;
+mod storage;
+mod utils;
 
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;

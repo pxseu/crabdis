@@ -66,8 +66,4 @@ impl Store {
     pub async fn clear(&mut self) {
         self.inner.write().await.clear();
     }
-
-    pub async fn len(&self) -> usize {
-        self.inner.read().await.len()
-    }
 }

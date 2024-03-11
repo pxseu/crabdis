@@ -77,15 +77,15 @@ jobs:
             platform: aarch64-Darwin
             flags: --all-features
 
-          # - target: x86_64-pc-windows-msvc
-          #   os: windows-latest
-          #   platform: x86_64-Windows
-          #   flags: --all-features
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            platform: x86_64-Windows
+            flags: --all-features
 
-          # - target: i686-pc-windows-msvc
-          #   os: windows-latest
-          #   platform: i686-Windows
-          #   flags: --all-features
+          - target: i686-pc-windows-msvc
+            os: windows-latest
+            platform: i686-Windows
+            flags: --all-features
 
     steps:
       - name: Checkout repository
@@ -122,13 +122,13 @@ jobs:
           tar czvf ../../../${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.tar.gz ${{ env.EXECUTABLE_NAME }}
           cd -
 
-      # - name: Prepare binaries [Windows]
-      #   if: matrix.os == 'windows-latest'
-      #   run: |
-      #     cd target/${{ matrix.target }}/release
-      #     strip ${{ env.EXECUTABLE_NAME }}.exe
-      #     7z a ../../../${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.zip ${{ env.EXECUTABLE_NAME }}.exe
-      #     cd -
+      - name: Prepare binaries [Windows]
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          strip ${{ env.EXECUTABLE_NAME }}.exe
+          7z a ../../../${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.zip ${{ env.EXECUTABLE_NAME }}.exe
+          cd -
 
       # - name: Build installer [Windows]
       #   if: matrix.os == 'windows-latest'
