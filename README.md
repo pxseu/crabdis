@@ -19,6 +19,8 @@ You can find binaries on the [releases page](https://github.com/pxseu/crabdis/re
 
 If you want to install it with cargo, you can do so with `cargo install crabdis`.
 
+There is also a Docker image available on [Docker Hub](https://hub.docker.com/r/pxseu/crabdis).
+
 # Usage
 
 ```sh
