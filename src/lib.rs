@@ -5,25 +5,31 @@ mod storage;
 mod utils;
 
 use std::net::{IpAddr, SocketAddr};
-use std::str::FromStr;
 
+use clap::Parser;
 use tokio::net::TcpListener;
 
 use self::prelude::*;
 use crate::handler::handle_client;
 
+#[derive(Parser)]
+pub struct CLI {
+    #[clap(short, long)]
+    pub address: Option<IpAddr>,
+
+    #[clap(short, long)]
+    pub port: Option<u16>,
+}
+
 pub async fn run() -> Result<()> {
-    utils::log::init(false);
+    let cli = CLI::parse();
+    utils::log::init(cfg!(debug_assertions));
 
     let store = Store::new();
     let listener = TcpListener::bind(SocketAddr::new(
-        IpAddr::from_str("127.0.0.1").map_err(|_| {
-            std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "Could not parse IP address",
-            )
-        })?,
-        6379,
+        cli.address
+            .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)),
+        cli.port.unwrap_or(6379),
     ))
     .await?;
 
