@@ -1,9 +1,11 @@
 mod value;
 
-pub use self::value::*;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::{HashMap, VecDeque};
+use std::sync::Arc;
 
 use tokio::sync::RwLock;
+
+pub use self::value::*;
 
 #[derive(Clone, Debug)]
 pub struct Store {
@@ -21,16 +23,40 @@ impl Store {
         self.inner.write().await.insert(key, value);
     }
 
-    pub async fn get(&self, key: &str) -> Option<Value> {
-        self.inner.read().await.get(key).cloned()
+    pub async fn get(&self, key: &str) -> Value {
+        self.inner.read().await.get(key).cloned().into()
     }
 
-    pub async fn remove(&mut self, key: &str) -> Option<Value> {
-        self.inner.write().await.remove(key)
+    pub async fn mget(&self, keys: &[String]) -> Value {
+        let inner = self.inner.read().await;
+
+        keys.iter()
+            .map(|key| inner.get(key).cloned().into())
+            .collect::<VecDeque<_>>()
+            .into()
     }
 
-    pub async fn keys(&self) -> Vec<String> {
-        self.inner.read().await.keys().cloned().collect()
+    pub async fn remove(&mut self, key: &[String]) -> Value {
+        let mut count: i64 = 0;
+
+        for k in key {
+            if self.inner.write().await.remove(k).is_some() {
+                count += 1;
+            }
+        }
+
+        count.into()
+    }
+
+    pub async fn keys(&self) -> Value {
+        self.inner
+            .read()
+            .await
+            .keys()
+            .cloned()
+            .map(Value::String)
+            .collect::<VecDeque<_>>()
+            .into()
     }
 
     pub async fn exists(&self, key: &str) -> bool {

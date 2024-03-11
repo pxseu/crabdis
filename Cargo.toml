@@ -1,10 +1,27 @@
 [package]
 name = "crabdis"
+description = "It's like Redis but a bit rusty..."
+license = "MIT"
+repository = "https://github.com/pxseu/crabdis"
+readme = "README.md"
+homepage = "https://github.com/pxseu/crabdis#readme"
 version = "0.1.0"
 edition = "2021"
 
 
 [dependencies]
-tokio = { version = "1.36", features = ["full"] }
+log = "0.4.21"
+fern = "0.6.2"
 clap = { version = "4.5.2", features = [] }
-tokio-util = { version = "0.7.10", features = ["io"] }
+tokio = { version = "1.36.0", features = ["full"] }
+
+[profile.release]
+strip = true
+lto = true
+opt-level = 3
+panic = "abort"
+
+[profile.test]
+strip = true
+lto = true
+opt-level = 3

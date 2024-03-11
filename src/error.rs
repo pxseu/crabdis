@@ -1,5 +1,5 @@
 use std::error::Error as StdError;
-use std::fmt;
+use std::fmt::{self, Display};
 use std::io::Error as IoError;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -31,5 +31,33 @@ impl StdError for Error {
             Self::Io(inner) => Some(inner),
             Self::ParseIntError(inner) => Some(inner),
         }
+    }
+}
+
+pub trait Context<T, E> {
+    fn context<C>(self, ctx: C) -> Result<T>
+    where
+        C: Display + Send + Sync + 'static;
+}
+
+impl<T, E> Context<T, E> for std::result::Result<T, E>
+where
+    E: std::error::Error + Send + Sync + 'static,
+{
+    fn context<C>(self, ctx: C) -> Result<T>
+    where
+        C: Display + Send + Sync + 'static,
+    {
+        self.map_err(|err| {
+            let ctx = ctx.to_string();
+
+            let msg = if let Some(source) = err.source() {
+                format!("{}: {}", ctx, source)
+            } else {
+                ctx
+            };
+
+            Error::Io(IoError::new(std::io::ErrorKind::Other, msg))
+        })
     }
 }

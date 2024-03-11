@@ -1,22 +1,33 @@
 pub mod error;
 pub mod handler;
-pub mod listener;
 pub mod prelude;
 pub mod storage;
+pub mod utils;
 
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpStream;
+use std::net::{IpAddr, SocketAddr};
+use std::str::FromStr;
 
-use self::listener::TcpListener;
+use tokio::net::TcpListener;
+
 use self::prelude::*;
-
-async fn handle_client(mut stream: TcpStream, _store: Store) {
-    stream.write("+OK\r\n".as_bytes()).await.unwrap();
-}
+use crate::handler::handle_client;
 
 pub async fn run() -> Result<()> {
+    utils::log::init(false);
+
     let store = Store::new();
-    let listener = TcpListener::bind(None, None).await?;
+    let listener = TcpListener::bind(SocketAddr::new(
+        IpAddr::from_str("127.0.0.1").map_err(|_| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Could not parse IP address",
+            )
+        })?,
+        6379,
+    ))
+    .await?;
+
+    log::info!("Listening on {}", listener.local_addr()?);
 
     loop {
         let (stream, _) = listener.accept().await?;

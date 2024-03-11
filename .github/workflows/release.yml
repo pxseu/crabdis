@@ -1,0 +1,196 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  MACOSX_DEPLOYMENT_TARGET: 10.7
+  EXECUTABLE_NAME: crabdis
+
+jobs:
+  draft-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.tag.outputs.tag_name }}
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Get tag data
+        id: tag
+        run: |
+          # replace the following commands to use the new GITHUB_OUTPUT syntax
+
+          echo "tag_name=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+
+          if [[ ${{ github.event.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
+            echo "pre_release=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create new release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: ${{ steps.tag.outputs.pre_release == 'true' }}
+          title: "Version: ${{ steps.tag.outputs.tag_name }}"
+          draft: true
+
+  build-release:
+    name: Build Release Assets
+    needs: ["draft-release"]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            platform: x86_64-Linux
+            flags: --all-features
+
+          - target: i686-unknown-linux-musl
+            os: ubuntu-latest
+            platform: i686-Linux
+            flags: --all-features
+
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            platform: aarch64-Linux
+            flags: --all-features
+
+          - target: arm-unknown-linux-musleabihf
+            os: ubuntu-latest
+            platform: arm-Linux
+            flags: --all-features
+
+          - target: x86_64-apple-darwin
+            os: macOS-latest
+            platform: x86_64-Darwin
+            flags: --all-features
+
+          - target: aarch64-apple-darwin
+            os: macOS-latest
+            platform: aarch64-Darwin
+            flags: --all-features
+
+          # - target: x86_64-pc-windows-msvc
+          #   os: windows-latest
+          #   platform: x86_64-Windows
+          #   flags: --all-features
+
+          # - target: i686-pc-windows-msvc
+          #   os: windows-latest
+          #   platform: i686-Windows
+          #   flags: --all-features
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+          components: rustfmt, clippy
+
+      # - name: Install Wix [Windows]
+      #   if: matrix.os == 'windows-latest'
+      #   run: cargo install cargo-wix
+
+      - name: Install Cross [Linux]
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo install cross
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: ${{ matrix.os == 'ubuntu-latest' && 'cross' || 'cargo'  }} build --release --locked ${{ matrix.flags }} --target ${{ matrix.target }}
+
+      - name: Prepare binaries [*nix]
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          strip ${{ env.EXECUTABLE_NAME }} || true
+          tar czvf ../../../${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.tar.gz ${{ env.EXECUTABLE_NAME }}
+          cd -
+
+      # - name: Prepare binaries [Windows]
+      #   if: matrix.os == 'windows-latest'
+      #   run: |
+      #     cd target/${{ matrix.target }}/release
+      #     strip ${{ env.EXECUTABLE_NAME }}.exe
+      #     7z a ../../../${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.zip ${{ env.EXECUTABLE_NAME }}.exe
+      #     cd -
+
+      # - name: Build installer [Windows]
+      #   if: matrix.os == 'windows-latest'
+      #   run: cargo wix -I .\build\windows\main.wxs -v --no-build --nocapture --target ${{ matrix.target }} --output target\wix\${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi --package ${{ env.EXECUTABLE_NAME }}-cli
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
+          path: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
+
+      # - name: Upload installer [Windows]
+      #   if: matrix.os == 'windows-latest'
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi
+      #     path: target/wix/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi
+
+  publish-release:
+    name: Publish Release
+    needs: ["draft-release", "build-release"]
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    environment: prod
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Create Checksums
+        run: for file in ${{ env.EXECUTABLE_NAME }}-*/${{ env.EXECUTABLE_NAME }}-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+
+      - name: Update Release
+        run: gh release edit ${{ needs.draft-release.outputs.tag_name }} --draft=false --repo=${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add Artifacts to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.EXECUTABLE_NAME }}-*/${{ env.EXECUTABLE_NAME }}-*
+          tag_name: ${{ needs.draft-release.outputs.tag_name }}
+
+  publish-crates:
+    name: Publish Crates
+    needs: ["draft-release", "build-release"]
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    environment: prod
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Login to Crates
+        run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish Crates
+        run: cargo publish --locked --no-verify
