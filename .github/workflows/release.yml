@@ -135,14 +135,14 @@ jobs:
       #   run: cargo wix -I .\build\windows\main.wxs -v --no-build --nocapture --target ${{ matrix.target }} --output target\wix\${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi --package ${{ env.EXECUTABLE_NAME }}-cli
 
       - name: Upload binaries
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
           path: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
 
       # - name: Upload installer [Windows]
       #   if: matrix.os == 'windows-latest'
-      #   uses: actions/upload-artifact@v3
+      #   uses: actions/upload-artifact@v4
       #   with:
       #     name: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi
       #     path: target/wix/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi
@@ -155,7 +155,7 @@ jobs:
     environment: prod
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Create Checksums
         run: for file in ${{ env.EXECUTABLE_NAME }}-*/${{ env.EXECUTABLE_NAME }}-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done

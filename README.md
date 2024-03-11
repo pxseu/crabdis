@@ -15,7 +15,7 @@ Works? Kinda. Is it good? Maybe. Is it fast? Yes.
 
 # Installation
 
-You can find binaries on the [releases page](releases). Or you can build it yourself with `cargo build --release`.
+You can find binaries on the [releases page](https://github.com/pxseu/crabdis/releases). Or you can build it yourself with `cargo build --release`.
 
 If you want to install it with cargo, you can do so with `cargo install crabdis`.
 
