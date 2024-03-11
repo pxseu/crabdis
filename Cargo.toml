@@ -5,7 +5,7 @@ license = "MIT"
 repository = "https://github.com/pxseu/crabdis"
 readme = "README.md"
 homepage = "https://github.com/pxseu/crabdis#readme"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 
 
