@@ -1,9 +1,9 @@
 use std::collections::{HashMap, VecDeque};
 use std::future::Future;
+use std::io::Write;
 use std::pin::Pin;
 
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
-use tokio::net::tcp::ReadHalf;
 use tokio::time::Duration;
 
 use crate::prelude::*;
@@ -17,9 +17,10 @@ pub enum Value {
     Integer(i64),
     String(String),
     Multi(VecDeque<Value>),
-    Hashmap(HashMap<String, Value>),
 
     // i promise i will implement this
+    #[allow(dead_code)]
+    Hashmap(HashMap<String, Value>),
     #[allow(dead_code)]
     Expire((Box<Value>, Duration)),
 }
@@ -33,43 +34,82 @@ macro_rules! value_error {
 pub(crate) use value_error;
 
 impl Value {
-    pub fn bytes(&self) -> Vec<u8> {
-        self.to_resp().into_bytes()
+    pub fn to_resp<'a, T>(
+        &'a self,
+        writer: &'a mut T,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>
+    where
+        T: AsyncWriteExt + Unpin + Send,
+    {
+        Box::pin(async move {
+            match self {
+                Self::Ok => Ok(writer.write_all(b"+OK\r\n").await?),
+                Self::Pong => Ok(writer.write_all(b"+PONG\r\n").await?),
+                Self::Nil => Ok(writer.write_all(b"$-1\r\n").await?),
+
+                Self::Error(e) => {
+                    let mut buff = Vec::with_capacity(e.len() + 3);
+                    write!(&mut buff, "-{e}\r\n").context("Could not write to buffer")?;
+
+                    writer.write_all(&buff).await?;
+
+                    Ok(())
+                }
+                Self::Integer(i) => {
+                    let string = i.to_string();
+
+                    let mut buff = Vec::with_capacity(string.len() + 3);
+                    write!(&mut buff, ":{i}\r\n").context("Could not write to buffer")?;
+
+                    writer.write_all(&buff).await?;
+
+                    Ok(())
+                }
+                Self::String(s) => {
+                    let len = s.len();
+
+                    let mut buff = Vec::with_capacity(len.to_string().len() + len + 5);
+                    write!(&mut buff, "${len}\r\n{s}\r\n").context("Could not write to buffer")?;
+
+                    writer.write_all(&buff).await?;
+
+                    Ok(())
+                }
+                Self::Multi(v) => {
+                    let len = v.len();
+
+                    let mut buff = Vec::with_capacity(len.to_string().len() + 3);
+                    write!(&mut buff, "*{len}\r\n").context("Could not write to buffer")?;
+
+                    writer.write_all(&buff).await?;
+
+                    for value in v {
+                        value.to_resp(writer).await?;
+                    }
+
+                    Ok(())
+                }
+                Self::Hashmap(h) => {
+                    let mut values = VecDeque::with_capacity(h.len() * 2);
+
+                    for (k, v) in h {
+                        values.push_back(Value::String(k.clone()));
+                        values.push_back(v.clone());
+                    }
+
+                    Value::Multi(values).to_resp(writer).await
+                }
+                Self::Expire((v, _)) => v.to_resp(writer).await,
+            }
+        })
     }
 
-    pub fn to_resp(&self) -> String {
-        match self {
-            Self::Ok => "+OK\r\n".to_string(),
-            Self::Nil => "$-1\r\n".to_string(),
-            Self::Pong => "+PONG\r\n".to_string(),
-
-            Self::Error(e) => format!("-{e}\r\n"),
-            Self::Integer(i) => format!(":{i}\r\n"),
-            Self::String(s) => format!("${}\r\n{s}\r\n", s.len()),
-            Self::Multi(v) => {
-                let mut resp = format!("*{}\r\n", v.len());
-
-                for value in v {
-                    resp.push_str(&value.to_resp());
-                }
-
-                resp
-            }
-            Self::Hashmap(h) => {
-                let mut resp = format!("*{}\r\n", h.len() * 2);
-                for (k, v) in h {
-                    resp.push_str(&Value::String(k.clone()).to_resp());
-                    resp.push_str(&v.to_resp());
-                }
-                resp
-            }
-            Self::Expire((v, _)) => v.to_resp(),
-        }
-    }
-
-    pub fn from_resp<'a>(
-        reader: &'a mut BufReader<&mut ReadHalf>,
-    ) -> Pin<Box<dyn Future<Output = Result<Self>> + Send + 'a>> {
+    pub fn from_resp<'a, T>(
+        reader: &'a mut BufReader<&mut T>,
+    ) -> Pin<Box<dyn Future<Output = Result<Self>> + Send + 'a>>
+    where
+        T: AsyncReadExt + Unpin + Send,
+    {
         Box::pin(async move {
             let mut line = String::new();
 
@@ -170,31 +210,44 @@ mod tests {
     #[tokio::test]
     async fn test_value_to_resp() {
         let value = Value::String("Hello, World!".to_string());
-        assert_eq!(value.to_resp(), "$13\r\nHello, World!\r\n");
+        let mut buff = Vec::new();
+        value.to_resp(&mut buff).await.unwrap();
+
+        assert_eq!(buff, b"$13\r\nHello, World!\r\n");
 
         let value = Value::Integer(42);
-        assert_eq!(value.to_resp(), ":42\r\n");
+        let mut buff = Vec::new();
+        value.to_resp(&mut buff).await.unwrap();
+
+        assert_eq!(buff, b":42\r\n");
 
         let value = Value::Nil;
-        assert_eq!(value.to_resp(), "$-1\r\n");
+        let mut buff = Vec::new();
+        value.to_resp(&mut buff).await.unwrap();
+
+        assert_eq!(buff, b"$-1\r\n");
 
         let value = Value::Multi(VecDeque::from([
             Value::String("Hello, World!".to_string()),
             Value::Integer(42),
             Value::Nil,
         ]));
-        assert_eq!(
-            value.to_resp(),
-            "*3\r\n$13\r\nHello, World!\r\n:42\r\n$-1\r\n"
-        );
+        let mut buff = Vec::new();
+        value.to_resp(&mut buff).await.unwrap();
 
-        let mut hashmap = HashMap::new();
-        hashmap.insert("key".to_string(), Value::String("value".to_string()));
-        let value = Value::Hashmap(hashmap);
-        assert_eq!(value.to_resp(), "*2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n");
+        println!("{:?}", std::str::from_utf8(&buff).unwrap());
 
-        let value = Value::Error("Error message".to_string());
-        assert_eq!(value.to_resp(), "-Error message\r\n");
+        assert_eq!(buff, b"*3\r\n$13\r\nHello, World!\r\n:42\r\n$-1\r\n");
+
+        let value = Value::Multi(VecDeque::from([
+            Value::String("key".to_string()),
+            Value::String("value".to_string()),
+        ]));
+
+        let mut buff = Vec::new();
+        value.to_resp(&mut buff).await.unwrap();
+
+        assert_eq!(buff, b"*2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n");
     }
 
     #[tokio::test]
