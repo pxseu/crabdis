@@ -29,6 +29,8 @@ impl CommandHandler {
         self.register_command(core::Set).await;
         self.register_command(core::Del).await;
         self.register_command(core::Ping).await;
+        self.register_command(core::MGet).await;
+        self.register_command(core::MSet).await;
         self.register_command(core::Exists).await;
         self.register_command(core::FlushDB).await;
     }
@@ -67,20 +69,6 @@ impl CommandHandler {
 //     store: &mut Store,
 // ) -> Result<Value> {
 //     let response = match command {
-
-//         "MGET" => {
-//             let mut keys = vec![];
-
-//             for key in args {
-//                 if let Value::String(key) = key {
-//                     keys.push(key.to_owned());
-//                 } else {
-//                     return Ok(value_error!("Invalid key"));
-//                 }
-//             }
-
-//             store.mget(&keys).await
-//         }
 
 //         "MSET" => {
 //             let mut data = HashMap::new();
