@@ -27,6 +27,15 @@ There is also a Docker image available on [Docker Hub](https://hub.docker.com/r/
 crabdis
 ```
 
+# TODO / Missing Features
+
+- [x] Basic RESP protocol implementation
+- [x] GET, SET, DEL, EXISTS, KEYS, FLUSHDB
+- [ ] COMMAND / COMMAND DOCS (so ioredis works)
+- [ ] SET arguments (EX, PX, NX, XX) + SETEX, PSETEX
+- [ ] Persistence
+- [ ] Hash Command family
+
 This will start the server on `127.0.0.1:6379`. You can change the address and port with the `--address` and `--port` flags.
 
 # License
