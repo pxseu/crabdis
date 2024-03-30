@@ -106,7 +106,7 @@ impl Value {
 
     pub fn from_resp<'a, T>(
         reader: &'a mut BufReader<&mut T>,
-    ) -> Pin<Box<dyn Future<Output = Result<Self>> + Send + 'a>>
+    ) -> Pin<Box<dyn Future<Output = Result<Option<Self>>> + Send + 'a>>
     where
         T: AsyncReadExt + Unpin + Send,
     {
@@ -116,7 +116,7 @@ impl Value {
             reader.read_line(&mut line).await?;
 
             match line.chars().next() {
-                Some('$') if line == "$-1\r\n" => Ok(Self::Nil),
+                Some('$') if line == "$-1\r\n" => Ok(Some(Self::Nil)),
 
                 Some('$') => {
                     let len: usize = line[1..]
@@ -130,9 +130,9 @@ impl Value {
 
                     [value.pop(), value.pop()]; // remove \n\r
 
-                    Ok(Self::String(
+                    Ok(Some(Self::String(
                         String::from_utf8(value).context("Could not parse string")?,
-                    ))
+                    )))
                 }
 
                 Some(':') => {
@@ -141,7 +141,7 @@ impl Value {
                         .parse()
                         .context("Could not parse integer")?;
 
-                    Ok(Self::Integer(value))
+                    Ok(Some(Self::Integer(value)))
                 }
 
                 Some('*') => {
@@ -152,13 +152,33 @@ impl Value {
                     let mut values = VecDeque::with_capacity(len);
 
                     for _ in 0..len {
-                        values.push_back(Self::from_resp(reader).await?);
+                        let value = Self::from_resp(reader).await?;
+
+                        if let Some(value) = value {
+                            values.push_back(value);
+                        } else {
+                            return Ok(None);
+                        }
                     }
 
-                    Ok(Self::Multi(values))
+                    Ok(Some(Self::Multi(values)))
                 }
 
-                _ => Ok(Self::Error("Invalid response".to_string())),
+                Some('+') => {
+                    let value = line[1..].trim();
+
+                    match value {
+                        "OK" => Ok(Some(Self::Ok)),
+                        "PONG" => Ok(Some(Self::Pong)),
+                        _ => unreachable!("Invalid response"),
+                    }
+                }
+
+                Some('-') => Ok(Some(Self::Error(line[1..].trim().to_string()))),
+
+                None => Ok(None),
+
+                _ => Ok(Some(Self::Error("Invalid response".to_string()))),
             }
         })
     }
@@ -257,21 +277,21 @@ mod tests {
         let mut reader = BufReader::new(&mut read);
 
         let value = Value::from_resp(&mut reader).await.unwrap();
-        assert_eq!(value, Value::String("Hello, World!".to_string()));
+        assert_eq!(value, Some(Value::String("Hello, World!".to_string())));
 
         let mut stream = create_tcp_stream(":42\r\n").await;
         let (mut read, _) = stream.split();
         let mut reader = BufReader::new(&mut read);
 
         let value = Value::from_resp(&mut reader).await.unwrap();
-        assert_eq!(value, Value::Integer(42));
+        assert_eq!(value, Some(Value::Integer(42)));
 
         let mut stream = create_tcp_stream("$-1\r\n").await;
         let (mut read, _) = stream.split();
         let mut reader = BufReader::new(&mut read);
 
         let value = Value::from_resp(&mut reader).await.unwrap();
-        assert_eq!(value, Value::Nil);
+        assert_eq!(value, Some(Value::Nil));
 
         let mut stream = create_tcp_stream("*3\r\n$13\r\nHello, World!\r\n:42\r\n$-1\r\n").await;
         let (mut read, _) = stream.split();
@@ -280,11 +300,11 @@ mod tests {
         let value = Value::from_resp(&mut reader).await.unwrap();
         assert_eq!(
             value,
-            Value::Multi(VecDeque::from([
+            Some(Value::Multi(VecDeque::from([
                 Value::String("Hello, World!".to_string()),
                 Value::Integer(42),
                 Value::Nil
-            ]))
+            ])))
         );
 
         let mut stream = create_tcp_stream("*2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n").await;
@@ -297,10 +317,10 @@ mod tests {
         assert_eq!(
             value,
             // it wont be a hashmap by default since there is no spec for hashmaps in RESP
-            Value::Multi(VecDeque::from([
+            Some(Value::Multi(VecDeque::from([
                 Value::String("key".to_string()),
                 Value::String("value".to_string())
-            ]))
+            ])))
         );
     }
 }

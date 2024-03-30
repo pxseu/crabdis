@@ -2,11 +2,14 @@ use std::error::Error as StdError;
 use std::fmt::{self, Display};
 use std::io::Error as IoError;
 
+use glob::PatternError;
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
     Io(IoError),
+    Glob(PatternError),
 }
 
 impl From<IoError> for Error {
@@ -15,10 +18,17 @@ impl From<IoError> for Error {
     }
 }
 
+impl From<PatternError> for Error {
+    fn from(e: PatternError) -> Self {
+        Self::Glob(e)
+    }
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(inner) => fmt::Display::fmt(&inner, f),
+            Self::Glob(inner) => fmt::Display::fmt(&inner, f),
         }
     }
 }
@@ -27,6 +37,7 @@ impl StdError for Error {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Self::Io(inner) => Some(inner),
+            Self::Glob(inner) => Some(inner),
         }
     }
 }

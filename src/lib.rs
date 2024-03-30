@@ -3,7 +3,7 @@ mod context;
 pub mod error;
 mod handler;
 mod prelude;
-mod storage;
+pub mod storage;
 mod utils;
 
 use std::net::{IpAddr, SocketAddr};

@@ -14,12 +14,18 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, context: ContextR
         log::debug!("Received request: {request:?}");
 
         match request {
-            Value::Multi(mut args) => {
+            Some(Value::Multi(mut args)) => {
                 context
                     .commands
                     .handle_command(&mut writer, &mut args, context.clone())
                     .await?
             }
+
+            // If the request is None, the client has disconnected.
+            None => {
+                return Ok(());
+            }
+
             _ => {
                 value_error!("Invalid request").to_resp(&mut writer).await?;
             }

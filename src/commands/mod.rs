@@ -18,6 +18,14 @@ pub trait CommandTrait {
     ) -> Result<()>;
 }
 
+macro_rules! register_commands {
+    ($handler:expr, $($command:expr),+ $(,)?) => {
+        $(
+            $handler.register_command($command).await;
+        )+
+    };
+}
+
 #[derive(Clone, Default)]
 pub struct CommandHandler {
     commands: Arc<RwLock<HashMap<String, Box<dyn CommandTrait + Send + Sync>>>>,
@@ -25,17 +33,21 @@ pub struct CommandHandler {
 
 impl CommandHandler {
     pub async fn register(&mut self) {
-        self.register_command(core::Get).await;
-        self.register_command(core::Set).await;
-        self.register_command(core::Del).await;
-        self.register_command(core::Ping).await;
-        self.register_command(core::MGet).await;
-        self.register_command(core::MSet).await;
-        self.register_command(core::Exists).await;
-        self.register_command(core::FlushDB).await;
+        register_commands!(
+            self,
+            core::Get,
+            core::Set,
+            core::Del,
+            core::MGet,
+            core::Ping,
+            core::MSet,
+            core::Keys,
+            core::Exists,
+            core::FlushDB,
+        );
     }
 
-    pub async fn register_command<C>(&mut self, command: C)
+    async fn register_command<C>(&mut self, command: C)
     where
         C: CommandTrait + Send + Sync + 'static,
     {
