@@ -21,6 +21,7 @@ impl CommandTrait for MSet {
         }
 
         let mut store = context.store.write().await;
+
         while let Some(key) = args.pop_front() {
             match key {
                 Value::String(k) => {

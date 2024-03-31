@@ -25,11 +25,14 @@ impl CommandTrait for Exists {
         let mut count = 0;
         while let Some(key) = args.pop_front() {
             match key {
-                Value::String(k) => {
-                    if store.contains_key(&k) {
+                Value::String(k) => match store.get(&k) {
+                    // Expired keys are not counted
+                    Some(v) if v.expired() => {}
+                    Some(_) => {
                         count += 1;
                     }
-                }
+                    None => {}
+                },
 
                 _ => {
                     return value_error!("Invalid key").to_resp(writer).await;

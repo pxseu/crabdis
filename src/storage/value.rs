@@ -4,7 +4,7 @@ use std::io::Write;
 use std::pin::Pin;
 
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
-use tokio::time::Duration;
+use tokio::time::Instant;
 
 use crate::prelude::*;
 
@@ -17,12 +17,11 @@ pub enum Value {
     Integer(i64),
     String(String),
     Multi(VecDeque<Value>),
+    Expire((Box<Value>, Instant)),
 
     // i promise i will implement this
     #[allow(dead_code)]
     Hashmap(HashMap<String, Value>),
-    #[allow(dead_code)]
-    Expire((Box<Value>, Duration)),
 }
 
 macro_rules! value_error {
@@ -34,6 +33,13 @@ macro_rules! value_error {
 pub(crate) use value_error;
 
 impl Value {
+    pub fn expired(&self) -> bool {
+        match self {
+            Self::Expire((_, expires_at)) => Instant::now() > *expires_at,
+            _ => false,
+        }
+    }
+
     pub fn to_resp<'a, T>(
         &'a self,
         writer: &'a mut T,
@@ -99,7 +105,14 @@ impl Value {
 
                     Value::Multi(values).to_resp(writer).await
                 }
-                Self::Expire((v, _)) => v.to_resp(writer).await,
+                Self::Expire((v, _)) => {
+                    // check if the value is expired
+                    if Self::expired(&self) {
+                        return Self::Nil.to_resp(writer).await;
+                    }
+
+                    v.to_resp(writer).await
+                }
             }
         })
     }

@@ -1,11 +1,11 @@
 use crate::prelude::*;
 
-pub struct Set;
+pub struct Ttl;
 
 #[async_trait]
-impl CommandTrait for Set {
+impl CommandTrait for Ttl {
     fn name(&self) -> &str {
-        "SET"
+        "TTL"
     }
 
     async fn handle_command(
@@ -14,7 +14,7 @@ impl CommandTrait for Set {
         args: &mut VecDeque<Value>,
         context: ContextRef,
     ) -> Result<()> {
-        if args.len() != 2 {
+        if args.len() != 1 {
             return value_error!("Invalid number of arguments")
                 .to_resp(writer)
                 .await;
@@ -30,17 +30,26 @@ impl CommandTrait for Set {
             }
         };
 
-        let value = match args.pop_front() {
-            Some(value) => value,
-            _ => {
-                return value_error!("Missing value").to_resp(writer).await;
+        let store = context.store.read().await;
+
+        let duration = match store.get(&key) {
+            Some(Value::Expire((_, ttl))) => {
+                let duration = ttl.duration_since(tokio::time::Instant::now()).as_secs() as i64;
+
+                if duration != 0 {
+                    duration
+                } else {
+                    -2
+                }
             }
+
+            // non-expire keys should return -1
+            Some(_) => -1,
+
+            // not found keys should return -2
+            None => -2,
         };
 
-        // TODO: add support for options  (https://redis.io/commands/set/)
-
-        context.store.write().await.insert(key, value);
-
-        Value::Ok.to_resp(writer).await
+        Value::Integer(duration).to_resp(writer).await
     }
 }

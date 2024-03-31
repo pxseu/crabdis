@@ -1,11 +1,11 @@
 use crate::prelude::*;
 
-pub struct Set;
+pub struct SetEx;
 
 #[async_trait]
-impl CommandTrait for Set {
+impl CommandTrait for SetEx {
     fn name(&self) -> &str {
-        "SET"
+        "SETEX"
     }
 
     async fn handle_command(
@@ -14,7 +14,7 @@ impl CommandTrait for Set {
         args: &mut VecDeque<Value>,
         context: ContextRef,
     ) -> Result<()> {
-        if args.len() != 2 {
+        if args.len() != 3 {
             return value_error!("Invalid number of arguments")
                 .to_resp(writer)
                 .await;
@@ -30,6 +30,21 @@ impl CommandTrait for Set {
             }
         };
 
+        let seconds = match args.pop_front() {
+            Some(Value::Integer(seconds)) => seconds,
+            Some(Value::String(seconds)) => seconds.parse::<i64>().unwrap_or(-1),
+            Some(_) => {
+                return value_error!("Invalid seconds").to_resp(writer).await;
+            }
+            None => {
+                return value_error!("Missing seconds").to_resp(writer).await;
+            }
+        };
+
+        if seconds < 0 {
+            return value_error!("Invalid seconds").to_resp(writer).await;
+        }
+
         let value = match args.pop_front() {
             Some(value) => value,
             _ => {
@@ -37,9 +52,14 @@ impl CommandTrait for Set {
             }
         };
 
-        // TODO: add support for options  (https://redis.io/commands/set/)
-
-        context.store.write().await.insert(key, value);
+        context.store.write().await.insert(
+            key.clone(),
+            Value::Expire((
+                Box::new(value),
+                tokio::time::Instant::now() + tokio::time::Duration::from_secs(seconds as u64),
+            )),
+        );
+        context.expire_keys.write().await.insert(key);
 
         Value::Ok.to_resp(writer).await
     }

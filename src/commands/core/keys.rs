@@ -30,6 +30,7 @@ impl CommandTrait for Keys {
         };
 
         let mut keys = VecDeque::new();
+
         for key in context.store.read().await.keys() {
             if pattern.matches(key) {
                 keys.push_back(Value::String(key.clone()));

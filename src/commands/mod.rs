@@ -1,4 +1,5 @@
 pub mod core;
+pub mod expire;
 
 use std::sync::Arc;
 
@@ -45,6 +46,8 @@ impl CommandHandler {
             core::Exists,
             core::FlushDB,
         );
+
+        register_commands!(self, expire::Expire, expire::Ttl, expire::SetEx);
     }
 
     async fn register_command<C>(&mut self, command: C)
@@ -81,42 +84,6 @@ impl CommandHandler {
 //     store: &mut Store,
 // ) -> Result<Value> {
 //     let response = match command {
-
-//         "MSET" => {
-//             let mut data = HashMap::new();
-
-//             if args.len() % 2 != 0 {
-//                 return Ok(value_error!("Invalid number of arguments"));
-//             }
-
-//             for kv in args.iter().collect::<Vec<_>>().chunks_exact(2) {
-//                 let key = match kv[0].to_owned() {
-//                     Value::String(key) => key,
-//                     _ => {
-//                         return Ok(value_error!("Invalid key"));
-//                     }
-//                 };
-
-//                 data.insert(key, kv[1].to_owned());
-//             }
-
-//             store.mset(data).await;
-
-//             Value::Ok
-//         }
-
-//         "KEYS" => {
-//             if args.len() > 1 {
-//                 return Ok(value_error!("Invalid number of arguments"));
-//             }
-
-//             let _pattern = match args.pop_front() {
-//                 Some(Value::String(pattern)) => Some(pattern),
-//                 _ => None,
-//             };
-
-//             store.keys().await
-//         }
 
 //         "HGET" => {
 //             if args.len() != 2 {
