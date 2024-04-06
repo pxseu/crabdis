@@ -12,11 +12,11 @@ impl CommandTrait for Ping {
         &self,
         writer: &mut WriteHalf,
         args: &mut VecDeque<Value>,
-        _context: ContextRef,
+        _session: SessionRef,
     ) -> Result<()> {
         if args.len() > 1 {
             return value_error!("Invalid number of arguments")
-                .to_resp(writer)
+                .to_resp2(writer)
                 .await;
         }
 
@@ -25,6 +25,6 @@ impl CommandTrait for Ping {
             _ => Value::Pong,
         };
 
-        response.to_resp(writer).await
+        response.to_resp2(writer).await
     }
 }

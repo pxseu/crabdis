@@ -12,15 +12,15 @@ impl CommandTrait for Del {
         &self,
         writer: &mut WriteHalf,
         args: &mut VecDeque<Value>,
-        context: ContextRef,
+        session: SessionRef,
     ) -> Result<()> {
         if args.len() < 1 {
             return value_error!("Invalid number of arguments")
-                .to_resp(writer)
+                .to_resp2(writer)
                 .await;
         }
 
-        let mut store = context.store.write().await;
+        let mut store = session.state.store.write().await;
         let mut count = 0;
         while let Some(key) = args.pop_front() {
             match key {
@@ -31,11 +31,11 @@ impl CommandTrait for Del {
                 }
 
                 _ => {
-                    return value_error!("Invalid key").to_resp(writer).await;
+                    return value_error!("Invalid key").to_resp2(writer).await;
                 }
             }
         }
 
-        Value::Integer(count).to_resp(writer).await
+        Value::Integer(count).to_resp2(writer).await
     }
 }

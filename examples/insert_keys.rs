@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
 
         println!("Sending request: {req:?}");
 
-        req.to_resp(&mut writer).await?;
+        req.to_resp2(&mut writer).await?;
 
         writer.flush().await?;
 

@@ -12,15 +12,15 @@ impl CommandTrait for MSet {
         &self,
         writer: &mut WriteHalf,
         args: &mut VecDeque<Value>,
-        context: ContextRef,
+        session: SessionRef,
     ) -> Result<()> {
         if args.len() < 2 || args.len() % 2 != 0 {
             return value_error!("Invalid number of arguments")
-                .to_resp(writer)
+                .to_resp2(writer)
                 .await;
         }
 
-        let mut store = context.store.write().await;
+        let mut store = session.state.store.write().await;
 
         while let Some(key) = args.pop_front() {
             match key {
@@ -30,11 +30,11 @@ impl CommandTrait for MSet {
                 }
 
                 _ => {
-                    return value_error!("Invalid key").to_resp(writer).await;
+                    return value_error!("Invalid key").to_resp2(writer).await;
                 }
             }
         }
 
-        Value::Ok.to_resp(writer).await
+        Value::Ok.to_resp2(writer).await
     }
 }

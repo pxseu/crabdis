@@ -12,25 +12,25 @@ impl CommandTrait for Ttl {
         &self,
         writer: &mut WriteHalf,
         args: &mut VecDeque<Value>,
-        context: ContextRef,
+        session: SessionRef,
     ) -> Result<()> {
         if args.len() != 1 {
             return value_error!("Invalid number of arguments")
-                .to_resp(writer)
+                .to_resp2(writer)
                 .await;
         }
 
         let key = match args.pop_front() {
             Some(Value::String(key)) => key,
             Some(_) => {
-                return value_error!("Invalid key").to_resp(writer).await;
+                return value_error!("Invalid key").to_resp2(writer).await;
             }
             None => {
-                return value_error!("Missing key").to_resp(writer).await;
+                return value_error!("Missing key").to_resp2(writer).await;
             }
         };
 
-        let store = context.store.read().await;
+        let store = session.state.store.read().await;
 
         let duration = match store.get(&key) {
             Some(Value::Expire((_, ttl))) => {
@@ -50,6 +50,6 @@ impl CommandTrait for Ttl {
             None => -2,
         };
 
-        Value::Integer(duration).to_resp(writer).await
+        Value::Integer(duration).to_resp2(writer).await
     }
 }

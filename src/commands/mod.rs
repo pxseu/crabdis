@@ -15,7 +15,7 @@ pub trait CommandTrait {
         &self,
         writer: &mut WriteHalf,
         args: &mut VecDeque<Value>,
-        context: ContextRef,
+        session: SessionRef,
     ) -> Result<()>;
 }
 
@@ -43,6 +43,7 @@ impl CommandHandler {
             core::Ping,
             core::MSet,
             core::Keys,
+            core::Hello,
             core::Exists,
             core::FlushDB,
         );
@@ -64,16 +65,16 @@ impl CommandHandler {
         &self,
         writer: &mut WriteHalf<'_>,
         args: &mut VecDeque<Value>,
-        context: ContextRef,
+        session: SessionRef,
     ) -> Result<()> {
         let command = match args.pop_front() {
             Some(Value::String(command)) => command.to_uppercase(),
-            _ => return value_error!("Invalid command").to_resp(writer).await,
+            _ => return value_error!("Invalid command").to_resp2(writer).await,
         };
 
         match self.commands.read().await.get(&command) {
-            Some(command) => command.handle_command(writer, args, context).await,
-            None => value_error!("Unknown command").to_resp(writer).await,
+            Some(command) => command.handle_command(writer, args, session).await,
+            None => value_error!("Unknown command").to_resp2(writer).await,
         }
     }
 }

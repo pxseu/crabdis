@@ -12,16 +12,16 @@ impl CommandTrait for FlushDB {
         &self,
         writer: &mut WriteHalf,
         args: &mut VecDeque<Value>,
-        context: ContextRef,
+        session: SessionRef,
     ) -> Result<()> {
         if args.len() > 1 {
             return value_error!("Invalid number of arguments")
-                .to_resp(writer)
+                .to_resp2(writer)
                 .await;
         }
 
-        context.store.write().await.clear();
+        session.state.store.write().await.clear();
 
-        Value::Ok.to_resp(writer).await
+        Value::Ok.to_resp2(writer).await
     }
 }

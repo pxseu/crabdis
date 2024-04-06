@@ -5,26 +5,26 @@ use crate::prelude::*;
 use crate::storage::ExpireKey;
 
 #[derive(Clone, Default)]
-pub struct Context {
+pub struct State {
     pub store: Store,
     pub commands: CommandHandler,
     pub expire_keys: ExpireKey,
 }
 
-impl Context {
+impl State {
     pub async fn new() -> Arc<Self> {
-        let mut context = Context::default();
+        let mut state = State::default();
 
-        context.commands.register().await;
+        state.commands.register().await;
 
-        let context = Arc::new(context);
+        let state = Arc::new(state);
 
-        Self::expire_keys_task(context.clone());
+        Self::expire_keys_task(state.clone());
 
-        context
+        state
     }
 
-    fn expire_keys_task(context: Arc<Self>) {
+    fn expire_keys_task(state: Arc<Self>) {
         tokio::spawn(async move {
             // run every 60 seconds
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
@@ -42,8 +42,8 @@ impl Context {
 
                 let mut keys_to_remove = Vec::new();
 
-                for key in context.expire_keys.read().await.iter() {
-                    let expire_at = context.store.read().await;
+                for key in state.expire_keys.read().await.iter() {
+                    let expire_at = state.store.read().await;
                     let expire_at = match expire_at.get(key) {
                         Some(Value::Expire((_, expire_at))) => expire_at,
                         _ => continue,
@@ -58,12 +58,12 @@ impl Context {
                 log::debug!("Removing keys: {keys_to_remove:?}");
 
                 for key in keys_to_remove {
-                    context.store.write().await.remove(&key);
-                    context.expire_keys.write().await.remove(&key);
+                    state.store.write().await.remove(&key);
+                    state.expire_keys.write().await.remove(&key);
                 }
             }
         });
     }
 }
 
-pub type ContextRef = Arc<Context>;
+pub type StateRef = Arc<State>;

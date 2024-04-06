@@ -12,17 +12,17 @@ impl CommandTrait for MGet {
         &self,
         writer: &mut WriteHalf,
         args: &mut VecDeque<Value>,
-        context: ContextRef,
+        session: SessionRef,
     ) -> Result<()> {
         if args.len() < 1 {
             return value_error!("Invalid number of arguments")
-                .to_resp(writer)
+                .to_resp2(writer)
                 .await;
         }
 
         let mut values = VecDeque::with_capacity(args.len());
 
-        let store = context.store.write().await;
+        let store = session.state.store.write().await;
 
         while let Some(key) = args.pop_front() {
             match key {
@@ -32,11 +32,11 @@ impl CommandTrait for MGet {
                 },
 
                 _ => {
-                    return value_error!("Invalid key").to_resp(writer).await;
+                    return value_error!("Invalid key").to_resp2(writer).await;
                 }
             }
         }
 
-        Value::Multi(values).to_resp(writer).await
+        Value::Multi(values).to_resp2(writer).await
     }
 }

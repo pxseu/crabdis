@@ -40,7 +40,7 @@ impl Value {
         }
     }
 
-    pub fn to_resp<'a, T>(
+    pub fn to_resp2<'a, T>(
         &'a self,
         writer: &'a mut T,
     ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>
@@ -90,7 +90,7 @@ impl Value {
                     writer.write_all(&buff).await?;
 
                     for value in v {
-                        value.to_resp(writer).await?;
+                        value.to_resp2(writer).await?;
                     }
 
                     Ok(())
@@ -103,16 +103,48 @@ impl Value {
                         values.push_back(v.clone());
                     }
 
-                    Value::Multi(values).to_resp(writer).await
+                    Value::Multi(values).to_resp2(writer).await
                 }
                 Self::Expire((v, _)) => {
                     // check if the value is expired
                     if Self::expired(&self) {
-                        return Self::Nil.to_resp(writer).await;
+                        return Self::Nil.to_resp2(writer).await;
                     }
 
-                    v.to_resp(writer).await
+                    v.to_resp2(writer).await
                 }
+            }
+        })
+    }
+
+    pub fn to_resp3<'a, T>(
+        &'a self,
+        writer: &'a mut T,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>
+    where
+        T: AsyncWriteExt + Unpin + Send,
+    {
+        Box::pin(async move {
+            match self {
+                Self::Nil => Ok(writer.write_all(b"$_\r\n").await?),
+                Self::Hashmap(map) => {
+                    let len = map.len();
+
+                    let mut buff = Vec::with_capacity(len.to_string().len() + 3);
+                    write!(&mut buff, "%{len}\r\n").context("Could not write to buffer")?;
+
+                    writer.write_all(&buff).await?;
+
+                    for (k, v) in map {
+                        writer.write_all(format!("+{k}\r\n").as_bytes()).await?;
+                        v.to_resp3(writer).await?;
+                    }
+
+                    Ok(())
+                }
+
+                // rest of the code is the same as to_resp2
+                _ => self.to_resp2(writer).await,
             }
         })
     }
@@ -138,14 +170,16 @@ impl Value {
                         .context("Could not parse integer")?;
 
                     // +2 for `\r\n
-                    let mut value = vec![0; len + 2];
+                    let mut value = vec![0; len];
                     reader.read_exact(&mut value).await?;
 
-                    [value.pop(), value.pop()]; // remove \n\r
+                    // +2 for `\r\n
+                    reader.read_exact(&mut [0; 2]).await?;
 
-                    Ok(Some(Self::String(
-                        String::from_utf8(value).context("Could not parse string")?,
-                    )))
+                    // SAFETY: we know that the value is a valid utf8 string, or at least it should
+                    let value = unsafe { String::from_utf8_unchecked(value) };
+
+                    Ok(Some(Self::String(value)))
                 }
 
                 Some(':') => {
@@ -244,19 +278,19 @@ mod tests {
     async fn test_value_to_resp() {
         let value = Value::String("Hello, World!".to_string());
         let mut buff = Vec::new();
-        value.to_resp(&mut buff).await.unwrap();
+        value.to_resp2(&mut buff).await.unwrap();
 
         assert_eq!(buff, b"$13\r\nHello, World!\r\n");
 
         let value = Value::Integer(42);
         let mut buff = Vec::new();
-        value.to_resp(&mut buff).await.unwrap();
+        value.to_resp2(&mut buff).await.unwrap();
 
         assert_eq!(buff, b":42\r\n");
 
         let value = Value::Nil;
         let mut buff = Vec::new();
-        value.to_resp(&mut buff).await.unwrap();
+        value.to_resp2(&mut buff).await.unwrap();
 
         assert_eq!(buff, b"$-1\r\n");
 
@@ -266,7 +300,7 @@ mod tests {
             Value::Nil,
         ]));
         let mut buff = Vec::new();
-        value.to_resp(&mut buff).await.unwrap();
+        value.to_resp2(&mut buff).await.unwrap();
 
         println!("{:?}", std::str::from_utf8(&buff).unwrap());
 
@@ -278,7 +312,7 @@ mod tests {
         ]));
 
         let mut buff = Vec::new();
-        value.to_resp(&mut buff).await.unwrap();
+        value.to_resp2(&mut buff).await.unwrap();
 
         assert_eq!(buff, b"*2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n");
     }

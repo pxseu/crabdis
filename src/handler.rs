@@ -2,7 +2,7 @@ use tokio::io::{AsyncWriteExt, BufReader};
 
 use crate::prelude::*;
 
-pub async fn handle_client(stream: &mut tokio::net::TcpStream, context: ContextRef) -> Result<()> {
+pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionRef) -> Result<()> {
     let (mut read, mut writer) = stream.split();
 
     let mut reader = BufReader::new(&mut read);
@@ -15,9 +15,10 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, context: ContextR
 
         match request {
             Some(Value::Multi(mut args)) => {
-                context
+                session
+                    .state
                     .commands
-                    .handle_command(&mut writer, &mut args, context.clone())
+                    .handle_command(&mut writer, &mut args, session.clone())
                     .await?
             }
 
@@ -27,7 +28,9 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, context: ContextR
             }
 
             _ => {
-                value_error!("Invalid request").to_resp(&mut writer).await?;
+                value_error!("Invalid request")
+                    .to_resp2(&mut writer)
+                    .await?;
             }
         };
 
