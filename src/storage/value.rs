@@ -144,6 +144,7 @@ impl Value {
                 }
 
                 // rest of the code is the same as to_resp2
+                // edit: not really but clients are forgiving
                 _ => self.to_resp2(writer).await,
             }
         })

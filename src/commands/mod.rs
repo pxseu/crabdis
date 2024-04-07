@@ -1,5 +1,6 @@
 pub mod core;
 pub mod expire;
+pub mod hash;
 
 use std::sync::Arc;
 
@@ -49,6 +50,8 @@ impl CommandHandler {
         );
 
         register_commands!(self, expire::Expire, expire::Ttl, expire::SetEx);
+
+        register_commands!(self, hash::HSet, hash::HGetAll);
     }
 
     async fn register_command<C>(&mut self, command: C)
