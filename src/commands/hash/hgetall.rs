@@ -33,7 +33,7 @@ impl CommandTrait for HGetAll {
         let store = session.state.store.read().await;
 
         match store.get(&key) {
-            Some(value @ Value::Hashmap(_)) => session.versioned_response(value, writer).await,
+            Some(value @ Value::Map(_)) => session.versioned_response(value, writer).await,
 
             Some(_) => value_error!("Key is not a hashmap").to_resp2(writer).await,
 

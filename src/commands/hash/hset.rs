@@ -36,16 +36,16 @@ impl CommandTrait for HSet {
 
         let mut count = 0;
 
-        while let Some(Value::String(field)) = args.pop_front() {
+        while let Some(field) = args.pop_front() {
             // SAFETY: we know that we have a field, so we can unwrap
             let value = args.pop_front().unwrap();
 
             let fields = store
                 .entry(key.clone())
-                .or_insert_with(|| Value::Hashmap(HashMap::new()));
+                .or_insert_with(|| Value::Map(HashMap::new()));
 
             match fields {
-                Value::Hashmap(fields) => {
+                Value::Map(fields) => {
                     fields.insert(field, value);
                 }
                 _ => {

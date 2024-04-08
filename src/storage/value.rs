@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::future::Future;
 use std::io::Write;
 use std::pin::Pin;
@@ -18,10 +18,47 @@ pub enum Value {
     String(String),
     Multi(VecDeque<Value>),
     Expire((Box<Value>, Instant)),
+    Map(HashMap<Value, Value>),
 
-    // i promise i will implement this
-    #[allow(dead_code)]
-    Hashmap(HashMap<String, Value>),
+    // not implemented yet
+    Set(HashSet<Value>),
+}
+
+impl std::hash::Hash for Value {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Ok => "ok".hash(state),
+            Self::Nil => "nil".hash(state),
+            Self::Error(e) => e.hash(state),
+            Self::Pong => "pong".hash(state),
+            Self::Integer(i) => i.hash(state),
+            Self::String(s) => s.hash(state),
+            Self::Multi(v) => v.hash(state),
+            Self::Expire((v, _)) => v.hash(state),
+
+            Self::Map(_) | Self::Set(_) => unreachable!(),
+            // Self::Hashmap(v) => {
+            //     use std::collections::hash_map::DefaultHasher;
+            //     use std::hash::Hasher;
+
+            //     let mut total_hash = 0;
+
+            //     for (k, v) in v.iter() {
+            //         let mut hasher = DefaultHasher::new();
+
+            //         k.hash(&mut hasher);
+            //         v.hash(&mut hasher);
+
+            //         let pair_hash = hasher.finish();
+
+            //         // this might be insecure however it does not matter for now
+            //         total_hash ^= pair_hash; // XOR the hashes together
+            //     }
+
+            //     total_hash.hash(state);
+            // }
+        }
+    }
 }
 
 macro_rules! value_error {
@@ -53,14 +90,7 @@ impl Value {
                 Self::Pong => Ok(writer.write_all(b"+PONG\r\n").await?),
                 Self::Nil => Ok(writer.write_all(b"$-1\r\n").await?),
 
-                Self::Error(e) => {
-                    let mut buff = Vec::with_capacity(e.len() + 3);
-                    write!(&mut buff, "-{e}\r\n").context("Could not write to buffer")?;
-
-                    writer.write_all(&buff).await?;
-
-                    Ok(())
-                }
+                Self::Error(e) => Ok(writer.write_all(format!("-{e}\r\n").as_bytes()).await?),
                 Self::Integer(i) => {
                     let string = i.to_string();
 
@@ -74,20 +104,16 @@ impl Value {
                 Self::String(s) => {
                     let len = s.len();
 
-                    let mut buff = Vec::with_capacity(len.to_string().len() + len + 5);
-                    write!(&mut buff, "${len}\r\n{s}\r\n").context("Could not write to buffer")?;
-
-                    writer.write_all(&buff).await?;
+                    writer
+                        .write_all(format!("${len}\r\n{s}\r\n").as_bytes())
+                        .await?;
 
                     Ok(())
                 }
                 Self::Multi(v) => {
                     let len = v.len();
 
-                    let mut buff = Vec::with_capacity(len.to_string().len() + 3);
-                    write!(&mut buff, "*{len}\r\n").context("Could not write to buffer")?;
-
-                    writer.write_all(&buff).await?;
+                    writer.write_all(format!("*{len}\r\n").as_bytes()).await?;
 
                     for value in v {
                         value.to_resp2(writer).await?;
@@ -95,11 +121,20 @@ impl Value {
 
                     Ok(())
                 }
-                Self::Hashmap(h) => {
+                Self::Map(h) => {
                     let mut values = VecDeque::with_capacity(h.len() * 2);
 
                     for (k, v) in h {
-                        values.push_back(Value::String(k.clone()));
+                        values.push_back(k.clone());
+                        values.push_back(v.clone());
+                    }
+
+                    Value::Multi(values).to_resp2(writer).await
+                }
+                Self::Set(s) => {
+                    let mut values = VecDeque::with_capacity(s.len());
+
+                    for v in s {
                         values.push_back(v.clone());
                     }
 
@@ -127,16 +162,24 @@ impl Value {
         Box::pin(async move {
             match self {
                 Self::Nil => Ok(writer.write_all(b"$_\r\n").await?),
-                Self::Hashmap(map) => {
+                Self::Map(map) => {
                     let len = map.len();
 
-                    let mut buff = Vec::with_capacity(len.to_string().len() + 3);
-                    write!(&mut buff, "%{len}\r\n").context("Could not write to buffer")?;
-
-                    writer.write_all(&buff).await?;
+                    writer.write_all(format!("%{len}\r\n").as_bytes()).await?;
 
                     for (k, v) in map {
-                        writer.write_all(format!("+{k}\r\n").as_bytes()).await?;
+                        k.to_resp3(writer).await?;
+                        v.to_resp3(writer).await?;
+                    }
+
+                    Ok(())
+                }
+                Self::Set(set) => {
+                    let len = set.len();
+
+                    writer.write_all(format!("~{len}\r\n").as_bytes()).await?;
+
+                    for v in set {
                         v.to_resp3(writer).await?;
                     }
 

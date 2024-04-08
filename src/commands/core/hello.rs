@@ -32,24 +32,33 @@ impl CommandTrait for Hello {
             _ => {}
         }
 
-        let response = Value::Hashmap(HashMap::from([
+        let response = Value::Map(HashMap::from([
             (
-                "server".to_string(),
+                Value::String("server".to_string()),
                 Value::String(env!("CARGO_PKG_NAME").to_string()),
             ),
             (
-                "version".to_string(),
+                Value::String("version".to_string()),
                 Value::String(env!("CARGO_PKG_VERSION").to_string()),
             ),
             (
-                "proto".to_string(),
+                Value::String("proto".to_string()),
                 Value::Integer(session.get_proto_version().await),
             ),
             // TODO: fix no count of connected clients
-            ("id".to_string(), Value::Integer(0)),
-            ("mode".to_string(), Value::String("standalone".to_string())),
-            ("role".to_string(), Value::String("master".to_string())),
-            ("modules".to_string(), Value::Multi(Default::default())),
+            (Value::String("proto".to_string()), Value::Integer(0)),
+            (
+                Value::String("mode".to_string()),
+                Value::String("standalone".to_string()),
+            ),
+            (
+                Value::String("role".to_string()),
+                Value::String("master".to_string()),
+            ),
+            (
+                Value::String("modules".to_string()),
+                Value::Multi(Default::default()),
+            ),
         ]));
 
         session.versioned_response(&response, writer).await
