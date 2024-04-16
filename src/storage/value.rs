@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::future::Future;
-use std::io::Write;
 use std::pin::Pin;
 
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
@@ -10,10 +9,11 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Value {
-    Ok,            // only for response
-    Nil,           // only for response
-    Error(String), // only for response
-    Pong,          // only for response
+    Ok,   // only for response
+    Pong, // only for response
+    Nil,
+    Simple(String),
+    Error(String),
     Integer(i64),
     String(String),
     Multi(VecDeque<Value>),
@@ -29,8 +29,9 @@ impl std::hash::Hash for Value {
         match self {
             Self::Ok => "ok".hash(state),
             Self::Nil => "nil".hash(state),
-            Self::Error(e) => e.hash(state),
             Self::Pong => "pong".hash(state),
+            Self::Simple(s) => s.hash(state),
+            Self::Error(e) => e.hash(state),
             Self::Integer(i) => i.hash(state),
             Self::String(s) => s.hash(state),
             Self::Multi(v) => v.hash(state),
@@ -86,21 +87,13 @@ impl Value {
     {
         Box::pin(async move {
             match self {
-                Self::Ok => Ok(writer.write_all(b"+OK\r\n").await?),
-                Self::Pong => Ok(writer.write_all(b"+PONG\r\n").await?),
+                Self::Ok => Self::to_resp2(&Self::Simple("OK".to_string()), writer).await,
+                Self::Pong => Self::to_resp2(&Self::Simple("PONG".to_string()), writer).await,
+
                 Self::Nil => Ok(writer.write_all(b"$-1\r\n").await?),
-
+                Self::Simple(s) => Ok(writer.write_all(format!("+{s}\r\n").as_bytes()).await?),
                 Self::Error(e) => Ok(writer.write_all(format!("-{e}\r\n").as_bytes()).await?),
-                Self::Integer(i) => {
-                    let string = i.to_string();
-
-                    let mut buff = Vec::with_capacity(string.len() + 3);
-                    write!(&mut buff, ":{i}\r\n").context("Could not write to buffer")?;
-
-                    writer.write_all(&buff).await?;
-
-                    Ok(())
-                }
+                Self::Integer(i) => Ok(writer.write_all(format!(":{i}\r\n").as_bytes()).await?),
                 Self::String(s) => {
                     let len = s.len();
 
@@ -253,6 +246,48 @@ impl Value {
                     }
 
                     Ok(Some(Self::Multi(values)))
+                }
+
+                Some('%') => {
+                    let len: usize = line[1..]
+                        .trim()
+                        .parse()
+                        .context("Could not parse integer")?;
+                    let mut map = HashMap::with_capacity(len);
+
+                    for _ in 0..len {
+                        let key = Self::from_resp(reader).await?;
+                        let value = Self::from_resp(reader).await?;
+
+                        match (key, value) {
+                            (Some(key), Some(value)) => {
+                                map.insert(key, value);
+                            }
+                            _ => return Ok(None),
+                        }
+                    }
+
+                    Ok(Some(Self::Map(map)))
+                }
+
+                Some('~') => {
+                    let len: usize = line[1..]
+                        .trim()
+                        .parse()
+                        .context("Could not parse integer")?;
+                    let mut set = HashSet::with_capacity(len);
+
+                    for _ in 0..len {
+                        let value = Self::from_resp(reader).await?;
+
+                        if let Some(value) = value {
+                            set.insert(value);
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+
+                    Ok(Some(Self::Set(set)))
                 }
 
                 Some('+') => {
