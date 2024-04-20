@@ -78,6 +78,18 @@ impl Value {
         }
     }
 
+    pub fn is_some(&self) -> bool {
+        match self {
+            Self::Nil => false,
+            _ if Self::expired(&self) => false,
+            _ => true,
+        }
+    }
+
+    pub fn is_none(&self) -> bool {
+        !self.is_some()
+    }
+
     pub fn to_resp2<'a, T>(
         &'a self,
         writer: &'a mut T,
