@@ -54,7 +54,7 @@ impl CommandTrait for Set {
         };
 
         let mut arguments = Arguments::default();
-        let mut prev_arg = None;
+        let mut prev_ex_arg = None;
 
         for arg in args.iter() {
             match arg {
@@ -66,20 +66,16 @@ impl CommandTrait for Set {
                         arguments.set_xx = true;
                     }
                     "GET" => arguments.get = true,
-                    "KEEPTTL"
-                        if !arguments.ex.is_some()
-                            && !arguments.px.is_some()
-                            && !arguments.exat.is_some()
-                            && !arguments.pxat.is_some() =>
-                    {
+                    "KEEPTTL" if prev_ex_arg.is_none() => {
                         arguments.keepttl = true;
                     }
 
-                    "EX" | "PX" | "EXAT" | "PXAT" if !arguments.keepttl => {
-                        prev_arg = Some(arg);
+                    // also check if the previous argument was EX, PX, EXAT, PXAT
+                    "EX" | "PX" | "EXAT" | "PXAT" if !arguments.keepttl && prev_ex_arg.is_none() => {
+                        prev_ex_arg = Some(arg);
                     }
                     arg => {
-                        if let Some(prev) = prev_arg {
+                        if let Some(prev) = prev_ex_arg {
                             match prev.as_str() {
                                 "EX" => arguments.ex = arg.parse::<i64>().ok(),
                                 "PX" => arguments.px = arg.parse::<i64>().ok(),
@@ -88,7 +84,6 @@ impl CommandTrait for Set {
                                 _ => {}
                             }
 
-                            prev_arg = None;
                             continue;
                         }
 
@@ -124,24 +119,28 @@ impl CommandTrait for Set {
             match (arguments.ex, arguments.px, arguments.exat, arguments.pxat) {
                 (Some(ex), _, _, _) => Some(Instant::now() + Duration::from_secs(ex as u64)),
                 (_, Some(px), _, _) => Some(Instant::now() + Duration::from_millis(px as u64)),
+                // SAFETY: `SystemTime::now()` is always after `SystemTime::UNIX_EPOCH`. If it's not
+                // YOU HAVE A BIGGER PROBLEM
                 (_, _, Some(exat), _) => Some(
                     Instant::now() + Duration::from_secs(exat as u64)
                         - SystemTime::now()
                             .duration_since(SystemTime::UNIX_EPOCH)
-                            .unwrap(),
+                            .expect("SystemTime before UNIX_EPOCH"),
                 ),
                 (_, _, _, Some(pxat)) => Some(
                     Instant::now() + Duration::from_millis(pxat as u64)
                         - SystemTime::now()
                             .duration_since(SystemTime::UNIX_EPOCH)
-                            .unwrap(),
+                            .expect("SystemTime before UNIX_EPOCH"),
                 ),
                 _ => None,
             }
         };
 
         if arguments.get {
-            prev_key.to_resp2(writer).await?
+            prev_key.to_resp2(writer).await?;
+        } else {
+            Value::Ok.to_resp2(writer).await?;
         }
 
         *prev_key = if let Some(expire_at) = expire_at {
@@ -151,10 +150,6 @@ impl CommandTrait for Set {
             value
         };
 
-        if arguments.get {
-            return Ok(());
-        }
-
-        Value::Ok.to_resp2(writer).await
+        Ok(())
     }
 }
