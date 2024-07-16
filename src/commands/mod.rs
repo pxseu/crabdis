@@ -48,9 +48,17 @@ impl CommandHandler {
             core::Exists,
             core::FlushDB,
             core::Info,
+            core::Incr,
         );
 
-        register_commands!(self, expire::Expire, expire::Ttl, expire::SetEx);
+        register_commands!(
+            self,
+            expire::Expire,
+            expire::Ttl,
+            expire::SetEx,
+            expire::PSetEx,
+            expire::PTtl,
+        );
 
         register_commands!(self, hash::HSet, hash::HGetAll);
     }

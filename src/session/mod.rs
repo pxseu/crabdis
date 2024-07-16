@@ -21,12 +21,12 @@ impl Session {
         })
     }
 
-    pub async fn get_proto_version(&self) -> i64 {
-        *self.proto_version.read().await as i64
+    pub async fn get_proto_version(&self) -> u8 {
+        *self.proto_version.read().await
     }
 
-    pub async fn set_proto_version(&self, version: i64) {
-        *self.proto_version.write().await = version as u8;
+    pub async fn set_proto_version(&self, version: u8) {
+        *self.proto_version.write().await = version;
     }
 
     pub async fn versioned_response(

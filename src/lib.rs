@@ -40,9 +40,9 @@ pub async fn run(cli: CLI) -> Result<()> {
     log::info!("Listening on {}", listener.local_addr()?);
 
     loop {
-        let (mut stream, _addr) = listener.accept().await?;
+        let (mut stream, addr) = listener.accept().await?;
         #[cfg(debug_assertions)]
-        log::debug!("Accepted connection from {_addr}");
+        log::debug!("Accepted connection from {addr}");
         let state = state.clone();
 
         tokio::spawn(async move {
@@ -63,7 +63,7 @@ pub async fn run(cli: CLI) -> Result<()> {
                 stream.shutdown().await.ok();
 
                 #[cfg(debug_assertions)]
-                log::debug!("Connection from {_addr} closed");
+                log::debug!("Connection from {addr} closed");
             }
         });
     }

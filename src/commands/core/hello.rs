@@ -26,6 +26,7 @@ impl CommandTrait for Hello {
                     return value_error!("Invalid version").to_resp2(writer).await;
                 }
 
+                // safe to unwrap since we've already checked the value
                 session.set_proto_version(version.parse().unwrap()).await;
             }
 
@@ -43,7 +44,7 @@ impl CommandTrait for Hello {
             ),
             (
                 Value::String("proto".to_string()),
-                Value::Integer(session.get_proto_version().await),
+                Value::Integer(session.get_proto_version().await.into()),
             ),
             // TODO: fix no count of connected clients
             (Value::String("id".to_string()), Value::Integer(0)),
