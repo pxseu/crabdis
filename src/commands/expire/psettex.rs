@@ -14,53 +14,15 @@ impl CommandTrait for PSetEx {
         args: &mut VecDeque<Value>,
         session: SessionRef,
     ) -> Result<()> {
-        if args.len() != 3 {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
-                .await;
-        }
+        // add EX to the arguments and call SET command
+        args.insert(2, Value::String("PX".to_string()));
 
-        let key = match args.pop_front() {
-            Some(Value::String(key)) => key,
-            Some(_) => {
-                return value_error!("Invalid key").to_resp2(writer).await;
-            }
-            None => {
-                return value_error!("Missing key").to_resp2(writer).await;
-            }
-        };
+        let clone = session.clone();
 
-        let millis = match args.pop_front() {
-            Some(Value::Integer(millis)) => millis,
-            Some(Value::String(millis)) => millis.parse::<i64>().unwrap_or(-1),
-            Some(_) => {
-                return value_error!("Invalid milliseconds").to_resp2(writer).await;
-            }
-            None => {
-                return value_error!("Missing milliseconds").to_resp2(writer).await;
-            }
-        };
+        let commands = clone.state.handler.commands.read().await;
 
-        if millis < 0 {
-            return value_error!("Invalid milliseconds").to_resp2(writer).await;
-        }
+        let set_cmd = commands.get("SET").unwrap();
 
-        let value = match args.pop_front() {
-            Some(value) => value,
-            _ => {
-                return value_error!("Missing value").to_resp2(writer).await;
-            }
-        };
-
-        session.state.store.write().await.insert(
-            key.clone(),
-            Value::Expire((
-                Box::new(value),
-                tokio::time::Instant::now() + tokio::time::Duration::from_millis(millis as u64),
-            )),
-        );
-        session.state.expire_keys.write().await.insert(key);
-
-        Value::Ok.to_resp2(writer).await
+        set_cmd.handle_command(writer, args, session).await
     }
 }

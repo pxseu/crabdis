@@ -71,7 +71,9 @@ impl CommandTrait for Set {
                     }
 
                     // also check if the previous argument was EX, PX, EXAT, PXAT
-                    "EX" | "PX" | "EXAT" | "PXAT" if !arguments.keepttl && prev_ex_arg.is_none() => {
+                    "EX" | "PX" | "EXAT" | "PXAT"
+                        if !arguments.keepttl && prev_ex_arg.is_none() =>
+                    {
                         prev_ex_arg = Some(arg);
                     }
                     arg => {

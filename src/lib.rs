@@ -26,10 +26,13 @@ pub struct CLI {
 
     #[clap(short, long, default_value = "1")]
     pub threads: usize,
+
+    #[clap(short, long, default_value = "false")]
+    pub verbose: bool,
 }
 
 pub async fn run(cli: CLI) -> Result<()> {
-    utils::logger::init(cfg!(debug_assertions));
+    utils::logger::init(cfg!(debug_assertions) || cli.verbose);
 
     utils::bootlog(&cli);
 

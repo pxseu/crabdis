@@ -20,47 +20,15 @@ impl CommandTrait for SetEx {
                 .await;
         }
 
-        let key = match args.pop_front() {
-            Some(Value::String(key)) => key,
-            Some(_) => {
-                return value_error!("Invalid key").to_resp2(writer).await;
-            }
-            None => {
-                return value_error!("Missing key").to_resp2(writer).await;
-            }
-        };
+        // add EX to the arguments and call SET command
+        args.insert(2, Value::String("EX".to_string()));
 
-        let seconds = match args.pop_front() {
-            Some(Value::Integer(seconds)) => seconds,
-            Some(Value::String(seconds)) => seconds.parse::<i64>().unwrap_or(-1),
-            Some(_) => {
-                return value_error!("Invalid seconds").to_resp2(writer).await;
-            }
-            None => {
-                return value_error!("Missing seconds").to_resp2(writer).await;
-            }
-        };
+        let clone = session.clone();
 
-        if seconds < 0 {
-            return value_error!("Invalid seconds").to_resp2(writer).await;
-        }
+        let commands = clone.state.handler.commands.read().await;
 
-        let value = match args.pop_front() {
-            Some(value) => value,
-            _ => {
-                return value_error!("Missing value").to_resp2(writer).await;
-            }
-        };
+        let set_cmd = commands.get("SET").unwrap();
 
-        session.state.store.write().await.insert(
-            key.clone(),
-            Value::Expire((
-                Box::new(value),
-                tokio::time::Instant::now() + tokio::time::Duration::from_secs(seconds as u64),
-            )),
-        );
-        session.state.expire_keys.write().await.insert(key);
-
-        Value::Ok.to_resp2(writer).await
+        set_cmd.handle_command(writer, args, session).await
     }
 }

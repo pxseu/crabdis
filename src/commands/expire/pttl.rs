@@ -32,7 +32,7 @@ impl CommandTrait for PTtl {
 
         let store = session.state.store.read().await;
 
-        let duration = match store.get(&key) {
+        let ttl = match store.get(&key) {
             Some(Value::Expire((_, ttl))) => {
                 let duration = ttl.duration_since(tokio::time::Instant::now()).as_millis() as i64;
 
@@ -50,6 +50,6 @@ impl CommandTrait for PTtl {
             None => -2,
         };
 
-        Value::Integer(duration).to_resp2(writer).await
+        Value::Integer(ttl).to_resp2(writer).await
     }
 }

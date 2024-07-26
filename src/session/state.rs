@@ -6,8 +6,9 @@ use crate::storage::ExpireKey;
 
 #[derive(Clone, Default)]
 pub struct State {
+    pub loaded: bool,
     pub store: Store,
-    pub commands: CommandHandler,
+    pub handler: CommandHandler,
     pub expire_keys: ExpireKey,
 }
 
@@ -15,7 +16,9 @@ impl State {
     pub async fn new() -> Arc<Self> {
         let mut state = State::default();
 
-        state.commands.register().await;
+        state.loaded = true;
+
+        state.handler.register().await;
 
         let state = Arc::new(state);
 

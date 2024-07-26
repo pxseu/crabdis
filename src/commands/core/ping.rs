@@ -20,11 +20,11 @@ impl CommandTrait for Ping {
                 .await;
         }
 
-        let response = match args.pop_front() {
+        match args.pop_front() {
             Some(s) => s,
             _ => Value::Pong,
-        };
-
-        response.to_resp2(writer).await
+        }
+        .to_resp2(writer)
+        .await
     }
 }

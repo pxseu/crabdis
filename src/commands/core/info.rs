@@ -12,7 +12,7 @@ impl CommandTrait for Info {
         &self,
         writer: &mut WriteHalf,
         args: &mut VecDeque<Value>,
-        _session: SessionRef,
+        session: SessionRef,
     ) -> Result<()> {
         if args.len() > 0 {
             return value_error!("Invalid number of arguments")
@@ -20,8 +20,11 @@ impl CommandTrait for Info {
                 .await;
         }
 
-        let response = Value::String("loading:0".to_string());
-
-        response.to_resp2(writer).await
+        Value::String(format!(
+            "loading:{}",
+            if session.state.loaded { "0" } else { "1" }
+        ))
+        .to_resp2(writer)
+        .await
     }
 }

@@ -17,7 +17,7 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
             Some(Value::Multi(mut args)) => {
                 session
                     .state
-                    .commands
+                    .handler
                     .handle_command(&mut writer, &mut args, session.clone())
                     .await?
             }
