@@ -49,6 +49,8 @@ impl CommandHandler {
             core::FlushDB,
             core::Info,
             core::Incr,
+            core::Scan,
+            core::Type,
         );
 
         register_commands!(

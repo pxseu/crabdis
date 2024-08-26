@@ -9,7 +9,9 @@ mod keys;
 mod mget;
 mod mset;
 mod ping;
+mod scan;
 mod set;
+mod r#type;
 
 pub use del::Del;
 pub use exists::Exists;
@@ -22,4 +24,6 @@ pub use keys::Keys;
 pub use mget::MGet;
 pub use mset::MSet;
 pub use ping::Ping;
+pub use scan::Scan;
 pub use set::Set;
+pub use r#type::Type;

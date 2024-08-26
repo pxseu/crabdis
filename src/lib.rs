@@ -18,7 +18,7 @@ use crate::session::state::State;
 
 #[derive(Parser)]
 pub struct CLI {
-    #[clap(short, long, default_value = "0.0.0.0")]
+    #[clap(short, long, default_value = "::")]
     pub address: IpAddr,
 
     #[clap(short, long, default_value = "6379")]
@@ -34,11 +34,11 @@ pub struct CLI {
 pub async fn run(cli: CLI) -> Result<()> {
     utils::logger::init(cfg!(debug_assertions) || cli.verbose);
 
-    utils::bootlog(&cli);
-
     let state = State::new().await;
 
     let listener = TcpListener::bind(SocketAddr::new(cli.address, cli.port)).await?;
+
+    utils::bootlog(&cli);
 
     log::info!("Listening on {}", listener.local_addr()?);
 

@@ -14,17 +14,62 @@ impl CommandTrait for Info {
         args: &mut VecDeque<Value>,
         session: SessionRef,
     ) -> Result<()> {
-        if args.len() > 0 {
+        let length = args.len();
+
+        if length > 1 {
             return value_error!("Invalid number of arguments")
                 .to_resp2(writer)
                 .await;
         }
 
-        Value::String(format!(
-            "loading:{}",
-            if session.state.loaded { "0" } else { "1" }
-        ))
-        .to_resp2(writer)
-        .await
+        if length == 0 {
+            return Value::String(format!(
+                "loading:{}\r\n",
+                if session.state.loaded { "0" } else { "1" }
+            ))
+            .to_resp2(writer)
+            .await;
+        }
+
+        let key = match args.pop_front() {
+            Some(Value::String(key)) => key,
+            _ => return value_error!("Invalid key").to_resp2(writer).await,
+        };
+
+        log::debug!("INFO key: {key}");
+
+        match key.to_lowercase().as_str() {
+            "keyspace" => {
+                let key_count = {
+                    let store = session.state.store.read().await;
+                    store.len()
+                };
+
+                if key_count == 0 {
+                    return Value::String("# Keyspace\r\n".to_string())
+                        .to_resp2(writer)
+                        .await;
+                }
+
+                let expire_keys = {
+                    let expire = session.state.expire_keys.read().await;
+                    expire.len()
+                };
+
+                Value::String(format!(
+                    "# Keyspace\r\ndb0:keys={key_count},expires={expire_keys},avg_ttl=0\r\n"
+                ))
+                .to_resp2(writer)
+                .await
+            }
+
+            "server" => {
+                Value::String("redis_version:7.4.0\r\n".to_string())
+                    .to_resp2(writer)
+                    .await
+            }
+
+            _ => value_error!("Invalid key").to_resp2(writer).await,
+        }
     }
 }
