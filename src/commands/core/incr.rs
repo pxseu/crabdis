@@ -32,14 +32,16 @@ impl CommandTrait for Incr {
 
         let mut store = session.state.store.write().await;
 
-        let value = match store.get(&key) {
+        let mut value = match store.get(&key) {
             Some(Value::String(s)) => s.parse::<i64>().unwrap_or(0),
-            Some(Value::Integer(value)) => value + 1,
+            Some(Value::Integer(value)) => *value,
             Some(_) => {
                 return value_error!("Invalid value").to_resp2(writer).await;
             }
-            None => 1,
+            None => 0,
         };
+
+        value += 1;
 
         // store it as int at some point
         store.insert(key, Value::String(value.to_string()));
