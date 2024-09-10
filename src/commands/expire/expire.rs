@@ -23,10 +23,14 @@ impl CommandTrait for Expire {
         let key = match args.pop_front() {
             Some(Value::String(key)) => key,
             Some(_) => {
-                return value_error!("Invalid key").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Invalid key"), writer)
+                    .await;
             }
             None => {
-                return value_error!("Missing key").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Missing key"), writer)
+                    .await;
             }
         };
 
@@ -34,15 +38,21 @@ impl CommandTrait for Expire {
             Some(Value::Integer(seconds)) => seconds,
             Some(Value::String(seconds)) => seconds.parse::<i64>().unwrap_or(-1),
             Some(_) => {
-                return value_error!("Invalid seconds").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Invalid seconds"), writer)
+                    .await;
             }
             None => {
-                return value_error!("Missing seconds").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Missing seconds"), writer)
+                    .await;
             }
         };
 
         if seconds < 0 {
-            return value_error!("Invalid seconds").to_resp2(writer).await;
+            return session
+                .versioned_response(&value_error!("Invalid seconds"), writer)
+                .await;
         }
 
         let mut store = session.state.store.write().await;
@@ -51,7 +61,9 @@ impl CommandTrait for Expire {
             Some(Value::Expire((inner, _))) => inner,
             Some(inner) => inner,
             _ => {
-                return value_error!("Key not found").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Key not found"), writer)
+                    .await;
             }
         };
 

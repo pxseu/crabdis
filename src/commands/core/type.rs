@@ -24,7 +24,11 @@ impl CommandTrait for Type {
 
         let key = match args.pop_front() {
             Some(Value::String(key)) => key,
-            _ => return value_error!("Invalid key").to_resp2(writer).await,
+            _ => {
+                return session
+                    .versioned_response(&value_error!("Invalid key"), writer)
+                    .await
+            }
         };
 
         log::debug!("TYPE key: {key}");
@@ -39,7 +43,9 @@ impl CommandTrait for Type {
             Some(Value::Map(_)) => "hash",
             None => "none",
             _ => {
-                return value_error!("Invalid value type").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Invalid value type"), writer)
+                    .await;
             }
         };
 

@@ -32,7 +32,9 @@ impl CommandTrait for MGet {
                 },
 
                 _ => {
-                    return value_error!("Invalid key").to_resp2(writer).await;
+                    return session
+                        .versioned_response(&value_error!("Invalid key"), writer)
+                        .await;
                 }
             }
         }

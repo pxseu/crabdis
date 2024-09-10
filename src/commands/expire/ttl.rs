@@ -23,10 +23,14 @@ impl CommandTrait for Ttl {
         let key = match args.pop_front() {
             Some(Value::String(key)) => key,
             Some(_) => {
-                return value_error!("Invalid key").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Invalid key"), writer)
+                    .await;
             }
             None => {
-                return value_error!("Missing key").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Missing key"), writer)
+                    .await;
             }
         };
 

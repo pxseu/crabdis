@@ -85,7 +85,11 @@ impl CommandHandler {
     ) -> Result<()> {
         let command = match args.pop_front() {
             Some(Value::String(command)) => command.to_uppercase(),
-            _ => return value_error!("Invalid command").to_resp2(writer).await,
+            _ => {
+                return session
+                    .versioned_response(&value_error!("Invalid command"), writer)
+                    .await
+            }
         };
 
         match self.commands.read().await.get(&command) {

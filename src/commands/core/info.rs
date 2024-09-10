@@ -33,7 +33,11 @@ impl CommandTrait for Info {
 
         let key = match args.pop_front() {
             Some(Value::String(key)) => key,
-            _ => return value_error!("Invalid key").to_resp2(writer).await,
+            _ => {
+                return session
+                    .versioned_response(&value_error!("Invalid key"), writer)
+                    .await
+            }
         };
 
         log::debug!("INFO key: {key}");

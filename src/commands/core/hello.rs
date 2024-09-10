@@ -15,15 +15,17 @@ impl CommandTrait for Hello {
         session: SessionRef,
     ) -> Result<()> {
         if args.len() > 1 {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         match args.pop_front() {
             Some(Value::String(version)) => {
                 if version != "2" && version != "3" {
-                    return value_error!("Invalid version").to_resp2(writer).await;
+                    return session
+                        .versioned_response(&value_error!("Invalid version"), writer)
+                        .await;
                 }
 
                 // safe to unwrap since we've already checked the value

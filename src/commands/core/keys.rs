@@ -25,7 +25,9 @@ impl CommandTrait for Keys {
         let pattern = match args.pop_front() {
             Some(Value::String(s)) => Pattern::new(&s)?,
             _ => {
-                return value_error!("Invalid pattern").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Invalid pattern"), writer)
+                    .await;
             }
         };
 

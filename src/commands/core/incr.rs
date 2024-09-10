@@ -23,10 +23,14 @@ impl CommandTrait for Incr {
         let key = match args.pop_front() {
             Some(Value::String(key)) => key,
             Some(_) => {
-                return value_error!("Invalid key").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Invalid key"), writer)
+                    .await;
             }
             None => {
-                return value_error!("Missing key").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Missing key"), writer)
+                    .await;
             }
         };
 
@@ -36,7 +40,9 @@ impl CommandTrait for Incr {
             Some(Value::String(s)) => s.parse::<i64>().unwrap_or(0),
             Some(Value::Integer(value)) => *value,
             Some(_) => {
-                return value_error!("Invalid value").to_resp2(writer).await;
+                return session
+                    .versioned_response(&value_error!("Invalid value"), writer)
+                    .await;
             }
             None => 0,
         };

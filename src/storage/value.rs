@@ -191,6 +191,16 @@ impl Value {
                     Ok(())
                 }
 
+                Self::Error(s) => {
+                    let len = s.len();
+
+                    writer
+                        .write_all(format!("!{len}\r\n{s}\r\n").as_bytes())
+                        .await?;
+
+                    Ok(())
+                }
+
                 // rest of the code is the same as to_resp2
                 // edit: not really but clients are forgiving
                 _ => self.to_resp2(writer).await,

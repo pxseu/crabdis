@@ -25,7 +25,9 @@ impl CommandTrait for Scan {
                         if let Some(Value::String(p)) = args.pop_front() {
                             pattern = Some(p);
                         } else {
-                            return value_error!("Invalid pattern").to_resp2(writer).await;
+                            return session
+                                .versioned_response(&value_error!("Invalid pattern"), writer)
+                                .await;
                         }
                     } else if s.to_uppercase() == "COUNT" {
                         match args.pop_front() {
@@ -35,19 +37,25 @@ impl CommandTrait for Scan {
                             }
                             Some(Value::String(s)) => {
                                 let Ok(c) = s.parse::<usize>() else {
-                                    return value_error!("Invalid count").to_resp2(writer).await;
+                                    return session
+                                        .versioned_response(&value_error!("Invalid count"), writer)
+                                        .await;
                                 };
 
                                 count = c;
                             }
                             _ => {
-                                return value_error!("Invalid count").to_resp2(writer).await;
+                                return session
+                                    .versioned_response(&value_error!("Invalid count"), writer)
+                                    .await;
                             }
                         }
                     } else if let Ok(c) = s.parse::<usize>() {
                         cursor = c;
                     } else {
-                        return value_error!("Invalid argument").to_resp2(writer).await;
+                        return session
+                            .versioned_response(&value_error!("Invalid argument"), writer)
+                            .await;
                     }
                 }
 
@@ -56,7 +64,9 @@ impl CommandTrait for Scan {
                 }
 
                 _ => {
-                    return value_error!("Invalid argument").to_resp2(writer).await;
+                    return session
+                        .versioned_response(&value_error!("Invalid argument"), writer)
+                        .await;
                 }
             }
         }
