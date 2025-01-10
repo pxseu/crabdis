@@ -28,8 +28,8 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
             }
 
             _ => {
-                value_error!("Invalid request")
-                    .to_resp2(&mut writer)
+                session
+                    .versioned_response(&value_error!("Invalid request"), &mut writer)
                     .await?;
             }
         };

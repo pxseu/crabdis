@@ -179,6 +179,7 @@ impl Value {
 
                     Ok(())
                 }
+
                 Self::Set(set) => {
                     let len = set.len();
 

@@ -94,7 +94,11 @@ impl CommandHandler {
 
         match self.commands.read().await.get(&command) {
             Some(command) => command.handle_command(writer, args, session).await,
-            None => value_error!("Unknown command").to_resp2(writer).await,
+            None => {
+                session
+                    .versioned_response(&value_error!("Unknown command"), writer)
+                    .await
+            }
         }
     }
 }
