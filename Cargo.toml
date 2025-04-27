@@ -10,7 +10,7 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-fern = "0.6"
+fern = "0.7"
 clap = { version = "4.1", features = ["derive"] }
 tokio = { version = "1.36", features = ["full", "tracing"] }
 async-trait = "0.1"
