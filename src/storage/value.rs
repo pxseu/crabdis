@@ -19,6 +19,7 @@ pub enum Value {
     Multi(VecDeque<Value>),
     Expire((Box<Value>, Instant)),
     Map(HashMap<Value, Value>),
+    Push(VecDeque<Value>), // For RESP3 push messages (pub/sub)
 
     // not implemented yet
     Set(HashSet<Value>),
@@ -36,6 +37,7 @@ impl std::hash::Hash for Value {
             Self::String(s) => s.hash(state),
             Self::Multi(v) => v.hash(state),
             Self::Expire((v, _)) => v.hash(state),
+            Self::Push(v) => v.hash(state),
 
             Self::Map(_) | Self::Set(_) => unreachable!(),
             // Self::Hashmap(v) => {
@@ -126,6 +128,17 @@ impl Value {
 
                     Ok(())
                 }
+                Self::Push(v) => {
+                    // For RESP2, convert push messages to multi-bulk
+                    let len = v.len();
+                    writer.write_all(format!("*{len}\r\n").as_bytes()).await?;
+
+                    for value in v {
+                        value.to_resp2(writer).await?;
+                    }
+
+                    Ok(())
+                }
                 Self::Map(h) => {
                     let mut values = VecDeque::with_capacity(h.len() * 2);
 
@@ -202,8 +215,19 @@ impl Value {
                     Ok(())
                 }
 
+                Self::Push(v) => {
+                    let len = v.len();
+
+                    writer.write_all(format!(">{len}\r\n").as_bytes()).await?;
+
+                    for value in v {
+                        value.to_resp3(writer).await?;
+                    }
+
+                    Ok(())
+                }
+
                 // rest of the code is the same as to_resp2
-                // edit: not really but clients are forgiving
                 _ => self.to_resp2(writer).await,
             }
         })
@@ -221,6 +245,26 @@ impl Value {
             reader.read_line(&mut line).await?;
 
             match line.chars().next() {
+                Some('>') => {
+                    let len: usize = line[1..]
+                        .trim()
+                        .parse()
+                        .context("Could not parse integer")?;
+
+                    let mut values = VecDeque::with_capacity(len);
+
+                    for _ in 0..len {
+                        let value = Self::from_resp(reader).await?;
+
+                        if let Some(value) = value {
+                            values.push_back(value);
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+
+                    Ok(Some(Self::Push(values)))
+                }
                 Some('$') if line == "$-1\r\n" => Ok(Some(Self::Nil)),
 
                 Some('$') => {

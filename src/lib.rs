@@ -43,17 +43,25 @@ pub async fn run(cli: CLI) -> Result<()> {
     log::info!("Listening on {}", listener.local_addr()?);
 
     loop {
-        let (mut stream, addr) = listener.accept().await?;
         #[cfg(debug_assertions)]
-        log::debug!("Accepted connection from {addr}");
+        let (mut stream, addr) = listener.accept().await?;
+
+        #[cfg(not(debug_assertions))]
+        let (mut stream, _) = listener.accept().await?;
+
         let state = state.clone();
 
         tokio::spawn(async move {
             use std::io::ErrorKind;
 
-            let session = Session::new(state);
+            let session = state.new_session().await;
 
-            if let Err(e) = handle_client(&mut stream, session).await {
+            #[cfg(debug_assertions)]
+            log::debug!(
+                "Accepted connection from {addr} for session: {}",
+                session.id
+            );
+            if let Err(e) = handle_client(&mut stream, session.clone()).await {
                 match e {
                     Error::Io(e)
                         if matches!(
@@ -62,12 +70,14 @@ pub async fn run(cli: CLI) -> Result<()> {
                         ) => {}
                     _ => log::error!("Error: {e:?}"),
                 }
-
-                stream.shutdown().await.ok();
-
-                #[cfg(debug_assertions)]
-                log::debug!("Connection from {addr} closed");
             }
+
+            stream.shutdown().await.ok();
+            #[cfg(debug_assertions)]
+            log::debug!("Session closed: {}", session.id);
+            session.cleanup().await;
+            #[cfg(debug_assertions)]
+            log::debug!("Connection from {addr} closed");
         });
     }
 }

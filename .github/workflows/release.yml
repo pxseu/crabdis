@@ -23,8 +23,6 @@ jobs:
       - name: Get tag data
         id: tag
         run: |
-          # replace the following commands to use the new GITHUB_OUTPUT syntax
-
           echo "tag_name=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
 
           if [[ ${{ github.event.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
@@ -51,41 +49,37 @@ jobs:
             os: ubuntu-latest
             platform: x86_64-Linux
             flags: --all-features
-
-          - target: i686-unknown-linux-musl
-            os: ubuntu-latest
-            platform: i686-Linux
-            flags: --all-features
+            arch: amd64
 
           - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
             platform: aarch64-Linux
             flags: --all-features
-
-          - target: arm-unknown-linux-musleabihf
-            os: ubuntu-latest
-            platform: arm-Linux
-            flags: --all-features
+            arch: arm64
 
           - target: x86_64-apple-darwin
             os: macOS-latest
             platform: x86_64-Darwin
             flags: --all-features
+            arch: amd64
 
           - target: aarch64-apple-darwin
             os: macOS-latest
             platform: aarch64-Darwin
             flags: --all-features
+            arch: arm64
 
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             platform: x86_64-Windows
             flags: --all-features
+            arch: amd64
 
-          - target: i686-pc-windows-msvc
+          - target: aarch64-pc-windows-msvc
             os: windows-latest
-            platform: i686-Windows
+            platform: aarch64-Windows
             flags: --all-features
+            arch: arm64
 
     steps:
       - name: Checkout repository
@@ -207,17 +201,24 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to Docker
-        run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker Image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/${{ env.EXECUTABLE_NAME }}:${{ needs.draft-release.outputs.tag_name }} .
-
-      - name: Tag Docker Image
-        run: docker tag ${{ secrets.DOCKER_USERNAME }}/${{ env.EXECUTABLE_NAME }}:${{ needs.draft-release.outputs.tag_name }} ${{ secrets.DOCKER_USERNAME }}/${{ env.EXECUTABLE_NAME }}:latest
-
-      - name: Push Docker Image
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.EXECUTABLE_NAME }}:${{ needs.draft-release.outputs.tag_name }}
-
-      - name: Push Docker Image [latest]
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.EXECUTABLE_NAME }}:latest
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.EXECUTABLE_NAME }}:${{ needs.draft-release.outputs.tag_name }}
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.EXECUTABLE_NAME }}:latest

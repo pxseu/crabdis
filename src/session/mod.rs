@@ -1,23 +1,26 @@
 use std::sync::Arc;
-
-use tokio::sync::RwLock;
+use tokio::sync::{mpsc, RwLock};
 
 use crate::prelude::*;
 
 pub mod state;
 
+#[derive(Clone)]
 pub struct Session {
+    pub id: u64,
     pub state: state::StateRef,
-    pub proto_version: RwLock<u8>,
-    // TODO: auth maybe?
+    pub proto_version: Arc<RwLock<u8>>,
+    pub tx: Arc<RwLock<Option<mpsc::Sender<Value>>>>,
 }
 
 impl Session {
-    pub fn new(state: StateRef) -> Arc<Self> {
+    pub fn new(id: u64, state: StateRef) -> Arc<Self> {
         Arc::new(Self {
+            id,
             state,
             // default to RESP2 protocol, can be changed via HELLO command
-            proto_version: RwLock::new(2),
+            proto_version: Arc::new(RwLock::new(2)),
+            tx: Arc::new(RwLock::new(None)),
         })
     }
 
@@ -39,6 +42,26 @@ impl Session {
             3 => response.to_resp3(writer).await,
             _ => unreachable!("Invalid protocol version"),
         }
+    }
+
+    pub async fn set_sender(&self, sender: mpsc::Sender<Value>) {
+        *self.tx.write().await = Some(sender);
+    }
+
+    pub async fn send_versioned(&self, value: Value) -> Result<()> {
+        if let Some(tx) = &*self.tx.read().await {
+            tx.send(value).await.map_err(|e| {
+                Error::Io(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    e.to_string(),
+                ))
+            })?;
+        }
+        Ok(())
+    }
+
+    pub async fn cleanup(&self) {
+        self.state.remove_session(self.id).await;
     }
 }
 

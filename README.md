@@ -31,10 +31,16 @@ crabdis
 
 - [x] Basic RESP protocol implementation
 - [x] GET, SET, DEL, EXISTS, KEYS, FLUSHDB
-- [ ] COMMAND / COMMAND DOCS (so ioredis works)
-- [ ] SET arguments (EX, PX, NX, XX) + SETEX, PSETEX
+- [x] COMMAND / COMMAND DOCS (so ioredis works)
+- [x] SET arguments (EX, PX, NX, XX) + SETEX, PSETEX
+- [x] Hash Command family (HGETALL, HSET)
+- [x] Pub/Sub support (PUBLISH, SUBSCRIBE, UNSUBSCRIBE)
+- [x] Additional commands (INCR, MGET, MSET, TYPE, SCAN, SELECT, RENAMENX, INFO, HELLO)
 - [ ] Persistence
-- [ ] Hash Command family
+- [ ] More Hash commands (HGET, HDEL, etc.)
+- [ ] List commands
+- [ ] Set commands
+- [ ] Sorted Set commands
 
 This will start the server on `127.0.0.1:6379`. You can change the address and port with the `--address` and `--port` flags.
 

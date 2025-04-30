@@ -1,6 +1,7 @@
 pub mod core;
 pub mod expire;
 pub mod hash;
+pub mod pubsub;
 
 use std::sync::Arc;
 
@@ -37,6 +38,7 @@ impl CommandHandler {
     pub async fn register(&mut self) {
         register_commands!(
             self,
+            core::Command,
             core::Get,
             core::Set,
             core::Del,
@@ -65,6 +67,13 @@ impl CommandHandler {
         );
 
         register_commands!(self, hash::HSet, hash::HGetAll);
+
+        register_commands!(
+            self,
+            pubsub::Publish,
+            pubsub::Subscribe,
+            pubsub::Unsubscribe,
+        );
     }
 
     async fn register_command<C>(&mut self, command: C)
@@ -102,81 +111,3 @@ impl CommandHandler {
         }
     }
 }
-
-// pub async fn handle_command(
-//     command: &str,
-//     args: &mut VecDeque<Value>,
-//     store: &mut Store,
-// ) -> Result<Value> {
-//     let response = match command {
-
-//         "HGET" => {
-//             if args.len() != 2 {
-//                 return Ok(value_error!("Invalid number of arguments"));
-//             }
-
-//             let key = match args.pop_front() {
-//                 Some(Value::String(key)) => key,
-//                 _ => {
-//                     return Ok(value_error!("Invalid key"));
-//                 }
-//             };
-
-//             let field = match args.pop_front() {
-//                 Some(Value::String(field)) => field,
-//                 _ => {
-//                     return Ok(value_error!("Invalid field"));
-//                 }
-//             };
-
-//             store.hget(&key, &field).await
-//         }
-
-//         "HSET" => {
-//             if args.len() < 3 || args.len() % 2 != 1 {
-//                 return Ok(value_error!("Invalid number of arguments"));
-//             }
-
-//             let key = match args.pop_front() {
-//                 Some(Value::String(key)) => key,
-//                 _ => {
-//                     return Ok(value_error!("Invalid key"));
-//                 }
-//             };
-
-//             let mut hashmap = HashMap::new();
-
-//             for kv in args.iter().collect::<Vec<_>>().chunks_exact(2) {
-//                 let field = match kv[0].to_owned() {
-//                     Value::String(field) => field,
-//                     _ => {
-//                         return Ok(value_error!("Invalid field"));
-//                     }
-//                 };
-
-//                 hashmap.insert(field, kv[1].to_owned());
-//             }
-
-//             store.hset(key, hashmap).await
-//         }
-
-//         "HGETALL" => {
-//             if args.len() != 1 {
-//                 return Ok(value_error!("Invalid number of arguments"));
-//             }
-
-//             let key = match args.pop_front() {
-//                 Some(Value::String(key)) => key,
-//                 _ => {
-//                     return Ok(value_error!("Invalid key"));
-//                 }
-//             };
-
-//             store.hgetall(&key).await
-//         }
-
-//         _ => value_error!("Unknown command"),
-//     };
-
-//     Ok(response)
-// }
