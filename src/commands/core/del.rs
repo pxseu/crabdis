@@ -26,6 +26,7 @@ impl CommandTrait for Del {
             match key {
                 Value::String(k) => {
                     if store.remove(&k).is_some() {
+                        session.state.expire_keys.write().await.remove(&k);
                         count += 1;
                     }
                 }

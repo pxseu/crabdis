@@ -21,6 +21,7 @@ impl CommandTrait for FlushDB {
         }
 
         session.state.store.write().await.clear();
+        session.state.expire_keys.write().await.clear();
 
         Value::Ok.to_resp2(writer).await
     }
