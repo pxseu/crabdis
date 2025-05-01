@@ -102,31 +102,23 @@ impl State {
     pub async fn publish(&self, channel: &str, message: Value) -> Result<i64> {
         let mut count = 0;
         let subs = self.subscriptions.read().await;
+
         if let Some(sessions) = subs.get(channel) {
+            let pubsub_value = Value::Push(VecDeque::from([
+                Value::String("message".to_string()),
+                Value::String(channel.to_string()),
+                message.clone(),
+            ]));
+
             for session in sessions {
                 let version = session.get_proto_version().await;
-                let pubsub_value = if version == 3 {
-                    // RESP3 push message format
-                    let mut push_msg = VecDeque::new();
-                    push_msg.push_back(Value::String("message".to_string()));
-                    push_msg.push_back(Value::String(channel.to_string()));
-                    push_msg.push_back(message.clone());
-                    Value::Push(push_msg)
-                } else {
-                    // RESP2 format
-                    let mut multi_msg = VecDeque::new();
-                    multi_msg.push_back(Value::String("message".to_string()));
-                    multi_msg.push_back(Value::String(channel.to_string()));
-                    multi_msg.push_back(message.clone());
-                    Value::Multi(multi_msg)
-                };
 
                 log::debug!(
                     "Sending to session: {} with protocol version {}",
                     session.id,
                     version
                 );
-                if let Err(e) = session.send_versioned(pubsub_value).await {
+                if let Err(e) = session.send_versioned(pubsub_value.clone()).await {
                     log::error!("Failed to publish to session: {}", e);
                     continue;
                 }

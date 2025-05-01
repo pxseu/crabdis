@@ -128,17 +128,7 @@ impl Value {
 
                     Ok(())
                 }
-                Self::Push(v) => {
-                    // For RESP2, convert push messages to multi-bulk
-                    let len = v.len();
-                    writer.write_all(format!("*{len}\r\n").as_bytes()).await?;
-
-                    for value in v {
-                        value.to_resp2(writer).await?;
-                    }
-
-                    Ok(())
-                }
+                Self::Push(v) => Value::Multi(v.clone()).to_resp2(writer).await,
                 Self::Map(h) => {
                     let mut values = VecDeque::with_capacity(h.len() * 2);
 
