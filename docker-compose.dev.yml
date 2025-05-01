@@ -6,8 +6,8 @@ services:
   crabdis:
     image: pxseu/crabdis
     build:
-      context: ./target/release
-      dockerfile: ../../Dockerfile
+      context: .
+      dockerfile: Dockerfile
     container_name: crabdis
     ports:
       - "6379:6379/tcp"
