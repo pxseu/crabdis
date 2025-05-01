@@ -37,6 +37,8 @@ impl Session {
         response: &Value,
         writer: &mut WriteHalf<'_>,
     ) -> Result<()> {
+        log::debug!("Writing response to client: {:?}", response);
+
         match self.get_proto_version().await {
             2 => response.to_resp2(writer).await,
             3 => response.to_resp3(writer).await,

@@ -18,6 +18,8 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
         tokio::select! {
             // Handle incoming messages from the channel
             Some(value) = rx.recv() => {
+                log::debug!("Received message from client: {:?}", value);
+
                 if let Err(e) = session.versioned_response(&value, &mut writer).await {
                     log::error!("Failed to write to client: {}", e);
                     break;
@@ -29,8 +31,6 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
             }
             // Handle incoming requests from the client
             request = Value::from_resp(&mut reader) => {
-                log::debug!("Received request: {:?}", request);
-
                 match request? {
                     Some(Value::Multi(mut args)) => {
                         log::debug!("Received command: {:?} from session: {}", args, session.id);

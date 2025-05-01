@@ -55,6 +55,7 @@ impl CommandHandler {
             core::Type,
             core::Select,
             core::RenameNx,
+            core::Quit,
         );
 
         register_commands!(
