@@ -1,4 +1,4 @@
-FROM rust:alpine as builder
+FROM --platform=$BUILDPLATFORM rust:alpine AS builder
 
 WORKDIR /app
 
@@ -6,15 +6,23 @@ RUN apk add --no-cache musl-dev
 
 COPY . .
 
-RUN cargo build --release --target x86_64-unknown-linux-musl
+ARG TARGETPLATFORM
+ARG TARGETARCH
+RUN case "$TARGETARCH" in \
+    "amd64") TARGET="x86_64-unknown-linux-musl" ;; \
+    "arm64") TARGET="aarch64-unknown-linux-musl" ;; \
+    *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
+    esac && \
+    rustup target add $TARGET && \
+    cargo build --release --target $TARGET
 
 # main image
-
 FROM alpine:latest
 
 ARG BIN_NAME=crabdis
+ARG TARGETARCH
 
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/${BIN_NAME} /usr/local/bin/${BIN_NAME}
+COPY --from=builder /app/target/*/release/${BIN_NAME} /usr/local/bin/${BIN_NAME}
 
 EXPOSE 6379
 
