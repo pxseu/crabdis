@@ -1,4 +1,5 @@
 mod command;
+mod decr;
 mod del;
 mod exists;
 mod flushdb;
@@ -18,6 +19,7 @@ mod set;
 mod r#type;
 
 pub use command::Command;
+pub use decr::Decr;
 pub use del::Del;
 pub use exists::Exists;
 pub use flushdb::FlushDB;

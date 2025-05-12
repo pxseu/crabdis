@@ -51,6 +51,7 @@ impl CommandHandler {
             core::FlushDB,
             core::Info,
             core::Incr,
+            core::Decr,
             core::Scan,
             core::Type,
             core::Select,
