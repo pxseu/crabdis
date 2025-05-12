@@ -88,6 +88,13 @@ impl Value {
         }
     }
 
+    pub fn inner(&self) -> Value {
+        match self {
+            Self::Expire((v, _)) if !self.expired() => v.inner(),
+            _ => self.clone(),
+        }
+    }
+
     pub fn is_none(&self) -> bool {
         !self.is_some()
     }

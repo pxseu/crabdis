@@ -36,9 +36,9 @@ impl CommandTrait for Incr {
 
         let mut store = session.state.store.write().await;
 
-        let mut value = match store.get(&key) {
+        let mut value = match store.get(&key).map(|v| v.inner()) {
             Some(Value::String(s)) => s.parse::<i64>().unwrap_or(0),
-            Some(Value::Integer(value)) => *value,
+            Some(Value::Integer(value)) => value,
             Some(_) => {
                 return session
                     .versioned_response(&value_error!("Invalid value"), writer)
