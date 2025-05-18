@@ -400,22 +400,7 @@ impl From<i64> for Value {
 
 #[cfg(test)]
 mod tests {
-    use tokio::io::AsyncWriteExt;
-    use tokio::net::{TcpListener, TcpStream};
-
     use super::*;
-
-    async fn create_tcp_stream<'a>(data: &str) -> TcpStream {
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let addr = listener.local_addr().unwrap();
-
-        let mut writer = TcpStream::connect(addr).await.unwrap();
-        writer.write(data.as_bytes()).await.unwrap();
-
-        let (stream, _) = listener.accept().await.unwrap();
-
-        stream
-    }
 
     #[tokio::test]
     async fn test_value_to_resp() {
@@ -462,31 +447,27 @@ mod tests {
 
     #[tokio::test]
     async fn test_value_from_resp() {
-        let mut stream = create_tcp_stream("$13\r\nHello, World!\r\n").await;
-        let (mut read, _) = stream.split();
+        // Test String
+        let mut read = b"$13\r\nHello, World!\r\n".as_ref();
         let mut reader = BufReader::new(&mut read);
-
         let value = Value::from_resp(&mut reader).await.unwrap();
         assert_eq!(value, Some(Value::String("Hello, World!".to_string())));
 
-        let mut stream = create_tcp_stream(":42\r\n").await;
-        let (mut read, _) = stream.split();
+        // Test Integer
+        let mut read = b":42\r\n".as_ref();
         let mut reader = BufReader::new(&mut read);
-
         let value = Value::from_resp(&mut reader).await.unwrap();
         assert_eq!(value, Some(Value::Integer(42)));
 
-        let mut stream = create_tcp_stream("$-1\r\n").await;
-        let (mut read, _) = stream.split();
+        // Test Nil
+        let mut read = b"$-1\r\n".as_ref();
         let mut reader = BufReader::new(&mut read);
-
         let value = Value::from_resp(&mut reader).await.unwrap();
         assert_eq!(value, Some(Value::Nil));
 
-        let mut stream = create_tcp_stream("*3\r\n$13\r\nHello, World!\r\n:42\r\n$-1\r\n").await;
-        let (mut read, _) = stream.split();
+        // Test Multi
+        let mut read = b"*3\r\n$13\r\nHello, World!\r\n:42\r\n$-1\r\n".as_ref();
         let mut reader = BufReader::new(&mut read);
-
         let value = Value::from_resp(&mut reader).await.unwrap();
         assert_eq!(
             value,
@@ -497,16 +478,12 @@ mod tests {
             ])))
         );
 
-        let mut stream = create_tcp_stream("*2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n").await;
-        let (mut read, _) = stream.split();
+        // Test Multi (key-value pair)
+        let mut read = b"*2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n".as_ref();
         let mut reader = BufReader::new(&mut read);
-
         let value = Value::from_resp(&mut reader).await.unwrap();
-        let mut hashmap = HashMap::new();
-        hashmap.insert("key".to_string(), Value::String("value".to_string()));
         assert_eq!(
             value,
-            // it wont be a hashmap by default since there is no spec for hashmaps in RESP
             Some(Value::Multi(VecDeque::from([
                 Value::String("key".to_string()),
                 Value::String("value".to_string())

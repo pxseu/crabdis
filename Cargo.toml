@@ -21,3 +21,19 @@ strip = true
 lto = true
 opt-level = 3
 panic = "abort"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["async_tokio"] }
+tokio = { version = "1.38", features = ["full", "tracing"] }
+
+[[bench]]
+name = "value_benchmarks"
+harness = false
+
+[[bench]]
+name = "value_resp2_benchmarks"
+harness = false
+
+[[bench]]
+name = "value_resp3_benchmarks"
+harness = false
