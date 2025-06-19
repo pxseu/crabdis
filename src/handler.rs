@@ -8,7 +8,7 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
     let mut reader = BufReader::new(&mut read);
 
     // Create a channel for this client
-    let (tx, mut rx) = mpsc::channel(1000);
+    let (tx, mut rx) = mpsc::unbounded_channel();
 
     // Store the sender in the session
     session.set_sender(tx).await;
