@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crabdis::error::Result;
 use crabdis::storage::value::Value;
 use tokio::io::{AsyncWriteExt, BufReader};
@@ -10,14 +12,14 @@ async fn main() -> Result<()> {
     let mut bufreader = BufReader::new(&mut reader);
 
     for i in 0..1_000_000 {
-        let req = Value::Multi(
+        let req = Value::Multi(Arc::new(
             vec![
                 Value::String("SET".into()),
                 Value::String(format!("key{i}")),
                 Value::String(format!("value{i}")),
             ]
-            .into(),
-        );
+            .into_boxed_slice(),
+        ));
 
         println!("Sending request: {req:?}");
 
