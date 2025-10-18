@@ -38,7 +38,7 @@ impl CommandTrait for Decr {
 
         let mut value = match store.get(&key).map(|v| v.inner()) {
             Some(Value::String(s)) => s.parse::<i64>().unwrap_or(0),
-            Some(Value::Integer(value)) => value,
+            Some(Value::Integer(i)) => *i,
             Some(_) => {
                 return session
                     .versioned_response(&value_error!("Invalid value"), writer)

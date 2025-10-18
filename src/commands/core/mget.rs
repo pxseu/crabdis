@@ -20,15 +20,15 @@ impl CommandTrait for MGet {
                 .await;
         }
 
-        let mut values = VecDeque::with_capacity(args.len());
+        let mut values = Vec::with_capacity(args.len());
 
         let store = session.state.store.write().await;
 
         while let Some(key) = args.pop_front() {
             match key {
                 Value::String(k) => match store.get(&k) {
-                    Some(value) => values.push_back(value.clone()),
-                    None => values.push_back(Value::Nil),
+                    Some(value) => values.push(value.clone()),
+                    None => values.push(Value::Nil),
                 },
 
                 _ => {
@@ -39,6 +39,8 @@ impl CommandTrait for MGet {
             }
         }
 
-        Value::Multi(values).to_resp2(writer).await
+        Value::Multi(Arc::new(values.into_boxed_slice()))
+            .to_resp2(writer)
+            .await
     }
 }

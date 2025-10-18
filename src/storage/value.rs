@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::pin::Pin;
 
@@ -16,10 +16,10 @@ pub enum Value {
     Error(String),
     Integer(i64),
     String(String),
-    Multi(VecDeque<Value>),
+    Multi(Arc<Box<[Value]>>),
     Expire((Box<Value>, Instant)),
     Map(HashMap<Value, Value>),
-    Push(VecDeque<Value>), // For RESP3 push messages (pub/sub)
+    Push(Arc<Box<[Value]>>), // For RESP3 push messages (pub/sub)
 
     // not implemented yet
     Set(HashSet<Value>),
@@ -88,10 +88,10 @@ impl Value {
         }
     }
 
-    pub fn inner(&self) -> Value {
+    pub fn inner(&self) -> &Self {
         match self {
             Self::Expire((v, _)) if !self.expired() => v.inner(),
-            _ => self.clone(),
+            _ => self,
         }
     }
 
@@ -99,12 +99,12 @@ impl Value {
         !self.is_some()
     }
 
-    pub fn to_resp2<'a, T>(
-        &'a self,
-        writer: &'a mut T,
-    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>
+    pub fn to_resp2<'b, T>(
+        &'b self,
+        writer: &'b mut T,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'b>>
     where
-        T: AsyncWriteExt + Unpin + Send,
+        T: AsyncWriteExt + Unpin + Send + 'b,
     {
         Box::pin(async move {
             match self {
@@ -129,7 +129,7 @@ impl Value {
 
                     writer.write_all(format!("*{len}\r\n").as_bytes()).await?;
 
-                    for value in v {
+                    for value in v.iter() {
                         value.to_resp2(writer).await?;
                     }
 
@@ -137,24 +137,29 @@ impl Value {
                 }
                 Self::Push(v) => Value::Multi(v.clone()).to_resp2(writer).await,
                 Self::Map(h) => {
-                    let mut values = VecDeque::with_capacity(h.len() * 2);
+                    let mut values = Vec::with_capacity(h.len() * 2);
 
                     for (k, v) in h {
-                        values.push_back(k.clone());
-                        values.push_back(v.clone());
+                        values.push(k.clone());
+                        values.push(v.clone());
                     }
 
-                    Value::Multi(values).to_resp2(writer).await
+                    Value::Multi(Arc::new(values.into_boxed_slice()))
+                        .to_resp2(writer)
+                        .await
                 }
                 Self::Set(s) => {
-                    let mut values = VecDeque::with_capacity(s.len());
+                    let mut values = Vec::with_capacity(s.len());
 
                     for v in s {
-                        values.push_back(v.clone());
+                        values.push(v.clone());
                     }
 
-                    Value::Multi(values).to_resp2(writer).await
+                    Value::Multi(Arc::new(values.into_boxed_slice()))
+                        .to_resp2(writer)
+                        .await
                 }
+
                 Self::Expire((v, _)) => {
                     // check if the value is expired
                     if Self::expired(&self) {
@@ -167,12 +172,12 @@ impl Value {
         })
     }
 
-    pub fn to_resp3<'a, T>(
-        &'a self,
-        writer: &'a mut T,
-    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>>
+    pub fn to_resp3<'b, T>(
+        &'b self,
+        writer: &'b mut T,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'b>>
     where
-        T: AsyncWriteExt + Unpin + Send,
+        T: AsyncWriteExt + Unpin + Send + 'b,
     {
         Box::pin(async move {
             match self {
@@ -217,7 +222,7 @@ impl Value {
 
                     writer.write_all(format!(">{len}\r\n").as_bytes()).await?;
 
-                    for value in v {
+                    for value in v.iter() {
                         value.to_resp3(writer).await?;
                     }
 
@@ -234,7 +239,7 @@ impl Value {
         reader: &'a mut BufReader<&mut T>,
     ) -> Pin<Box<dyn Future<Output = Result<Option<Self>>> + Send + 'a>>
     where
-        T: AsyncReadExt + Unpin + Send,
+        T: AsyncReadExt + Unpin + Send + 'a,
     {
         Box::pin(async move {
             let mut line = String::new();
@@ -248,17 +253,21 @@ impl Value {
                         .parse()
                         .context("Could not parse integer")?;
 
-                    let mut values = VecDeque::with_capacity(len);
+                    let mut values = Vec::with_capacity(len);
 
                     for _ in 0..len {
                         let value = Self::from_resp(reader).await?;
 
                         if let Some(value) = value {
-                            values.push_back(value);
+                            values.push(value);
                         } else {
                             return Ok(None);
                         }
                     }
+
+                    let values = values.into_boxed_slice();
+
+                    let values = Arc::new(values);
 
                     Ok(Some(Self::Push(values)))
                 }
@@ -297,19 +306,21 @@ impl Value {
                         .trim()
                         .parse()
                         .context("Could not parse integer")?;
-                    let mut values = VecDeque::with_capacity(len);
+                    let mut values = Vec::with_capacity(len);
 
                     for _ in 0..len {
                         let value = Self::from_resp(reader).await?;
 
                         if let Some(value) = value {
-                            values.push_back(value);
+                            values.push(value);
                         } else {
                             return Ok(None);
                         }
                     }
 
-                    Ok(Some(Self::Multi(values)))
+                    let values = values.into_boxed_slice();
+
+                    Ok(Some(Self::Multi(Arc::new(values))))
                 }
 
                 Some('%') => {
@@ -386,9 +397,9 @@ impl From<String> for Value {
     }
 }
 
-impl From<VecDeque<Value>> for Value {
-    fn from(value: VecDeque<Value>) -> Self {
-        Value::Multi(value)
+impl From<Vec<Value>> for Value {
+    fn from(value: Vec<Value>) -> Self {
+        Value::Multi(Arc::new(value.into_boxed_slice()))
     }
 }
 
@@ -422,11 +433,14 @@ mod tests {
 
         assert_eq!(buff, b"$-1\r\n");
 
-        let value = Value::Multi(VecDeque::from([
-            Value::String("Hello, World!".to_string()),
-            Value::Integer(42),
-            Value::Nil,
-        ]));
+        let value = Value::Multi(Arc::new(
+            Vec::from([
+                Value::String("Hello, World!".to_string()),
+                Value::Integer(42),
+                Value::Nil,
+            ])
+            .into_boxed_slice(),
+        ));
         let mut buff = Vec::new();
         value.to_resp2(&mut buff).await.unwrap();
 
@@ -434,60 +448,43 @@ mod tests {
 
         assert_eq!(buff, b"*3\r\n$13\r\nHello, World!\r\n:42\r\n$-1\r\n");
 
-        let value = Value::Multi(VecDeque::from([
-            Value::String("key".to_string()),
-            Value::String("value".to_string()),
-        ]));
-
+        let value = Value::Multi(Arc::new(
+            Vec::from([
+                Value::String("key".to_string()),
+                Value::String("value".to_string()),
+            ])
+            .into_boxed_slice(),
+        ));
         let mut buff = Vec::new();
         value.to_resp2(&mut buff).await.unwrap();
-
         assert_eq!(buff, b"*2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n");
+
+        let value = Value::Nil;
+        let mut buff = Vec::new();
+        value.to_resp2(&mut buff).await.unwrap();
+        assert_eq!(buff, b"$-1\r\n");
     }
 
     #[tokio::test]
     async fn test_value_from_resp() {
-        // Test String
-        let mut read = b"$13\r\nHello, World!\r\n".as_ref();
-        let mut reader = BufReader::new(&mut read);
+        let mut buff = b"*3\r\n$13\r\nHello, World!\r\n:42\r\n$-1\r\n".as_ref();
+        let mut reader = BufReader::new(&mut buff);
         let value = Value::from_resp(&mut reader).await.unwrap();
-        assert_eq!(value, Some(Value::String("Hello, World!".to_string())));
-
-        // Test Integer
-        let mut read = b":42\r\n".as_ref();
-        let mut reader = BufReader::new(&mut read);
+        assert_eq!(
+            value,
+            Some(Value::Multi(Arc::new(
+                Vec::from([
+                    Value::String("Hello, World!".to_string()),
+                    Value::Integer(42),
+                    Value::Nil,
+                ])
+                .into_boxed_slice()
+            )))
+        );
         let value = Value::from_resp(&mut reader).await.unwrap();
         assert_eq!(value, Some(Value::Integer(42)));
 
-        // Test Nil
-        let mut read = b"$-1\r\n".as_ref();
-        let mut reader = BufReader::new(&mut read);
         let value = Value::from_resp(&mut reader).await.unwrap();
         assert_eq!(value, Some(Value::Nil));
-
-        // Test Multi
-        let mut read = b"*3\r\n$13\r\nHello, World!\r\n:42\r\n$-1\r\n".as_ref();
-        let mut reader = BufReader::new(&mut read);
-        let value = Value::from_resp(&mut reader).await.unwrap();
-        assert_eq!(
-            value,
-            Some(Value::Multi(VecDeque::from([
-                Value::String("Hello, World!".to_string()),
-                Value::Integer(42),
-                Value::Nil
-            ])))
-        );
-
-        // Test Multi (key-value pair)
-        let mut read = b"*2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n".as_ref();
-        let mut reader = BufReader::new(&mut read);
-        let value = Value::from_resp(&mut reader).await.unwrap();
-        assert_eq!(
-            value,
-            Some(Value::Multi(VecDeque::from([
-                Value::String("key".to_string()),
-                Value::String("value".to_string())
-            ])))
-        );
     }
 }

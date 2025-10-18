@@ -73,7 +73,7 @@ impl CommandTrait for Scan {
 
         let store = session.state.store.read().await;
         let keys = store.keys().cloned().collect::<Vec<String>>();
-        let mut results = VecDeque::new();
+        let mut results = Vec::new();
 
         log::debug!("SCAN cursor: {cursor}, pattern: {pattern:?}, count: {count}");
 
@@ -85,7 +85,7 @@ impl CommandTrait for Scan {
                     continue;
                 }
             } else {
-                results.push_back(Value::String(key.clone()));
+                results.push(Value::String(key.clone()));
             }
 
             if results.len() >= count {
@@ -93,10 +93,13 @@ impl CommandTrait for Scan {
             }
         }
 
-        Value::Multi(VecDeque::from([
-            Value::String(results.len().to_string()),
-            Value::Multi(results),
-        ]))
+        Value::Multi(Arc::new(
+            Vec::from([
+                Value::String(results.len().to_string()),
+                Value::Multi(Arc::new(results.into_boxed_slice())),
+            ])
+            .into_boxed_slice(),
+        ))
         .to_resp2(writer)
         .await
     }

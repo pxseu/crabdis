@@ -40,13 +40,13 @@ impl CommandTrait for Unsubscribe {
 
         // Send unsubscription confirmation for each channel
         for channel in channels {
-            let mut response = VecDeque::new();
-            response.push_back(Value::String("unsubscribe".to_string()));
-            response.push_back(Value::String(channel));
-            response.push_back(Value::Integer(0)); // Number of remaining subscriptions
+            let mut response = Vec::new();
+            response.push(Value::String("unsubscribe".to_string()));
+            response.push(Value::String(channel));
+            response.push(Value::Integer(0)); // Number of remaining subscriptions
 
             session
-                .versioned_response(&Value::Multi(response), writer)
+                .versioned_response(&Value::Multi(Arc::new(response.into_boxed_slice())), writer)
                 .await?;
         }
 

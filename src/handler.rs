@@ -32,8 +32,11 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
             // Handle incoming requests from the client
             request = Value::from_resp(&mut reader) => {
                 match request? {
-                    Some(Value::Multi(mut args)) => {
+                    Some(Value::Multi(args)) => {
                         log::debug!("Received command: {:?} from session: {}", args, session.id);
+
+
+                        let mut args = VecDeque::from(args.to_vec());
 
                         session
                             .state

@@ -1,7 +1,8 @@
 use crabdis::storage::value::Value;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::io::Cursor;
+use std::sync::Arc;
 use tokio::io::BufReader;
 use tokio::runtime::Runtime;
 
@@ -13,7 +14,7 @@ fn bench_resp2_serialization(c: &mut Criterion) {
     c.bench_function("resp2_serialize_string", |b| {
         b.to_async(&rt).iter(|| async {
             let mut buf = Vec::new();
-            value.to_resp2(&mut buf).await.unwrap();
+            black_box(&value).to_resp2(&mut buf).await.unwrap();
             black_box(buf)
         })
     });
@@ -23,7 +24,7 @@ fn bench_resp2_serialization(c: &mut Criterion) {
     c.bench_function("resp2_serialize_integer", |b| {
         b.to_async(&rt).iter(|| async {
             let mut buf = Vec::new();
-            value.to_resp2(&mut buf).await.unwrap();
+            black_box(&value).to_resp2(&mut buf).await.unwrap();
             black_box(buf)
         })
     });
@@ -33,22 +34,25 @@ fn bench_resp2_serialization(c: &mut Criterion) {
     c.bench_function("resp2_serialize_nil", |b| {
         b.to_async(&rt).iter(|| async {
             let mut buf = Vec::new();
-            value.to_resp2(&mut buf).await.unwrap();
+            black_box(&value).to_resp2(&mut buf).await.unwrap();
             black_box(buf)
         })
     });
 
     // Multi with mixed types
-    let value = Value::Multi(VecDeque::from([
-        Value::String("Hello".to_string()),
-        Value::Integer(42),
-        Value::Nil,
-        Value::Simple("OK".to_string()),
-    ]));
+    let value = Value::Multi(Arc::new(
+        vec![
+            Value::String("Hello".to_string()),
+            Value::Integer(42),
+            Value::Nil,
+            Value::Simple("OK".to_string()),
+        ]
+        .into_boxed_slice(),
+    ));
     c.bench_function("resp2_serialize_multi", |b| {
         b.to_async(&rt).iter(|| async {
             let mut buf = Vec::new();
-            value.to_resp2(&mut buf).await.unwrap();
+            black_box(&value).to_resp2(&mut buf).await.unwrap();
             black_box(buf)
         })
     });
@@ -56,28 +60,31 @@ fn bench_resp2_serialization(c: &mut Criterion) {
     // Map
     let mut map = HashMap::new();
     map.insert(
-        Value::String("key1".to_string()),
-        Value::String("value1".to_string()),
+        Value::String(black_box("key1".to_string())),
+        Value::String(black_box("value1".to_string())),
     );
-    map.insert(Value::String("key2".to_string()), Value::Integer(42));
+    map.insert(
+        Value::String(black_box("key2".to_string())),
+        Value::Integer(black_box(42)),
+    );
     let value = Value::Map(map);
     c.bench_function("resp2_serialize_map", |b| {
         b.to_async(&rt).iter(|| async {
             let mut buf = Vec::new();
-            value.to_resp2(&mut buf).await.unwrap();
+            black_box(&value).to_resp2(&mut buf).await.unwrap();
             black_box(buf)
         })
     });
 
     // Expire
     let value = Value::Expire((
-        Box::new(Value::String("test".to_string())),
-        tokio::time::Instant::now(),
+        Box::new(Value::String(black_box("test".to_string()))),
+        black_box(tokio::time::Instant::now()),
     ));
     c.bench_function("resp2_serialize_expire", |b| {
         b.to_async(&rt).iter(|| async {
             let mut buf = Vec::new();
-            value.to_resp2(&mut buf).await.unwrap();
+            black_box(&value).to_resp2(&mut buf).await.unwrap();
             black_box(buf)
         })
     });
@@ -90,9 +97,9 @@ fn bench_resp2_deserialization(c: &mut Criterion) {
     let data = b"$13\r\nHello, World!\r\n".to_vec();
     c.bench_function("resp2_deserialize_string", |b| {
         b.to_async(&rt).iter(|| async {
-            let mut cursor = Cursor::new(data.clone());
+            let mut cursor = Cursor::new(black_box(data.clone()));
             let mut reader = BufReader::new(&mut cursor);
-            Value::from_resp(&mut reader).await.unwrap()
+            black_box(Value::from_resp(&mut reader).await.unwrap())
         })
     });
 
@@ -100,9 +107,9 @@ fn bench_resp2_deserialization(c: &mut Criterion) {
     let data = b":42\r\n".to_vec();
     c.bench_function("resp2_deserialize_integer", |b| {
         b.to_async(&rt).iter(|| async {
-            let mut cursor = Cursor::new(data.clone());
+            let mut cursor = Cursor::new(black_box(data.clone()));
             let mut reader = BufReader::new(&mut cursor);
-            Value::from_resp(&mut reader).await.unwrap()
+            black_box(Value::from_resp(&mut reader).await.unwrap())
         })
     });
 
@@ -110,9 +117,9 @@ fn bench_resp2_deserialization(c: &mut Criterion) {
     let data = b"$-1\r\n".to_vec();
     c.bench_function("resp2_deserialize_nil", |b| {
         b.to_async(&rt).iter(|| async {
-            let mut cursor = Cursor::new(data.clone());
+            let mut cursor = Cursor::new(black_box(data.clone()));
             let mut reader = BufReader::new(&mut cursor);
-            Value::from_resp(&mut reader).await.unwrap()
+            black_box(Value::from_resp(&mut reader).await.unwrap())
         })
     });
 
@@ -120,9 +127,9 @@ fn bench_resp2_deserialization(c: &mut Criterion) {
     let data = b"*3\r\n$5\r\nHello\r\n:42\r\n$-1\r\n".to_vec();
     c.bench_function("resp2_deserialize_multi", |b| {
         b.to_async(&rt).iter(|| async {
-            let mut cursor = Cursor::new(data.clone());
+            let mut cursor = Cursor::new(black_box(data.clone()));
             let mut reader = BufReader::new(&mut cursor);
-            Value::from_resp(&mut reader).await.unwrap()
+            black_box(Value::from_resp(&mut reader).await.unwrap())
         })
     });
 }

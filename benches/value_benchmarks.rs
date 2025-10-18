@@ -1,6 +1,7 @@
 use crabdis::storage::value::Value;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 fn bench_value_creation(c: &mut Criterion) {
     c.bench_function("create_string", |b| {
@@ -13,10 +14,11 @@ fn bench_value_creation(c: &mut Criterion) {
 
     c.bench_function("create_multi", |b| {
         b.iter(|| {
-            let mut vd = VecDeque::new();
-            vd.push_back(Value::String("test".to_string()));
-            vd.push_back(Value::Integer(42));
-            Value::Multi(black_box(vd))
+            let values = vec![
+                Value::String(black_box("test".to_string())),
+                Value::Integer(black_box(42)),
+            ];
+            Value::Multi(Arc::new(values.into_boxed_slice()))
         })
     });
 
@@ -24,8 +26,8 @@ fn bench_value_creation(c: &mut Criterion) {
         b.iter(|| {
             let mut map = HashMap::new();
             map.insert(
-                Value::String("key".to_string()),
-                Value::String("value".to_string()),
+                Value::String(black_box("key".to_string())),
+                Value::String(black_box("value".to_string())),
             );
             Value::Map(black_box(map))
         })

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -104,11 +104,14 @@ impl State {
         let subs = self.subscriptions.read().await;
 
         if let Some(sessions) = subs.get(channel) {
-            let pubsub_value = Value::Push(VecDeque::from([
-                Value::String("message".to_string()),
-                Value::String(channel.to_string()),
-                message.clone(),
-            ]));
+            let pubsub_value = Value::Push(Arc::new(
+                Vec::from([
+                    Value::String("message".to_string()),
+                    Value::String(channel.to_string()),
+                    message.clone(),
+                ])
+                .into_boxed_slice(),
+            ));
 
             for session in sessions {
                 let version = session.get_proto_version().await;

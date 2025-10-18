@@ -31,14 +31,16 @@ impl CommandTrait for Keys {
             }
         };
 
-        let mut keys = VecDeque::new();
+        let mut keys = Vec::new();
 
         for key in session.state.store.read().await.keys() {
             if pattern.matches(key) {
-                keys.push_back(Value::String(key.clone()));
+                keys.push(Value::String(key.clone()));
             }
         }
 
-        Value::Multi(keys).to_resp2(writer).await
+        Value::Multi(Arc::new(keys.into_boxed_slice()))
+            .to_resp2(writer)
+            .await
     }
 }
