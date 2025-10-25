@@ -40,11 +40,19 @@ pub async fn run(cli: CLI) -> Result<()> {
 
     utils::bootlog(&cli);
 
-    log::info!("Listening on {}", listener.local_addr()?);
+    log::info!(
+        "Listening on {}",
+        listener
+            .local_addr()
+            .context("Failed to get local address")?
+    );
 
     loop {
         #[cfg(debug_assertions)]
-        let (mut stream, addr) = listener.accept().await?;
+        let (mut stream, addr) = listener
+            .accept()
+            .await
+            .context("Failed to accept connection")?;
 
         #[cfg(not(debug_assertions))]
         let (mut stream, _) = listener.accept().await?;
@@ -53,6 +61,12 @@ pub async fn run(cli: CLI) -> Result<()> {
 
         tokio::spawn(async move {
             use std::io::ErrorKind;
+
+            // Disable Nagle's algorithm to ensure immediate delivery of data
+            if let Err(e) = stream.set_nodelay(true) {
+                log::error!("Failed to set TCP_NODELAY: {e}");
+                return;
+            }
 
             let session = state.new_session().await;
 
@@ -68,7 +82,7 @@ pub async fn run(cli: CLI) -> Result<()> {
                             e.kind(),
                             ErrorKind::ConnectionAborted | ErrorKind::ConnectionReset
                         ) => {}
-                    _ => log::error!("Error: {e:?}"),
+                    _ => log::error!("Unkown connection error: {e:?}"),
                 }
             }
 

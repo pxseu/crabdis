@@ -35,6 +35,7 @@ async fn main() -> Result<()> {
 
                         println!("REDIS -> FAKE: {text}" );
                         fake_writer.write_all(data).await.unwrap();
+                        fake_writer.flush().await.unwrap();
                     }
                     Ok(n) = fake_reader.read(&mut fake_buffer) => {
                         if n == 0 {
@@ -46,6 +47,7 @@ async fn main() -> Result<()> {
 
                         println!("FAKE -> REDIS: {text}");
                         redis_writer.write_all(data).await.unwrap();
+                        redis_writer.flush().await.unwrap();
                     }
                 }
             }

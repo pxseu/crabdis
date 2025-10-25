@@ -16,16 +16,13 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
     // Handle both reading and writing in the same task
     loop {
         tokio::select! {
+            biased;
             // Handle incoming messages from the channel
             Some(value) = rx.recv() => {
                 log::debug!("Received message from client: {:?}", value);
 
                 if let Err(e) = session.versioned_response(&value, &mut writer).await {
                     log::error!("Failed to write to client: {}", e);
-                    break;
-                }
-                if let Err(e) = writer.flush().await {
-                    log::error!("Failed to flush to client: {}", e);
                     break;
                 }
             }
@@ -43,6 +40,7 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
                             .handler
                             .handle_command(&mut writer, &mut args, session.clone())
                             .await?;
+
                     }
                     None => {
                         return Ok(());
@@ -51,11 +49,18 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
                         session
                             .versioned_response(&value_error!("Invalid request"), &mut writer)
                             .await?;
+
+
                     }
                 }
-                writer.flush().await?;
+
+
             }
+
+
         }
+
+        writer.flush().await?;
     }
 
     Ok(())

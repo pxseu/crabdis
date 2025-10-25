@@ -46,7 +46,7 @@ impl CommandTrait for Subscribe {
             response.push(Value::Integer(1)); // Number of subscriptions
 
             session
-                .versioned_response(&Value::Multi(Arc::new(response.into_boxed_slice())), writer)
+                .versioned_response(&Value::Push(Arc::new(response.into_boxed_slice())), writer)
                 .await?;
         }
 
