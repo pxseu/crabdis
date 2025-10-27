@@ -12,7 +12,7 @@ pub struct State {
     pub store: Store,
     pub handler: CommandHandler,
     pub expire_keys: ExpireKey,
-    pub subscriptions: Arc<RwLock<HashMap<String, Vec<SessionRef>>>>,
+    pub subscriptions: Arc<RwLock<HashMap<Arc<str>, Vec<SessionRef>>>>,
     pub sessions: Arc<RwLock<HashMap<u64, SessionRef>>>,
     next_session_id: Arc<RwLock<u64>>,
     available_ids: Arc<RwLock<HashSet<u64>>>, // For recycling IDs
@@ -79,9 +79,9 @@ impl State {
         subs.retain(|_, sessions| !sessions.is_empty());
     }
 
-    pub async fn subscribe(&self, channel: String, session: SessionRef) {
+    pub async fn subscribe(&self, channel: &str, session: SessionRef) {
         let mut subs = self.subscriptions.write().await;
-        let sessions = subs.entry(channel).or_default();
+        let sessions = subs.entry(channel.into()).or_default();
 
         // Check if session is already subscribed
         if !sessions.iter().any(|s| s.id == session.id) {
@@ -104,14 +104,14 @@ impl State {
         let subs = self.subscriptions.read().await;
 
         if let Some(sessions) = subs.get(channel) {
-            let pubsub_value = Value::Push(Arc::new(
+            let pubsub_value = Value::Push(
                 Vec::from([
-                    Value::String("message".to_string()),
-                    Value::String(channel.to_string()),
+                    Value::String("message".into()),
+                    Value::String(channel.into()),
                     message.clone(),
                 ])
-                .into_boxed_slice(),
-            ));
+                .into(),
+            );
 
             for session in sessions {
                 let version = session.get_proto_version().await;

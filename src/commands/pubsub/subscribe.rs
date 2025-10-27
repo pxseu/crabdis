@@ -24,10 +24,7 @@ impl CommandTrait for Subscribe {
         while let Some(arg) = args.pop_front() {
             match arg {
                 Value::String(channel) => {
-                    session
-                        .state
-                        .subscribe(channel.clone(), session.clone())
-                        .await;
+                    session.state.subscribe(&channel, session.clone()).await;
                     channels.push(channel);
                 }
                 _ => {
@@ -41,12 +38,12 @@ impl CommandTrait for Subscribe {
         // Send subscription confirmation for each channel
         for channel in channels {
             let mut response = Vec::new();
-            response.push(Value::String("subscribe".to_string()));
+            response.push(Value::String("subscribe".into()));
             response.push(Value::String(channel));
             response.push(Value::Integer(1)); // Number of subscriptions
 
             session
-                .versioned_response(&Value::Push(Arc::new(response.into_boxed_slice())), writer)
+                .versioned_response(&Value::Push(response.into()), writer)
                 .await?;
         }
 

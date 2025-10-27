@@ -50,7 +50,7 @@ impl CommandTrait for Incr {
         value += 1;
 
         // store it as int at some point
-        store.insert(key, Value::String(value.to_string()));
+        store.insert(key, Value::String(value.to_string().into()));
 
         Value::Integer(value).to_resp2(writer).await
     }

@@ -15,7 +15,7 @@ impl CommandTrait for PSetEx {
         session: SessionRef,
     ) -> Result<()> {
         // add EX to the arguments and call SET command
-        args.insert(2, Value::String("PX".to_string()));
+        args.insert(2, Value::String("PX".into()));
 
         let clone = session.clone();
 

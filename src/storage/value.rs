@@ -7,23 +7,45 @@ use tokio::time::Instant;
 
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub enum Value {
     Ok,   // only for response
     Pong, // only for response
     Nil,
-    Simple(String),
-    Error(String),
+    Simple(Arc<str>),
+    Error(Arc<str>),
     Integer(i64),
-    String(String),
-    Multi(Arc<Box<[Value]>>),
-    Expire((Box<Value>, Instant)),
+    String(Arc<str>),
+    Multi(Arc<[Value]>),
+    Expire((Arc<Value>, Instant)),
     Map(HashMap<Value, Value>),
-    Push(Arc<Box<[Value]>>), // For RESP3 push messages (pub/sub)
+    Push(Arc<[Value]>), // For RESP3 push messages (pub/sub)
 
     // not implemented yet
     Set(HashSet<Value>),
 }
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        use Value::*;
+        match (self, other) {
+            (Ok, Ok) | (Pong, Pong) | (Nil, Nil) => true,
+            (Simple(a), Simple(b)) => a == b,
+            (Error(a), Error(b)) => a == b,
+            (Integer(a), Integer(b)) => a == b,
+            (String(a), String(b)) => a == b,
+            (Multi(a), Multi(b)) => a == b,
+            (Push(a), Push(b)) => a == b,
+            (Map(a), Map(b)) => a == b,
+            (Set(a), Set(b)) => a == b,
+            // Compare only inner values; ignore Instant to match Hash
+            (Expire(_), Expire(_)) => unreachable!("Expire values should not be compared"),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Value {}
 
 impl std::hash::Hash for Value {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -40,33 +62,13 @@ impl std::hash::Hash for Value {
             Self::Push(v) => v.hash(state),
 
             Self::Map(_) | Self::Set(_) => unreachable!(),
-            // Self::Hashmap(v) => {
-            //     use std::collections::hash_map::DefaultHasher;
-            //     use std::hash::Hasher;
-
-            //     let mut total_hash = 0;
-
-            //     for (k, v) in v.iter() {
-            //         let mut hasher = DefaultHasher::new();
-
-            //         k.hash(&mut hasher);
-            //         v.hash(&mut hasher);
-
-            //         let pair_hash = hasher.finish();
-
-            //         // this might be insecure however it does not matter for now
-            //         total_hash ^= pair_hash; // XOR the hashes together
-            //     }
-
-            //     total_hash.hash(state);
-            // }
         }
     }
 }
 
 macro_rules! value_error {
     ($($arg:tt)*) => {
-        Value::Error(format!($($arg)*))
+        Value::Error(format!($($arg)*).into())
     };
 }
 
@@ -90,7 +92,7 @@ impl Value {
 
     pub fn inner(&self) -> &Self {
         match self {
-            Self::Expire((v, _)) if !self.expired() => v.inner(),
+            Self::Expire((v, _)) => v.inner(),
             _ => self,
         }
     }
@@ -108,8 +110,8 @@ impl Value {
     {
         Box::pin(async move {
             match self {
-                Self::Ok => Self::to_resp2(&Self::Simple("OK".to_string()), writer).await,
-                Self::Pong => Self::to_resp2(&Self::Simple("PONG".to_string()), writer).await,
+                Self::Ok => Self::to_resp2(&Self::Simple("OK".into()), writer).await,
+                Self::Pong => Self::to_resp2(&Self::Simple("PONG".into()), writer).await,
 
                 Self::Nil => Ok(writer.write_all(b"$-1\r\n").await?),
                 Self::Simple(s) => Ok(writer.write_all(format!("+{s}\r\n").as_bytes()).await?),
@@ -144,9 +146,7 @@ impl Value {
                         values.push(v.clone());
                     }
 
-                    Value::Multi(Arc::new(values.into_boxed_slice()))
-                        .to_resp2(writer)
-                        .await
+                    Value::Multi(values.into()).to_resp2(writer).await
                 }
                 Self::Set(s) => {
                     let mut values = Vec::with_capacity(s.len());
@@ -155,9 +155,7 @@ impl Value {
                         values.push(v.clone());
                     }
 
-                    Value::Multi(Arc::new(values.into_boxed_slice()))
-                        .to_resp2(writer)
-                        .await
+                    Ok(())
                 }
 
                 Self::Expire((v, _)) => {
@@ -265,11 +263,7 @@ impl Value {
                         }
                     }
 
-                    let values = values.into_boxed_slice();
-
-                    let values = Arc::new(values);
-
-                    Ok(Some(Self::Push(values)))
+                    Ok(Some(Self::Push(values.into())))
                 }
                 Some('$') if line == "$-1\r\n" => Ok(Some(Self::Nil)),
 
@@ -287,9 +281,9 @@ impl Value {
                     reader.read_exact(&mut [0; 2]).await?;
 
                     // SAFETY: we know that the value is a valid utf8 string, or at least it should
-                    let value = unsafe { String::from_utf8_unchecked(value) };
+                    let value = unsafe { std::str::from_utf8_unchecked(&value) };
 
-                    Ok(Some(Self::String(value)))
+                    Ok(Some(Self::String(value.into())))
                 }
 
                 Some(':') => {
@@ -301,6 +295,7 @@ impl Value {
                     Ok(Some(Self::Integer(value)))
                 }
 
+                Some('*') if line == "*0\r\n" => Ok(Some(Self::Multi([].into()))),
                 Some('*') => {
                     let len: usize = line[1..]
                         .trim()
@@ -318,9 +313,7 @@ impl Value {
                         }
                     }
 
-                    let values = values.into_boxed_slice();
-
-                    Ok(Some(Self::Multi(Arc::new(values))))
+                    Ok(Some(Self::Multi(values.into())))
                 }
 
                 Some('%') => {
@@ -375,11 +368,11 @@ impl Value {
                     }
                 }
 
-                Some('-') => Ok(Some(Self::Error(line[1..].trim().to_string()))),
+                Some('-') => Ok(Some(Self::Error(line[1..].trim().into()))),
 
                 None => Ok(None),
 
-                _ => Ok(Some(Self::Error("Invalid response".to_string()))),
+                _ => Ok(Some(Self::Error("Invalid response".into()))),
             }
         })
     }
@@ -393,13 +386,13 @@ impl From<Option<Value>> for Value {
 
 impl From<String> for Value {
     fn from(value: String) -> Self {
-        Value::String(value)
+        Value::String(value.into())
     }
 }
 
 impl From<Vec<Value>> for Value {
     fn from(value: Vec<Value>) -> Self {
-        Value::Multi(Arc::new(value.into_boxed_slice()))
+        Value::Multi(value.into())
     }
 }
 
@@ -415,7 +408,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_value_to_resp() {
-        let value = Value::String("Hello, World!".to_string());
+        let value = Value::String("Hello, World!".into());
         let mut buff = Vec::new();
         value.to_resp2(&mut buff).await.unwrap();
 
@@ -433,14 +426,14 @@ mod tests {
 
         assert_eq!(buff, b"$-1\r\n");
 
-        let value = Value::Multi(Arc::new(
+        let value = Value::Multi(
             Vec::from([
-                Value::String("Hello, World!".to_string()),
+                Value::String("Hello, World!".into()),
                 Value::Integer(42),
                 Value::Nil,
             ])
-            .into_boxed_slice(),
-        ));
+            .into(),
+        );
         let mut buff = Vec::new();
         value.to_resp2(&mut buff).await.unwrap();
 
@@ -448,13 +441,9 @@ mod tests {
 
         assert_eq!(buff, b"*3\r\n$13\r\nHello, World!\r\n:42\r\n$-1\r\n");
 
-        let value = Value::Multi(Arc::new(
-            Vec::from([
-                Value::String("key".to_string()),
-                Value::String("value".to_string()),
-            ])
-            .into_boxed_slice(),
-        ));
+        let value = Value::Multi(
+            Vec::from([Value::String("key".into()), Value::String("value".into())]).into(),
+        );
         let mut buff = Vec::new();
         value.to_resp2(&mut buff).await.unwrap();
         assert_eq!(buff, b"*2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n");
@@ -472,14 +461,14 @@ mod tests {
         let value = Value::from_resp(&mut reader).await.unwrap();
         assert_eq!(
             value,
-            Some(Value::Multi(Arc::new(
+            Some(Value::Multi(
                 Vec::from([
-                    Value::String("Hello, World!".to_string()),
+                    Value::String("Hello, World!".into()),
                     Value::Integer(42),
-                    Value::Nil,
+                    Value::Nil
                 ])
-                .into_boxed_slice()
-            )))
+                .into(),
+            )),
         );
         let value = Value::from_resp(&mut reader).await.unwrap();
         assert_eq!(value, Some(Value::Integer(42)));

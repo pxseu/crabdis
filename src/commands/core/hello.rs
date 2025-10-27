@@ -22,14 +22,16 @@ impl CommandTrait for Hello {
 
         match args.pop_front() {
             Some(Value::String(version)) => {
-                if version != "2" && version != "3" {
+                if version.as_ref() != "2" && version.as_ref() != "3" {
                     return session
                         .versioned_response(&value_error!("Invalid version"), writer)
                         .await;
                 }
 
                 // safe to unwrap since we've already checked the value
-                session.set_proto_version(version.parse().unwrap()).await;
+                session
+                    .set_proto_version(version.parse::<u8>().unwrap())
+                    .await;
             }
 
             _ => {}
@@ -37,31 +39,28 @@ impl CommandTrait for Hello {
 
         let response = Value::Map(HashMap::from([
             (
-                Value::String("server".to_string()),
-                Value::String(env!("CARGO_PKG_NAME").to_string()),
+                Value::String("server".into()),
+                Value::String(env!("CARGO_PKG_NAME").into()),
             ),
             (
-                Value::String("version".to_string()),
-                Value::String(env!("CARGO_PKG_VERSION").to_string()),
+                Value::String("version".into()),
+                Value::String(env!("CARGO_PKG_VERSION").into()),
             ),
             (
-                Value::String("proto".to_string()),
+                Value::String("proto".into()),
                 Value::Integer(session.get_proto_version().await.into()),
             ),
             (
-                Value::String("id".to_string()),
+                Value::String("id".into()),
                 Value::Integer(session.id as i64),
             ),
             (
-                Value::String("mode".to_string()),
-                Value::String("standalone".to_string()),
+                Value::String("mode".into()),
+                Value::String("standalone".into()),
             ),
+            (Value::String("role".into()), Value::String("master".into())),
             (
-                Value::String("role".to_string()),
-                Value::String("master".to_string()),
-            ),
-            (
-                Value::String("modules".to_string()),
+                Value::String("modules".into()),
                 Value::Multi(Default::default()),
             ),
         ]));

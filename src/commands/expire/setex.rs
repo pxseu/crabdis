@@ -21,7 +21,7 @@ impl CommandTrait for SetEx {
         }
 
         // add EX to the arguments and call SET command
-        args.insert(2, Value::String("EX".to_string()));
+        args.insert(2, Value::String("EX".into()));
 
         let clone = session.clone();
 

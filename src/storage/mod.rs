@@ -7,5 +7,5 @@ use tokio::sync::RwLock;
 
 use crate::prelude::*;
 
-pub type Store = Arc<RwLock<HashMap<String, Value>>>;
-pub type ExpireKey = Arc<RwLock<HashSet<String>>>;
+pub type Store = Arc<RwLock<HashMap<Arc<str>, Value>>>;
+pub type ExpireKey = Arc<RwLock<HashSet<Arc<str>>>>;

@@ -71,13 +71,8 @@ impl CommandTrait for Expire {
             }
         };
 
-        let inner_value = match value {
-            Value::Expire((inner, _)) => *inner.clone(),
-            _ => value.clone(),
-        };
-
         *value = Value::Expire((
-            Box::new(inner_value),
+            Arc::new(value.inner().clone()),
             tokio::time::Instant::now() + tokio::time::Duration::from_secs(seconds as u64),
         ));
         session.state.expire_keys.write().await.insert(key);

@@ -84,7 +84,7 @@ impl CommandTrait for Set {
                     }
                     arg => {
                         if let Some(prev) = prev_ex_arg {
-                            match prev.as_str() {
+                            match prev.as_ref() {
                                 "EX" => arguments.ex = arg.parse::<i64>().ok(),
                                 "PX" => arguments.px = arg.parse::<i64>().ok(),
                                 "EXAT" => arguments.exat = arg.parse::<i64>().ok(),
@@ -155,7 +155,7 @@ impl CommandTrait for Set {
 
         *prev_key = if let Some(expire_at) = expire_at {
             session.state.expire_keys.write().await.insert(key);
-            Value::Expire((Box::new(value), expire_at))
+            Value::Expire((value.into(), expire_at))
         } else {
             value
         };

@@ -15,7 +15,7 @@ impl CommandTrait for Scan {
         session: SessionRef,
     ) -> Result<()> {
         let mut cursor = 0;
-        let mut pattern: Option<String> = None;
+        let mut pattern: Option<Arc<str>> = None;
         let mut count = 10;
 
         while let Some(arg) = args.pop_front() {
@@ -72,7 +72,7 @@ impl CommandTrait for Scan {
         }
 
         let store = session.state.store.read().await;
-        let keys = store.keys().cloned().collect::<Vec<String>>();
+        let keys = store.keys().cloned().collect::<Vec<Arc<str>>>();
         let mut results = Vec::new();
 
         log::debug!("SCAN cursor: {cursor}, pattern: {pattern:?}, count: {count}");
@@ -81,7 +81,7 @@ impl CommandTrait for Scan {
             log::debug!("SCAN key: {key}");
 
             if let Some(pattern) = &pattern {
-                if !key.contains(pattern) {
+                if !key.contains(pattern.as_ref()) {
                     continue;
                 }
             } else {
@@ -93,14 +93,17 @@ impl CommandTrait for Scan {
             }
         }
 
-        Value::Multi(Arc::new(
-            Vec::from([
-                Value::String(results.len().to_string()),
-                Value::Multi(Arc::new(results.into_boxed_slice())),
-            ])
-            .into_boxed_slice(),
-        ))
-        .to_resp2(writer)
-        .await
+        session
+            .versioned_response(
+                &Value::Multi(
+                    Vec::from([
+                        Value::String(results.len().to_string().into()),
+                        Value::Multi(results.into()),
+                    ])
+                    .into(),
+                ),
+                writer,
+            )
+            .await
     }
 }

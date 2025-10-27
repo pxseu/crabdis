@@ -49,6 +49,6 @@ impl CommandTrait for Type {
             }
         };
 
-        Value::String(value_type.to_string()).to_resp2(writer).await
+        Value::String(value_type.into()).to_resp2(writer).await
     }
 }

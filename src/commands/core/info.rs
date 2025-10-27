@@ -23,12 +23,18 @@ impl CommandTrait for Info {
         }
 
         if length == 0 {
-            return Value::String(format!(
-                "loading:{}\r\n",
-                if session.state.loaded { "0" } else { "1" }
-            ))
-            .to_resp2(writer)
-            .await;
+            return session
+                .versioned_response(
+                    &Value::String(
+                        format!(
+                            "loading:{}\r\n",
+                            if session.state.loaded { "0" } else { "1" }
+                        )
+                        .into(),
+                    ),
+                    writer,
+                )
+                .await;
         }
 
         let key = match args.pop_front() {
@@ -50,8 +56,8 @@ impl CommandTrait for Info {
                 };
 
                 if key_count == 0 {
-                    return Value::String("# Keyspace\r\n".to_string())
-                        .to_resp2(writer)
+                    return session
+                        .versioned_response(&Value::String("# Keyspace\r\n".into()), writer)
                         .await;
                 }
 
@@ -60,20 +66,30 @@ impl CommandTrait for Info {
                     expire.len()
                 };
 
-                Value::String(format!(
-                    "# Keyspace\r\ndb0:keys={key_count},expires={expire_keys},avg_ttl=0\r\n"
-                ))
-                .to_resp2(writer)
-                .await
-            }
-
-            "server" => {
-                Value::String("redis_version:7.4.0\r\n".to_string())
-                    .to_resp2(writer)
+                session
+                    .versioned_response(
+                        &Value::String(
+                            format!(
+                                "# Keyspace\r\ndb0:keys={key_count},expires={expire_keys},avg_ttl=0\r\n"
+                            )
+                            .into(),
+                        ),
+                        writer,
+                    )
                     .await
             }
 
-            _ => value_error!("Invalid key").to_resp2(writer).await,
+            "server" => {
+                session
+                    .versioned_response(&Value::String("redis_version:7.4.0\r\n".into()), writer)
+                    .await
+            }
+
+            _ => {
+                session
+                    .versioned_response(&value_error!("Invalid key"), writer)
+                    .await
+            }
         }
     }
 }

@@ -39,8 +39,8 @@ impl CommandTrait for MGet {
             }
         }
 
-        Value::Multi(Arc::new(values.into_boxed_slice()))
-            .to_resp2(writer)
+        session
+            .versioned_response(&Value::Multi(values.into()), writer)
             .await
     }
 }

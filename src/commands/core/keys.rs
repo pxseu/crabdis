@@ -39,8 +39,8 @@ impl CommandTrait for Keys {
             }
         }
 
-        Value::Multi(Arc::new(keys.into_boxed_slice()))
-            .to_resp2(writer)
+        session
+            .versioned_response(&Value::Multi(keys.into()), writer)
             .await
     }
 }
