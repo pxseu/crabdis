@@ -10,7 +10,7 @@ impl CommandTrait for MSet {
 
     async fn handle_command(
         &self,
-        writer: &mut WriteHalf,
+        writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut VecDeque<Value>,
         session: SessionRef,
     ) -> Result<()> {

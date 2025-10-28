@@ -1,4 +1,4 @@
-use tokio::io::{AsyncWriteExt, BufReader};
+use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 use tokio::sync::mpsc;
 
 use crate::prelude::*;
@@ -6,6 +6,7 @@ use crate::prelude::*;
 pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionRef) -> Result<()> {
     let (mut read, mut writer) = stream.split();
     let mut reader = BufReader::new(&mut read);
+    let mut writer = BufWriter::new(&mut writer);
 
     // Create a channel for this client
     let (tx, mut rx) = mpsc::unbounded_channel();

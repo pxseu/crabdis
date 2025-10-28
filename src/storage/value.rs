@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::pin::Pin;
 
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt};
 use tokio::time::Instant;
 
 use crate::prelude::*;
@@ -106,30 +106,51 @@ impl Value {
         writer: &'b mut T,
     ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'b>>
     where
-        T: AsyncWriteExt + Unpin + Send + 'b,
+        T: AsyncWriteExt + Unpin + Send + 'b + ?Sized,
     {
         Box::pin(async move {
             match self {
-                Self::Ok => Self::to_resp2(&Self::Simple("OK".into()), writer).await,
-                Self::Pong => Self::to_resp2(&Self::Simple("PONG".into()), writer).await,
-
+                Self::Ok => Self::Simple("OK".into()).to_resp2(writer).await,
+                Self::Pong => Self::Simple("PONG".into()).to_resp2(writer).await,
                 Self::Nil => Ok(writer.write_all(b"$-1\r\n").await?),
-                Self::Simple(s) => Ok(writer.write_all(format!("+{s}\r\n").as_bytes()).await?),
-                Self::Error(e) => Ok(writer.write_all(format!("-{e}\r\n").as_bytes()).await?),
-                Self::Integer(i) => Ok(writer.write_all(format!(":{i}\r\n").as_bytes()).await?),
-                Self::String(s) => {
-                    let len = s.len();
-
-                    writer
-                        .write_all(format!("${len}\r\n{s}\r\n").as_bytes())
-                        .await?;
+                Self::Simple(s) => {
+                    writer.write_all(b"+").await?;
+                    writer.write_all(s.as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
 
                     Ok(())
                 }
-                Self::Multi(v) => {
-                    let len = v.len();
+                Self::Error(e) => {
+                    writer.write_all(b"-").await?;
+                    writer.write_all(e.as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
 
-                    writer.write_all(format!("*{len}\r\n").as_bytes()).await?;
+                    Ok(())
+                }
+                Self::Integer(i) => {
+                    writer.write_all(b":").await?;
+                    writer.write_all(i.to_string().as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
+
+                    Ok(())
+                }
+                Self::String(s) if s.len() == 0 => Ok(writer.write_all(b"$-1\r\n").await?),
+                Self::String(s) => {
+                    writer.write_all(b"$").await?;
+                    writer.write_all(s.len().to_string().as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
+                    writer.write_all(s.as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
+
+                    Ok(())
+                }
+                // Self::Multi(v) | Self::Push(v) if v.len() == 0 => {
+                //     Ok(writer.write_all(b"*0\r\n").await?)
+                // }
+                Self::Multi(v) | Self::Push(v) => {
+                    writer.write_all(b"*").await?;
+                    writer.write_all(v.len().to_string().as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
 
                     for value in v.iter() {
                         value.to_resp2(writer).await?;
@@ -137,22 +158,29 @@ impl Value {
 
                     Ok(())
                 }
-                Self::Push(v) => Value::Multi(v.clone()).to_resp2(writer).await,
+                // Self::Map(h) if h.len() == 0 => Ok(writer.write_all(b"*0\r\n").await?),
                 Self::Map(h) => {
-                    let mut values = Vec::with_capacity(h.len() * 2);
+                    writer.write_all(b"*").await?;
+                    // map in non resp3 is serialized as a list of key-value pairs
+                    let len = h.len() * 2;
+                    writer.write_all(len.to_string().as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
 
                     for (k, v) in h {
-                        values.push(k.clone());
-                        values.push(v.clone());
+                        k.to_resp2(writer).await?;
+                        v.to_resp2(writer).await?;
                     }
 
-                    Value::Multi(values.into()).to_resp2(writer).await
+                    Ok(())
                 }
+                // Self::Set(s) if s.len() == 0 => Ok(writer.write_all(b"*0\r\n").await?),
                 Self::Set(s) => {
-                    let mut values = Vec::with_capacity(s.len());
+                    writer.write_all(b"*").await?;
+                    writer.write_all(s.len().to_string().as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
 
                     for v in s {
-                        values.push(v.clone());
+                        v.to_resp2(writer).await?;
                     }
 
                     Ok(())
@@ -175,15 +203,15 @@ impl Value {
         writer: &'b mut T,
     ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'b>>
     where
-        T: AsyncWriteExt + Unpin + Send + 'b,
+        T: AsyncWriteExt + Unpin + Send + 'b + ?Sized,
     {
         Box::pin(async move {
             match self {
                 Self::Nil => Ok(writer.write_all(b"$_\r\n").await?),
                 Self::Map(map) => {
-                    let len = map.len();
-
-                    writer.write_all(format!("%{len}\r\n").as_bytes()).await?;
+                    writer.write_all(b"%").await?;
+                    writer.write_all(map.len().to_string().as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
 
                     for (k, v) in map {
                         k.to_resp3(writer).await?;
@@ -194,9 +222,9 @@ impl Value {
                 }
 
                 Self::Set(set) => {
-                    let len = set.len();
-
-                    writer.write_all(format!("~{len}\r\n").as_bytes()).await?;
+                    writer.write_all(b"~").await?;
+                    writer.write_all(set.len().to_string().as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
 
                     for v in set {
                         v.to_resp3(writer).await?;
@@ -206,19 +234,19 @@ impl Value {
                 }
 
                 Self::Error(s) => {
-                    let len = s.len();
-
-                    writer
-                        .write_all(format!("!{len}\r\n{s}\r\n").as_bytes())
-                        .await?;
+                    writer.write_all(b"!").await?;
+                    writer.write_all(s.len().to_string().as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
+                    writer.write_all(s.as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
 
                     Ok(())
                 }
 
                 Self::Push(v) => {
-                    let len = v.len();
-
-                    writer.write_all(format!(">{len}\r\n").as_bytes()).await?;
+                    writer.write_all(b">").await?;
+                    writer.write_all(v.len().to_string().as_bytes()).await?;
+                    writer.write_all(b"\r\n").await?;
 
                     for value in v.iter() {
                         value.to_resp3(writer).await?;
@@ -234,10 +262,10 @@ impl Value {
     }
 
     pub fn from_resp<'a, T>(
-        reader: &'a mut BufReader<&mut T>,
+        reader: &'a mut T,
     ) -> Pin<Box<dyn Future<Output = Result<Option<Self>>> + Send + 'a>>
     where
-        T: AsyncReadExt + Unpin + Send + 'a,
+        T: AsyncBufReadExt + Unpin + Send + 'a,
     {
         Box::pin(async move {
             let mut line = String::new();
@@ -405,27 +433,66 @@ impl From<i64> for Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Cursor;
 
     #[tokio::test]
-    async fn test_value_to_resp() {
-        let value = Value::String("Hello, World!".into());
+    async fn test_resp2_simple_string() {
+        let value = Value::Simple("OK".into());
         let mut buff = Vec::new();
         value.to_resp2(&mut buff).await.unwrap();
+        assert_eq!(buff, b"+OK\r\n");
+    }
 
-        assert_eq!(buff, b"$13\r\nHello, World!\r\n");
+    #[tokio::test]
+    async fn test_resp2_error() {
+        let value = Value::Error("ERR something went wrong".into());
+        let mut buff = Vec::new();
+        value.to_resp2(&mut buff).await.unwrap();
+        assert_eq!(buff, b"-ERR something went wrong\r\n");
+    }
 
+    #[tokio::test]
+    async fn test_resp2_integer() {
         let value = Value::Integer(42);
         let mut buff = Vec::new();
         value.to_resp2(&mut buff).await.unwrap();
-
         assert_eq!(buff, b":42\r\n");
 
+        let value = Value::Integer(-100);
+        let mut buff = Vec::new();
+        value.to_resp2(&mut buff).await.unwrap();
+        assert_eq!(buff, b":-100\r\n");
+
+        let value = Value::Integer(0);
+        let mut buff = Vec::new();
+        value.to_resp2(&mut buff).await.unwrap();
+        assert_eq!(buff, b":0\r\n");
+    }
+
+    #[tokio::test]
+    async fn test_resp2_bulk_string() {
+        let value = Value::String("Hello, World!".into());
+        let mut buff = Vec::new();
+        value.to_resp2(&mut buff).await.unwrap();
+        assert_eq!(buff, b"$13\r\nHello, World!\r\n");
+
+        // Empty string
+        let value = Value::String("".into());
+        let mut buff = Vec::new();
+        value.to_resp2(&mut buff).await.unwrap();
+        assert_eq!(buff, b"$-1\r\n");
+    }
+
+    #[tokio::test]
+    async fn test_resp2_nil() {
         let value = Value::Nil;
         let mut buff = Vec::new();
         value.to_resp2(&mut buff).await.unwrap();
-
         assert_eq!(buff, b"$-1\r\n");
+    }
 
+    #[tokio::test]
+    async fn test_resp2_array() {
         let value = Value::Multi(
             Vec::from([
                 Value::String("Hello, World!".into()),
@@ -436,44 +503,345 @@ mod tests {
         );
         let mut buff = Vec::new();
         value.to_resp2(&mut buff).await.unwrap();
-
-        println!("{:?}", std::str::from_utf8(&buff).unwrap());
-
         assert_eq!(buff, b"*3\r\n$13\r\nHello, World!\r\n:42\r\n$-1\r\n");
 
-        let value = Value::Multi(
-            Vec::from([Value::String("key".into()), Value::String("value".into())]).into(),
-        );
+        // Empty array
+        let value = Value::Multi(Vec::new().into());
         let mut buff = Vec::new();
         value.to_resp2(&mut buff).await.unwrap();
-        assert_eq!(buff, b"*2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n");
-
-        let value = Value::Nil;
-        let mut buff = Vec::new();
-        value.to_resp2(&mut buff).await.unwrap();
-        assert_eq!(buff, b"$-1\r\n");
+        assert_eq!(buff, b"*0\r\n");
     }
 
     #[tokio::test]
-    async fn test_value_from_resp() {
-        let mut buff = b"*3\r\n$13\r\nHello, World!\r\n:42\r\n$-1\r\n".as_ref();
-        let mut reader = BufReader::new(&mut buff);
+    async fn test_resp2_map() {
+        let mut map = HashMap::new();
+        map.insert(Value::String("key1".into()), Value::String("value1".into()));
+        map.insert(Value::String("key2".into()), Value::Integer(42));
+
+        let value = Value::Map(map);
+        let mut buff = Vec::new();
+        value.to_resp2(&mut buff).await.unwrap();
+
+        // Map serializes as array of key-value pairs in RESP2
+        let resp = String::from_utf8(buff).unwrap();
+        assert!(resp.starts_with("*4\r\n")); // 2 keys * 2 = 4 elements
+        assert!(resp.contains("$4\r\nkey1\r\n"));
+        assert!(resp.contains("$6\r\nvalue1\r\n"));
+    }
+
+    #[tokio::test]
+    async fn test_resp2_set() {
+        let mut set = HashSet::new();
+        set.insert(Value::String("a".into()));
+        set.insert(Value::String("b".into()));
+        set.insert(Value::Integer(42));
+
+        let value = Value::Set(set);
+        let mut buff = Vec::new();
+        value.to_resp2(&mut buff).await.unwrap();
+
+        let resp = String::from_utf8(buff).unwrap();
+        assert!(resp.starts_with("*3\r\n"));
+    }
+
+    #[tokio::test]
+    async fn test_resp2_ok_pong() {
+        let value = Value::Ok;
+        let mut buff = Vec::new();
+        value.to_resp2(&mut buff).await.unwrap();
+        assert_eq!(buff, b"+OK\r\n");
+
+        let value = Value::Pong;
+        let mut buff = Vec::new();
+        value.to_resp2(&mut buff).await.unwrap();
+        assert_eq!(buff, b"+PONG\r\n");
+    }
+
+    #[tokio::test]
+    async fn test_resp3_nil() {
+        let value = Value::Nil;
+        let mut buff = Vec::new();
+        value.to_resp3(&mut buff).await.unwrap();
+        assert_eq!(buff, b"$_\r\n");
+    }
+
+    #[tokio::test]
+    async fn test_resp3_map() {
+        let mut map = HashMap::new();
+        map.insert(Value::String("key".into()), Value::String("value".into()));
+
+        let value = Value::Map(map);
+        let mut buff = Vec::new();
+        value.to_resp3(&mut buff).await.unwrap();
+
+        let resp = String::from_utf8(buff).unwrap();
+        assert!(resp.starts_with("%1\r\n")); // % indicates map in RESP3
+        assert!(resp.contains("$3\r\nkey\r\n"));
+        assert!(resp.contains("$5\r\nvalue\r\n"));
+    }
+
+    #[tokio::test]
+    async fn test_resp3_set() {
+        let mut set = HashSet::new();
+        set.insert(Value::String("a".into()));
+        set.insert(Value::Integer(1));
+
+        let value = Value::Set(set);
+        let mut buff = Vec::new();
+        value.to_resp3(&mut buff).await.unwrap();
+
+        let resp = String::from_utf8(buff).unwrap();
+        assert!(resp.starts_with("~2\r\n")); // ~ indicates set in RESP3
+    }
+
+    #[tokio::test]
+    async fn test_resp3_error() {
+        let value = Value::Error("ERR test error".into());
+        let mut buff = Vec::new();
+        value.to_resp3(&mut buff).await.unwrap();
+        assert_eq!(buff, b"!14\r\nERR test error\r\n");
+    }
+
+    #[tokio::test]
+    async fn test_resp3_push() {
+        let value = Value::Push(
+            Vec::from([
+                Value::String("message".into()),
+                Value::String("channel".into()),
+            ])
+            .into(),
+        );
+        let mut buff = Vec::new();
+        value.to_resp3(&mut buff).await.unwrap();
+
+        let resp = String::from_utf8(buff).unwrap();
+        assert!(resp.starts_with(">2\r\n")); // > indicates push in RESP3
+    }
+
+    #[tokio::test]
+    async fn test_parse_simple_string() {
+        let buff = b"+OK\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
+        let value = Value::from_resp(&mut reader).await.unwrap();
+        assert_eq!(value, Some(Value::Ok));
+
+        let buff = b"+PONG\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
+        let value = Value::from_resp(&mut reader).await.unwrap();
+        assert_eq!(value, Some(Value::Pong));
+    }
+
+    #[tokio::test]
+    async fn test_parse_error() {
+        let buff = b"-ERR unknown command\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
+        let value = Value::from_resp(&mut reader).await.unwrap();
+        assert_eq!(value, Some(Value::Error("ERR unknown command".into())));
+    }
+
+    #[tokio::test]
+    async fn test_parse_integer() {
+        let buff = b":42\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
+        let value = Value::from_resp(&mut reader).await.unwrap();
+        assert_eq!(value, Some(Value::Integer(42)));
+
+        let buff = b":-100\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
+        let value = Value::from_resp(&mut reader).await.unwrap();
+        assert_eq!(value, Some(Value::Integer(-100)));
+    }
+
+    #[tokio::test]
+    async fn test_parse_bulk_string() {
+        let buff = b"$5\r\nhello\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
+        let value = Value::from_resp(&mut reader).await.unwrap();
+        assert_eq!(value, Some(Value::String("hello".into())));
+
+        let buff = b"$-1\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
+        let value = Value::from_resp(&mut reader).await.unwrap();
+        assert_eq!(value, Some(Value::Nil));
+    }
+
+    #[tokio::test]
+    async fn test_parse_array() {
+        let buff = b"*3\r\n$5\r\nhello\r\n:42\r\n$-1\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
         let value = Value::from_resp(&mut reader).await.unwrap();
         assert_eq!(
             value,
             Some(Value::Multi(
                 Vec::from([
-                    Value::String("Hello, World!".into()),
+                    Value::String("hello".into()),
                     Value::Integer(42),
                     Value::Nil
                 ])
                 .into(),
-            )),
+            ))
         );
-        let value = Value::from_resp(&mut reader).await.unwrap();
-        assert_eq!(value, Some(Value::Integer(42)));
 
+        let buff = b"*0\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
         let value = Value::from_resp(&mut reader).await.unwrap();
-        assert_eq!(value, Some(Value::Nil));
+        assert_eq!(value, Some(Value::Multi(Vec::new().into())));
+    }
+
+    #[tokio::test]
+    async fn test_parse_map() {
+        let buff = b"%2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n$4\r\nkey2\r\n:42\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
+        let value = Value::from_resp(&mut reader).await.unwrap();
+
+        if let Some(Value::Map(map)) = value {
+            assert_eq!(map.len(), 2);
+            assert_eq!(
+                map.get(&Value::String("key".into())),
+                Some(&Value::String("value".into()))
+            );
+            assert_eq!(
+                map.get(&Value::String("key2".into())),
+                Some(&Value::Integer(42))
+            );
+        } else {
+            panic!("Expected Map value");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_parse_set() {
+        let buff = b"~3\r\n$1\r\na\r\n$1\r\nb\r\n:1\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
+        let value = Value::from_resp(&mut reader).await.unwrap();
+
+        if let Some(Value::Set(set)) = value {
+            assert_eq!(set.len(), 3);
+            assert!(set.contains(&Value::String("a".into())));
+            assert!(set.contains(&Value::String("b".into())));
+            assert!(set.contains(&Value::Integer(1)));
+        } else {
+            panic!("Expected Set value");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_parse_push() {
+        let buff = b">2\r\n$7\r\nmessage\r\n$7\r\nchannel\r\n".as_ref();
+        let mut reader = Cursor::new(buff);
+        let value = Value::from_resp(&mut reader).await.unwrap();
+        assert_eq!(
+            value,
+            Some(Value::Push(
+                Vec::from([
+                    Value::String("message".into()),
+                    Value::String("channel".into()),
+                ])
+                .into(),
+            ))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_round_trip_resp2() {
+        // Test values that should round-trip exactly
+        // Note: Simple("OK") and Simple("PONG") are parsed as Ok/Pong variants
+        let values = vec![
+            Value::Error("ERR test".into()),
+            Value::Integer(42),
+            Value::String("test".into()),
+            Value::Nil,
+            Value::Multi(vec![Value::Integer(1), Value::Integer(2)].into()),
+        ];
+
+        for original in values {
+            let mut buff = Vec::new();
+            original.to_resp2(&mut buff).await.unwrap();
+
+            let mut reader = Cursor::new(&buff);
+            let parsed = Value::from_resp(&mut reader).await.unwrap().unwrap();
+
+            assert_eq!(original, parsed, "Round trip failed for {:?}", original);
+        }
+
+        // Ok and Pong have special parsing behavior
+        let mut buff = Vec::new();
+        Value::Ok.to_resp2(&mut buff).await.unwrap();
+        let mut reader = Cursor::new(&buff);
+        let parsed = Value::from_resp(&mut reader).await.unwrap().unwrap();
+        assert_eq!(parsed, Value::Ok);
+
+        let mut buff = Vec::new();
+        Value::Pong.to_resp2(&mut buff).await.unwrap();
+        let mut reader = Cursor::new(&buff);
+        let parsed = Value::from_resp(&mut reader).await.unwrap().unwrap();
+        assert_eq!(parsed, Value::Pong);
+    }
+
+    #[tokio::test]
+    async fn test_expired_value() {
+        use tokio::time::Duration;
+
+        let expired = Value::Expire((
+            Arc::new(Value::String("test".into())),
+            Instant::now() - Duration::from_secs(1),
+        ));
+
+        assert!(expired.expired());
+        assert!(expired.is_none());
+
+        let mut buff = Vec::new();
+        expired.to_resp2(&mut buff).await.unwrap();
+        assert_eq!(buff, b"$-1\r\n"); // Should serialize as Nil
+    }
+
+    #[tokio::test]
+    async fn test_not_expired_value() {
+        use tokio::time::Duration;
+
+        let not_expired = Value::Expire((
+            Arc::new(Value::String("test".into())),
+            Instant::now() + Duration::from_secs(60),
+        ));
+
+        assert!(!not_expired.expired());
+        assert!(not_expired.is_some());
+
+        let mut buff = Vec::new();
+        not_expired.to_resp2(&mut buff).await.unwrap();
+        assert_eq!(buff, b"$4\r\ntest\r\n"); // Should serialize inner value
+    }
+
+    #[tokio::test]
+    async fn test_nested_arrays() {
+        let value = Value::Multi(
+            vec![
+                Value::Multi(vec![Value::Integer(1), Value::Integer(2)].into()),
+                Value::Multi(vec![Value::String("a".into()), Value::String("b".into())].into()),
+            ]
+            .into(),
+        );
+
+        let mut buff = Vec::new();
+        value.to_resp2(&mut buff).await.unwrap();
+
+        let mut reader = Cursor::new(&buff);
+        let parsed = Value::from_resp(&mut reader).await.unwrap().unwrap();
+
+        assert_eq!(value, parsed);
+    }
+
+    #[tokio::test]
+    async fn test_value_inner() {
+        use tokio::time::Duration;
+
+        let inner = Value::String("test".into());
+        let expired = Value::Expire((
+            Arc::new(inner.clone()),
+            Instant::now() + Duration::from_secs(60),
+        ));
+
+        assert_eq!(expired.inner(), &inner);
+        assert_eq!(inner.inner(), &inner);
     }
 }

@@ -35,7 +35,7 @@ impl Session {
     pub async fn versioned_response(
         &self,
         response: &Value,
-        writer: &mut WriteHalf<'_>,
+        writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
     ) -> Result<()> {
         log::debug!("Writing response to client: {:?}", response);
 
