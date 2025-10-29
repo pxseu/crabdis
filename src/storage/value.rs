@@ -404,6 +404,59 @@ impl Value {
             }
         })
     }
+
+    pub fn from_resp3<'a, T>(
+        reader: &'a mut T,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<Self>>> + Send + 'a>>
+    where
+        T: AsyncBufReadExt + Unpin + Send + 'a,
+    {
+        Box::pin(async move {
+            let first_byte = match reader.read_u8().await {
+                Ok(byte) => byte,
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(None),
+                Err(e) => return Err(e.into()),
+            };
+
+            match first_byte {
+                // apart from bulk array i dont think any of these can be sent to a server
+                b'>' | b'*' | b'~' => {
+                    let mut buf = vec![];
+                    reader.read_until(b'\n', &mut buf).await?;
+
+                    let size = unsafe { str::from_utf8_unchecked(&buf[1..buf.len() - 2]) };
+                    let len = size.parse().context("Could not parse integer")?;
+
+                    let mut values = Vec::with_capacity(len);
+
+                    for _ in 0..len {
+                        let value = Self::from_resp3(reader).await?;
+
+                        if let Some(value) = value {
+                            values.push(value);
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+
+                    Ok(Some(match first_byte {
+                        b'>' => Self::Push(values.into()),
+                        b'*' => Self::Multi(values.into()),
+                        b'~' => {
+                            // force no allocation
+                            let mut set = HashSet::with_capacity(0);
+                            // extend reserves the capacity for us hitting the allocator
+                            set.extend(values.into_iter());
+                            Self::Set(set)
+                        }
+                        _ => unreachable!(),
+                    }))
+                }
+
+                _ => Self::from_resp(reader).await,
+            }
+        })
+    }
 }
 
 impl From<Option<Value>> for Value {
