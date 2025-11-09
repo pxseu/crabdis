@@ -6,12 +6,15 @@
 
 This is a simple in-memory key-value store written in Rust. It's somewhat compatible with Redis via the [RESP](https://redis.io/docs/reference/protocol-spec/) protocol, but it's not a drop-in replacement. A lot of commands are missing and stuff might not work as expected.
 
-Please don't use this in production. Or do, I'm not your mom. But don't blame me if it eats your data.
+> [!NOTE]
+> While it's technically possible to run `crabdis` in production, it's not recommended, use at your own risk!
 
 # Why?
 
-I wanted to write Redis but multi-threaded and in Rust. This is the result.
-Works? Kinda. Is it good? Maybe. Is it fast? Yes.
+I like tinkering with stuff I use and Redis is a great tool. It was started when the License fiasco happened and I wanted to write my own Redis-compatible server in Rust. This project works with notable clients like [ioredis](https://github.com/luin/ioredis) and [Bun](https://bun.com/docs/runtime/redis).
+
+> [!IMPORTANT]
+> Bun support is only available since version `0.1.25` of `crabdis` due to incorrect RESP3 support in earlier versions. As always, use the latest version of `crabdis` and `bun` to get the best experience.
 
 # Installation
 
@@ -22,6 +25,8 @@ If you want to install it with cargo, you can do so with `cargo install crabdis`
 There is also a Docker image available on [Docker Hub](https://hub.docker.com/r/pxseu/crabdis).
 
 # Usage
+
+By default, `crabdis` will listen on all addresses on port 6379. This is the same as running `crabdis --address :: --port 6379`. This has been chosen because [Railway](https://docs.railway.com/guides/private-networking#listen-on-ipv6)'s internal networking used to be IPv6 only.
 
 ```sh
 crabdis
@@ -42,43 +47,11 @@ crabdis
 - [ ] Set commands
 - [ ] Sorted Set commands
 
-This will start the server on `127.0.0.1:6379`. You can change the address and port with the `--address` and `--port` flags.
-
 # Benchmarks
 
 Below are micro-benchmarks for core Value operations and RESP serialization/deserialization (run with `cargo bench`).
 
-| File                      | Operation                 | Time (ns) |
-| ------------------------- | ------------------------- | --------- |
-| value_benchmarks.rs       | create_string             | 16.15     |
-|                           | create_integer            | 2.14      |
-|                           | create_multi              | 54.0      |
-|                           | create_map                | 105.3     |
-|                           | is_some                   | 0.581     |
-|                           | is_none                   | 0.443     |
-|                           | inner                     | 20.0      |
-| value_resp2_benchmarks.rs | resp2_serialize_string    | 161       |
-|                           | resp2_serialize_integer   | 102       |
-|                           | resp2_serialize_nil       | 54        |
-|                           | resp2_serialize_multi     | 511       |
-|                           | resp2_serialize_map       | 844       |
-|                           | resp2_serialize_expire    | 97        |
-|                           | resp2_deserialize_string  | 294       |
-|                           | resp2_deserialize_integer | 228       |
-|                           | resp2_deserialize_nil     | 232       |
-|                           | resp2_deserialize_multi   | 598       |
-| value_resp3_benchmarks.rs | resp3_serialize_map       | 805       |
-|                           | resp3_serialize_set       | 503       |
-|                           | resp3_serialize_push      | 591       |
-|                           | resp3_serialize_error     | 188       |
-|                           | resp3_deserialize_map     | 826       |
-|                           | resp3_deserialize_set     | 532       |
-|                           | resp3_deserialize_push    | 568       |
-|                           | resp3_deserialize_error   | 269       |
-
-**Total (sum of all measured times): ≈ 7602 ns**
-
-_(Lower is better. All times are approximate and measured on a Mac, see benches/ for details.)_
+It's pretty fast actually.
 
 # License
 
