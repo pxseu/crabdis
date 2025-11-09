@@ -186,14 +186,8 @@ impl Value {
                     Ok(())
                 }
 
-                Self::Expire((v, _)) => {
-                    // check if the value is expired
-                    if Self::expired(&self) {
-                        return Self::Nil.to_resp2(writer).await;
-                    }
-
-                    v.to_resp2(writer).await
-                }
+                Self::Expire(_) if Self::expired(&self) => Self::Nil.to_resp2(writer).await,
+                Self::Expire((v, _)) => v.to_resp2(writer).await,
             }
         })
     }
@@ -254,6 +248,9 @@ impl Value {
 
                     Ok(())
                 }
+
+                Self::Expire(_) if Self::expired(&self) => Self::Nil.to_resp3(writer).await,
+                Self::Expire((v, _)) => v.to_resp3(writer).await,
 
                 // rest of the code is the same as to_resp2
                 _ => self.to_resp2(writer).await,
@@ -392,7 +389,7 @@ impl Value {
                     match value {
                         "OK" => Ok(Some(Self::Ok)),
                         "PONG" => Ok(Some(Self::Pong)),
-                        _ => unreachable!("Invalid response"),
+                        v => Ok(Some(Self::Simple(v.into()))),
                     }
                 }
 
@@ -421,13 +418,9 @@ impl Value {
             match first_byte {
                 // apart from bulk array i dont think any of these can be sent to a server
                 b'>' | b'*' | b'~' => {
-                    let mut buf = vec![];
-                    reader.read_until(b'\n', &mut buf).await?;
+                    let len = super::parser::deserialize_integer(reader).await?;
 
-                    let size = unsafe { str::from_utf8_unchecked(&buf[1..buf.len() - 2]) };
-                    let len = size.parse().context("Could not parse integer")?;
-
-                    let mut values = Vec::with_capacity(len);
+                    let mut values = Vec::with_capacity(len as usize);
 
                     for _ in 0..len {
                         let value = Self::from_resp3(reader).await?;
@@ -443,10 +436,14 @@ impl Value {
                         b'>' => Self::Push(values.into()),
                         b'*' => Self::Multi(values.into()),
                         b'~' => {
-                            // force no allocation
-                            let mut set = HashSet::with_capacity(0);
-                            // extend reserves the capacity for us hitting the allocator
-                            set.extend(values.into_iter());
+                            // this is basically 1:1 copy of the code that is using .extend
+                            let mut set = HashSet::with_capacity(len as usize);
+
+                            // force into_iter to free the values vector after the loop
+                            values.into_iter().for_each(|v| {
+                                set.insert(v);
+                            });
+
                             Self::Set(set)
                         }
                         _ => unreachable!(),
@@ -471,8 +468,26 @@ impl From<String> for Value {
     }
 }
 
+impl From<&str> for Value {
+    fn from(value: &str) -> Self {
+        Value::String(value.into())
+    }
+}
+
+impl From<Arc<str>> for Value {
+    fn from(value: Arc<str>) -> Self {
+        Value::String(value)
+    }
+}
+
 impl From<Vec<Value>> for Value {
     fn from(value: Vec<Value>) -> Self {
+        Value::Multi(value.into())
+    }
+}
+
+impl From<&[Value]> for Value {
+    fn from(value: &[Value]) -> Self {
         Value::Multi(value.into())
     }
 }

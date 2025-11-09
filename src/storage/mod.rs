@@ -1,3 +1,4 @@
+pub mod parser;
 pub mod value;
 
 use std::collections::HashSet;

@@ -6,7 +6,6 @@ use crate::commands::CommandHandler;
 use crate::prelude::*;
 use crate::storage::ExpireKey;
 
-#[derive(Clone)]
 pub struct State {
     pub loaded: bool,
     pub store: Store,
@@ -40,27 +39,26 @@ impl State {
         state
     }
 
-    pub async fn new_session(&self) -> SessionRef {
-        let session_id = {
-            let mut available = self.available_ids.write().await;
-            if let Some(id) = available.iter().next().copied() {
-                available.remove(&id);
-                id
-            } else {
-                let mut next_id = self.next_session_id.write().await;
-                let id = *next_id;
-                // Check for overflow and wrap around to 1 if needed
-                *next_id = if id == u64::MAX { 1 } else { id + 1 };
-                id
-            }
-        };
+    pub async fn get_next_session_id(&self) -> u64 {
+        let mut available = self.available_ids.write().await;
+        if let Some(id) = available.iter().next().copied() {
+            available.remove(&id);
+            id
+        } else {
+            let mut next_id = self.next_session_id.write().await;
+            let id = *next_id;
+            // Check for overflow and wrap around to 1 if needed
+            *next_id = if id == u64::MAX { 1 } else { id + 1 };
+            id
+        }
+    }
 
-        let session = Session::new(session_id, Arc::new(self.clone()));
+    #[inline]
+    pub async fn add_session(&self, session: SessionRef) {
         self.sessions
             .write()
             .await
-            .insert(session_id, session.clone());
-        session
+            .insert(session.id, session.clone());
     }
 
     pub async fn remove_session(&self, id: u64) {

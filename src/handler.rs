@@ -2,12 +2,12 @@ use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 use tokio::sync::mpsc;
 
 use crate::prelude::*;
+use crate::utils::try_parse;
 
 pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionRef) -> Result<()> {
     let (mut read, mut writer) = stream.split();
     let mut reader = BufReader::new(&mut read);
     let mut writer = BufWriter::new(&mut writer);
-
     // Create a channel for this client
     let (tx, mut rx) = mpsc::unbounded_channel();
 
@@ -20,19 +20,18 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
             biased;
             // Handle incoming messages from the channel
             Some(value) = rx.recv() => {
-                log::debug!("Received message from client: {:?}", value);
+                #[cfg(debug_assertions)]
+                log::debug!("Received message from client: {value:?}");
 
-                if let Err(e) = session.versioned_response(&value, &mut writer).await {
-                    log::error!("Failed to write to client: {}", e);
-                    break;
-                }
+                session.versioned_response(&value, &mut writer).await?;
             }
-            // Handle incoming requests from the client
-            request = Value::from_resp(&mut reader) => {
-                match request? {
-                    Some(Value::Multi(args)) => {
-                        log::debug!("Received command: {:?} from session: {}", args, session.id);
 
+             // Handle incoming requests from the client
+            result = try_parse(&mut reader) => {
+                match result?.await? {
+                    Some(Value::Multi(args)) => {
+                        #[cfg(debug_assertions)]
+                        log::debug!("Received command: {args:?} from session: {:?}", session.id);
 
                         let mut args = VecDeque::from(args.to_vec());
 
@@ -41,28 +40,21 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
                             .handler
                             .handle_command(&mut writer, &mut args, session.clone())
                             .await?;
-
                     }
                     None => {
+                        #[cfg(debug_assertions)]
+                        log::debug!("Received empty request from session or stream closed: {:?}", session.id);
                         return Ok(());
                     }
                     _ => {
                         session
                             .versioned_response(&value_error!("Invalid request"), &mut writer)
                             .await?;
-
-
                     }
                 }
-
-
             }
-
-
         }
 
         writer.flush().await?;
     }
-
-    Ok(())
 }

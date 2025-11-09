@@ -5,7 +5,6 @@ use crate::prelude::*;
 
 pub mod state;
 
-#[derive(Clone)]
 pub struct Session {
     pub id: u64,
     pub state: state::StateRef,

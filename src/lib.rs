@@ -68,7 +68,9 @@ pub async fn run(cli: CLI) -> Result<()> {
                 return;
             }
 
-            let session = state.new_session().await;
+            let session_id = state.get_next_session_id().await;
+            let session = session::Session::new(session_id, state.clone());
+            state.add_session(session.clone()).await;
 
             #[cfg(debug_assertions)]
             log::debug!(

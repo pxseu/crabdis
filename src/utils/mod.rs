@@ -1,4 +1,9 @@
+use std::pin::Pin;
+
+use tokio::io::{AsyncBufRead, AsyncBufReadExt};
+
 use crate::CLI;
+use crate::prelude::*;
 
 pub mod logger;
 
@@ -33,4 +38,24 @@ pub fn bootlog(cli: &CLI) {
     ⣿⣿⣿⣿⣿⣿⡗⠀⠀⢿⣿⡇⠀⠀⠀⠀⠀⠀⠀⢠⢠⠂⠀⣷⣿⣿
 "#,
     );
+}
+
+pub async fn can_read<R>(reader: &mut R) -> Result<bool>
+where
+    R: AsyncBufRead + Unpin,
+{
+    Ok(!reader.fill_buf().await?.is_empty())
+}
+
+pub async fn try_parse<'a, R>(
+    reader: &'a mut R,
+) -> Result<Pin<Box<dyn Future<Output = Result<Option<Value>>> + Send + 'a>>>
+where
+    R: AsyncBufRead + Unpin + Send + 'a,
+{
+    if !can_read(reader).await? {
+        return Ok(Box::pin(async move { Ok(None) }));
+    }
+
+    Ok(Value::from_resp(reader))
 }
