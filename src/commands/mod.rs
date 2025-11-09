@@ -38,7 +38,9 @@ impl CommandHandler {
     pub async fn register(&mut self) {
         register_commands!(
             self,
+            core::Client,
             core::Command,
+            core::DBSize,
             core::Get,
             core::Set,
             core::Del,
@@ -96,18 +98,24 @@ impl CommandHandler {
     ) -> Result<()> {
         let command = match args.pop_front() {
             Some(Value::String(command)) => command.to_uppercase(),
-            _ => {
+            invalid => {
+                #[cfg(debug_assertions)]
+                log::debug!("Invalid command: {invalid:?} {args:?}");
+
                 return session
-                    .versioned_response(&value_error!("Invalid command"), writer)
-                    .await
+                    .versioned_response(&value_error!("Invalid command: {invalid:?}"), writer)
+                    .await;
             }
         };
 
         match self.commands.read().await.get(&command) {
             Some(command) => command.handle_command(writer, args, session).await,
             None => {
+                #[cfg(debug_assertions)]
+                log::debug!("Unknown command: {command} {args:?}");
+
                 session
-                    .versioned_response(&value_error!("Unknown command"), writer)
+                    .versioned_response(&value_error!("Unknown command: {command}"), writer)
                     .await
             }
         }

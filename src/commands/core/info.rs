@@ -42,7 +42,7 @@ impl CommandTrait for Info {
             _ => {
                 return session
                     .versioned_response(&value_error!("Invalid key"), writer)
-                    .await
+                    .await;
             }
         };
 

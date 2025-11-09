@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{RwLock, mpsc};
 
 use crate::prelude::*;
 
@@ -7,9 +7,11 @@ pub mod state;
 
 pub struct Session {
     pub id: u64,
+    // private since are rwlocked and accessed via methods
+    name: RwLock<Option<Arc<str>>>,
+    proto_version: RwLock<u8>,
     pub state: state::StateRef,
-    pub proto_version: Arc<RwLock<u8>>,
-    pub tx: Arc<RwLock<Option<mpsc::UnboundedSender<Value>>>>,
+    pub tx: RwLock<Option<mpsc::UnboundedSender<Value>>>,
 }
 
 impl Session {
@@ -17,9 +19,10 @@ impl Session {
         Arc::new(Self {
             id,
             state,
+            name: RwLock::new(None),
             // default to RESP2 protocol, can be changed via HELLO command
-            proto_version: Arc::new(RwLock::new(2)),
-            tx: Arc::new(RwLock::new(None)),
+            proto_version: RwLock::new(2),
+            tx: RwLock::new(None),
         })
     }
 
@@ -36,6 +39,7 @@ impl Session {
         response: &Value,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
     ) -> Result<()> {
+        #[cfg(debug_assertions)]
         log::debug!("Writing response to client: {:?}", response);
 
         match self.get_proto_version().await {
@@ -59,6 +63,14 @@ impl Session {
             })?;
         }
         Ok(())
+    }
+
+    pub async fn set_name(&self, name: Arc<str>) {
+        *self.name.write().await = Some(name);
+    }
+
+    pub async fn get_name(&self) -> Option<Arc<str>> {
+        self.name.read().await.clone()
     }
 
     pub async fn cleanup(&self) {

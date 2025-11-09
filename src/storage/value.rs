@@ -498,6 +498,15 @@ impl From<i64> for Value {
     }
 }
 
+impl From<Option<Arc<str>>> for Value {
+    fn from(value: Option<Arc<str>>) -> Self {
+        match value {
+            Some(value) => Value::String(value),
+            None => Value::Nil,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

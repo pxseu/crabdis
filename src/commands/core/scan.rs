@@ -14,8 +14,8 @@ impl CommandTrait for Scan {
         args: &mut VecDeque<Value>,
         session: SessionRef,
     ) -> Result<()> {
-        let mut cursor = 0;
-        let mut pattern: Option<Arc<str>> = None;
+        let mut cursor = Option::<usize>::None;
+        let mut pattern = Option::<Arc<str>>::None;
         let mut count = 10;
 
         while let Some(arg) = args.pop_front() {
@@ -50,8 +50,10 @@ impl CommandTrait for Scan {
                                     .await;
                             }
                         }
-                    } else if let Ok(c) = s.parse::<usize>() {
-                        cursor = c;
+                    } else if let Ok(c) = s.parse::<usize>()
+                        && cursor.is_none()
+                    {
+                        cursor = Some(c);
                     } else {
                         return session
                             .versioned_response(&value_error!("Invalid argument"), writer)
@@ -59,8 +61,8 @@ impl CommandTrait for Scan {
                     }
                 }
 
-                Value::Integer(c) => {
-                    cursor = c.abs() as usize;
+                Value::Integer(c) if cursor.is_none() => {
+                    cursor = Some(c.abs() as usize);
                 }
 
                 _ => {
@@ -75,9 +77,11 @@ impl CommandTrait for Scan {
         let keys = store.keys().cloned().collect::<Vec<Arc<str>>>();
         let mut results = Vec::new();
 
-        log::debug!("SCAN cursor: {cursor}, pattern: {pattern:?}, count: {count}");
+        #[cfg(debug_assertions)]
+        log::debug!("SCAN cursor: {cursor:?}, pattern: {pattern:?}, count: {count}");
 
-        for key in keys.iter().skip(cursor) {
+        for key in keys.iter().skip(cursor.unwrap_or(0)) {
+            #[cfg(debug_assertions)]
             log::debug!("SCAN key: {key}");
 
             if let Some(pattern) = &pattern {

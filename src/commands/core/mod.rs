@@ -1,4 +1,6 @@
+mod client;
 mod command;
+mod dbsize;
 mod decr;
 mod del;
 mod exists;
@@ -18,7 +20,9 @@ mod select;
 mod set;
 mod r#type;
 
+pub use client::Client;
 pub use command::Command;
+pub use dbsize::DBSize;
 pub use decr::Decr;
 pub use del::Del;
 pub use exists::Exists;
@@ -32,8 +36,8 @@ pub use mget::MGet;
 pub use mset::MSet;
 pub use ping::Ping;
 pub use quit::Quit;
-pub use r#type::Type;
 pub use renamenx::RenameNx;
 pub use scan::Scan;
 pub use select::Select;
 pub use set::Set;
+pub use r#type::Type;

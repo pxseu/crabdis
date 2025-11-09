@@ -5,14 +5,14 @@ pub struct Select;
 #[async_trait]
 impl CommandTrait for Select {
     fn name(&self) -> &str {
-        "Select"
+        "SELECT"
     }
 
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut VecDeque<Value>,
-        _session: SessionRef,
+        session: SessionRef,
     ) -> Result<()> {
         if args.len() != 1 {
             return value_error!("Invalid number of arguments")
@@ -20,6 +20,6 @@ impl CommandTrait for Select {
                 .await;
         }
 
-        Value::Ok.to_resp2(writer).await
+        session.versioned_response(&Value::Ok, writer).await
     }
 }
