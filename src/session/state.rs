@@ -11,10 +11,10 @@ pub struct State {
     pub store: Store,
     pub handler: CommandHandler,
     pub expire_keys: ExpireKey,
-    pub subscriptions: Arc<RwLock<HashMap<Arc<str>, Vec<SessionRef>>>>,
-    pub sessions: Arc<RwLock<HashMap<u64, SessionRef>>>,
-    next_session_id: Arc<RwLock<u64>>,
-    available_ids: Arc<RwLock<HashSet<u64>>>, // For recycling IDs
+    pub subscriptions: RwLock<HashMap<Arc<str>, Vec<SessionRef>>>,
+    pub sessions: RwLock<HashMap<u64, SessionRef>>,
+    next_session_id: RwLock<u64>,
+    available_ids: RwLock<HashSet<u64>>, // For recycling IDs
 }
 
 impl State {
@@ -24,10 +24,10 @@ impl State {
             store: Store::default(),
             handler: CommandHandler::default(),
             expire_keys: ExpireKey::default(),
-            subscriptions: Arc::new(RwLock::new(HashMap::new())),
-            sessions: Arc::new(RwLock::new(HashMap::new())),
-            next_session_id: Arc::new(RwLock::new(1)),
-            available_ids: Arc::new(RwLock::new(HashSet::new())),
+            subscriptions: RwLock::new(HashMap::new()),
+            sessions: RwLock::new(HashMap::new()),
+            next_session_id: RwLock::new(1),
+            available_ids: RwLock::new(HashSet::new()),
         };
 
         state.handler.register().await;
@@ -103,11 +103,11 @@ impl State {
 
         if let Some(sessions) = subs.get(channel) {
             let pubsub_value = Value::Push(
-                Vec::from([
+                [
                     Value::String("message".into()),
                     Value::String(channel.into()),
                     message.clone(),
-                ])
+                ]
                 .into(),
             );
 
