@@ -103,7 +103,7 @@ jobs:
         run: cargo install cross
 
       - name: Build release binary
-        run: ${{ matrix.os == 'ubuntu-latest' && 'cross' || 'cargo'  }} build --release --locked ${{ matrix.flags }} --target ${{ matrix.target }}
+        run: ${{ matrix.os == 'ubuntu-latest' && 'cross' || 'cargo'  }} build --release --locked ${{ matrix.flags }} --target ${{ matrix.target }} --package ${{ env.EXECUTABLE_NAME }}
 
       - name: Prepare binaries [*nix]
         if: matrix.os != 'windows-latest'
