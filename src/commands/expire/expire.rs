@@ -72,7 +72,7 @@ impl CommandTrait for Expire {
         };
 
         *value = Value::Expire((
-            Arc::new(value.inner().clone()),
+            value.inner().clone().into(),
             tokio::time::Instant::now() + tokio::time::Duration::from_secs(seconds as u64),
         ));
         session.state.expire_keys.write().await.insert(key);

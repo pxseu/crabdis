@@ -16,7 +16,8 @@ fn main() -> crabdis::error::Result<()> {
 
     tokio::runtime::Builder::new_multi_thread()
         .worker_threads(cli.threads)
-        .enable_all()
+        .enable_io()
+        .enable_time()
         .build()?
         .block_on(crabdis::run(cli))
 }

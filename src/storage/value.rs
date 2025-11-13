@@ -82,6 +82,13 @@ impl Value {
         }
     }
 
+    pub fn set_expire(&mut self, expires_at: Instant) {
+        match self {
+            Self::Expire((v, _)) => *v = v.clone(),
+            _ => *self = Value::Expire((Arc::new(self.clone()), expires_at)),
+        }
+    }
+
     pub fn is_some(&self) -> bool {
         match self {
             Self::Nil => false,
