@@ -3,7 +3,7 @@ services:
     image: pxseu/crabdis
     build:
       context: .
-      dockerfile: pkgs/crabdis/Dockerfile
+      dockerfile: crabdis/Dockerfile
     container_name: crabdis
     ports:
       - "6379:6379/tcp"

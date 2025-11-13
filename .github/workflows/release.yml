@@ -184,7 +184,7 @@ jobs:
         run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       - name: Publish Crates
-        run: cargo publish --locked --no-verify
+        run: cargo publish --locked --no-verify --package ${{ env.EXECUTABLE_NAME }}
 
   publish-docker:
     name: Publish Docker

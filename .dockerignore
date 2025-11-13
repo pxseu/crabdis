@@ -1,7 +1,5 @@
 target
-pkgs/**/test
-pkgs/**/bench
-pkgs/**/examples
+crabdis/{test,bench,examples}
 .github
 LICENSE
 README.md

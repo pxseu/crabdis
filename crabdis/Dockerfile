@@ -6,7 +6,7 @@ RUN apk add --no-cache musl-dev
 
 COPY . .
 
-RUN cargo build --release
+RUN cargo build --release --locked
 
 # main image
 FROM alpine
