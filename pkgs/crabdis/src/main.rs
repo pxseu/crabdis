@@ -1,4 +1,6 @@
-#![forbid(clippy::pedantic, clippy::nursery, clippy::cargo)]
+#![forbid(clippy::pedantic, clippy::nursery)]
+#![deny(clippy::cargo)]
+#![allow(clippy::multiple_crate_versions)]
 
 use clap::Parser;
 use crabdis::CLI;

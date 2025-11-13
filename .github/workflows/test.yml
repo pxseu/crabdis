@@ -71,8 +71,5 @@ jobs:
       - name: Run Clippy
         run: ${{ matrix.os == 'ubuntu-latest' && 'cross' || 'cargo' }} clippy --all-targets --locked ${{ matrix.flags }} --target ${{ matrix.target }} -- -D warnings
 
-      - name: Build project
-        run: ${{ matrix.os == 'ubuntu-latest' && 'cross' || 'cargo' }} build --locked ${{ matrix.flags }} --target ${{ matrix.target }}
-
       - name: Run tests
         run: ${{ matrix.os == 'ubuntu-latest' && 'cross' || 'cargo' }} test --locked ${{ matrix.flags }} --target ${{ matrix.target }}
