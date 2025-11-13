@@ -1,12 +1,16 @@
-use crate::prelude::*;
 use std::io::{Error as IoError, ErrorKind};
+
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite};
+
+use crate::prelude::*;
 
 /// Parses an integer from a reader.
 /// The function reads the integer until the \r\n is encountered.
-/// The function returns the integer and the reader is advanced to the next byte after the \r\n.
-/// It is recommended and expected to use a buffered reader for this function, as it calls `read_u8()` multiple times.
-/// This function assumes the first byte is already checked to be a digit from resp (simple, any bulk operation etc)
+/// The function returns the integer and the reader is advanced to the next byte
+/// after the \r\n. It is recommended and expected to use a buffered reader for
+/// this function, as it calls `read_u8()` multiple times. This function assumes
+/// the first byte is already checked to be a digit from resp (simple, any bulk
+/// operation etc)
 pub async fn deserialize_integer<T>(reader: &mut T) -> Result<i64>
 where
     T: AsyncRead + Unpin,
@@ -35,7 +39,8 @@ where
             byte @ b'0'..=b'9' => {
                 let digit = (byte - b'0') as i64;
 
-                // inline the check for integer overflow, the speed is drastically faster than the checked_mul/add
+                // inline the check for integer overflow, the speed is drastically faster than
+                // the checked_mul/add
                 if value > i64::MAX / 10 || (value == i64::MAX / 10 && digit > i64::MAX % 10) {
                     return Err(IoError::new(ErrorKind::InvalidData, "Integer too large").into());
                 }
@@ -96,8 +101,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::io::Cursor;
+
+    use super::*;
 
     async fn parse_from(bytes: &[u8]) -> Result<i64> {
         let mut reader = Cursor::new(bytes);
@@ -116,7 +122,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_integer() {
-        // there is a parrent that checks the first byte, so we don't need to do that here
+        // there is a parrent that checks the first byte, so we don't need to do that
+        // here
         let value = parse_from(b"42\r\n").await.unwrap();
         assert_eq!(value, 42);
 

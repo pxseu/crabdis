@@ -1,4 +1,5 @@
 use std::sync::Arc;
+
 use tokio::sync::{RwLock, mpsc};
 
 use crate::prelude::*;
@@ -55,11 +56,8 @@ impl Session {
 
     pub async fn send_versioned(&self, value: Value) -> Result<()> {
         if let Some(tx) = &*self.tx.read().await {
-            tx.send(value).map_err(|e| {
-                Error::Io(std::io::Error::other(
-                    e.to_string(),
-                ))
-            })?;
+            tx.send(value)
+                .map_err(|e| Error::Io(std::io::Error::other(e.to_string())))?;
         }
         Ok(())
     }

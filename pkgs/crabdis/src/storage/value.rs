@@ -516,8 +516,9 @@ impl From<Option<Arc<str>>> for Value {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::io::Cursor;
+
+    use super::*;
 
     #[tokio::test]
     async fn test_resp2_simple_string() {

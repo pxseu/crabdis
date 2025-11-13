@@ -1,10 +1,10 @@
-use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use std::hint::black_box;
 use std::io::Cursor;
-use tokio::runtime::Runtime;
 
 // your hotpath parser
-use crabdis::storage::parser::{deserialize_integer, serialize_integer}; // gives us `parse_integer` via prelude, same as in src
+use crabdis::storage::parser::{deserialize_integer, serialize_integer};
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
+use tokio::runtime::Runtime; // gives us `parse_integer` via prelude, same as in src
 
 // =========================================================================
 // Hotpath parser benches (no extra buffering, just Cursor)

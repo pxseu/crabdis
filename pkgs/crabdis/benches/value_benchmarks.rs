@@ -1,9 +1,10 @@
-use crabdis::storage::value::Value;
-use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use std::collections::{HashMap, HashSet};
 use std::hint::black_box;
 use std::io::Cursor;
 use std::sync::Arc;
+
+use crabdis::storage::value::Value;
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use tokio::io::BufReader;
 use tokio::runtime::Runtime;
 

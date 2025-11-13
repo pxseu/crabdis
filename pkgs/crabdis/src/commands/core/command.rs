@@ -21,12 +21,12 @@ impl CommandTrait for Command {
 
             for (name, _) in commands.iter() {
                 let cmd_info = vec![
-                    Value::String(name.clone().into()), // name
-                    Value::Integer(-1), // arity (negative means variable)
+                    Value::String(name.clone().into()),       // name
+                    Value::Integer(-1),                       // arity (negative means variable)
                     Value::Multi(vec![Value::Nil; 0].into()), // flags
-                    Value::Integer(0), // first key
-                    Value::Integer(0), // last key
-                    Value::Integer(0), // step
+                    Value::Integer(0),                        // first key
+                    Value::Integer(0),                        // last key
+                    Value::Integer(0),                        // step
                 ];
                 map.insert(
                     Value::String(name.clone().into()),
@@ -46,9 +46,9 @@ impl CommandTrait for Command {
 
                         for (name, _) in commands.iter() {
                             let cmd_info = vec![
-                                Value::String("Simple command".into()), // summary
-                                Value::String("O(1)".into()), // complexity
-                                Value::String("1.0.0".into()), // since
+                                Value::String("Simple command".into()),   // summary
+                                Value::String("O(1)".into()),             // complexity
+                                Value::String("1.0.0".into()),            // since
                                 Value::Multi(vec![Value::Nil; 0].into()), // arguments
                             ];
                             map.insert(
