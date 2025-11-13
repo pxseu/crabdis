@@ -1,0 +1,7 @@
+target
+pkgs/**/test
+pkgs/**/bench
+pkgs/**/examples
+.github
+LICENSE
+README.md

@@ -1,13 +1,9 @@
-# build the dockerfile in the targer/release directory
-
-version: "3.7"
-
 services:
   crabdis:
     image: pxseu/crabdis
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: pkgs/crabdis/Dockerfile
     container_name: crabdis
     ports:
       - "6379:6379/tcp"

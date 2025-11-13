@@ -16,7 +16,7 @@ jobs:
       tag_name: ${{ steps.tag.outputs.tag_name }}
     steps:
       - name: Checkout the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
@@ -30,11 +30,11 @@ jobs:
           fi
 
       - name: Create new release
-        uses: "marvinpinto/action-automatic-releases@latest"
+        uses: "softprops/action-gh-release@v2"
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: ${{ steps.tag.outputs.pre_release == 'true' }}
-          title: "Version: ${{ steps.tag.outputs.tag_name }}"
+          name: "Version: ${{ steps.tag.outputs.tag_name }}"
           draft: true
 
   build-release:
@@ -102,9 +102,6 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: cargo install cross
 
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-
       - name: Build release binary
         run: ${{ matrix.os == 'ubuntu-latest' && 'cross' || 'cargo'  }} build --release --locked ${{ matrix.flags }} --target ${{ matrix.target }}
 
@@ -160,7 +157,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Add Artifacts to Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.EXECUTABLE_NAME }}-*/${{ env.EXECUTABLE_NAME }}-*
           tag_name: ${{ needs.draft-release.outputs.tag_name }}
@@ -173,7 +170,7 @@ jobs:
     environment: prod
     steps:
       - name: Checkout the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
@@ -214,9 +211,10 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
+          file: pkgs/crabdis/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |

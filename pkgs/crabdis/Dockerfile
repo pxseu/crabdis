@@ -17,5 +17,7 @@ COPY --from=builder /app/target/release/${BIN_NAME} /usr/local/bin/${BIN_NAME}
 
 EXPOSE 6379
 
+LABEL org.opencontainers.image.source="https://github.com/pxseu/crabdis"
+
 ENTRYPOINT [ "/usr/local/bin/crabdis" ]
 
