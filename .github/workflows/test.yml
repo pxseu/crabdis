@@ -49,9 +49,10 @@ jobs:
             os: windows-latest
             flags: --all-features
 
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            flags: --all-features
+          # cant test arm64 windows on github actions
+          # - target: aarch64-pc-windows-msvc
+          #   os: windows-latest
+          #   flags: --all-features
 
     steps:
       - name: Checkout repository
