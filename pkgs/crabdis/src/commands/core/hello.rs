@@ -20,21 +20,17 @@ impl CommandTrait for Hello {
                 .await;
         }
 
-        match args.pop_front() {
-            Some(Value::String(version)) => {
-                if version.as_ref() != "2" && version.as_ref() != "3" {
-                    return session
-                        .versioned_response(&value_error!("Invalid version"), writer)
-                        .await;
-                }
-
-                // safe to unwrap since we've already checked the value
-                session
-                    .set_proto_version(version.parse::<u8>().unwrap())
+        if let Some(Value::String(version)) = args.pop_front() {
+            if version.as_ref() != "2" && version.as_ref() != "3" {
+                return session
+                    .versioned_response(&value_error!("Invalid version"), writer)
                     .await;
             }
 
-            _ => {}
+            // safe to unwrap since we've already checked the value
+            session
+                .set_proto_version(version.parse::<u8>().unwrap())
+                .await;
         }
 
         let response = Value::Map(HashMap::from([

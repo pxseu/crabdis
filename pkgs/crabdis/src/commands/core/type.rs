@@ -27,7 +27,7 @@ impl CommandTrait for Type {
             _ => {
                 return session
                     .versioned_response(&value_error!("Invalid key"), writer)
-                    .await
+                    .await;
             }
         };
 

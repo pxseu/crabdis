@@ -33,7 +33,7 @@ impl CommandTrait for Scan {
                         match args.pop_front() {
                             Some(Value::Integer(c)) => {
                                 // make sure the count is positive
-                                count = c.abs() as usize;
+                                count = c.unsigned_abs() as usize;
                             }
                             Some(Value::String(s)) => {
                                 let Ok(c) = s.parse::<usize>() else {
@@ -62,7 +62,7 @@ impl CommandTrait for Scan {
                 }
 
                 Value::Integer(c) if cursor.is_none() => {
-                    cursor = Some(c.abs() as usize);
+                    cursor = Some(c.unsigned_abs() as usize);
                 }
 
                 _ => {

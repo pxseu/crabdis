@@ -1,5 +1,5 @@
 pub mod core;
-pub mod expire;
+pub mod exp;
 pub mod hash;
 pub mod pubsub;
 
@@ -63,11 +63,11 @@ impl CommandHandler {
 
         register_commands!(
             self,
-            expire::Expire,
-            expire::Ttl,
-            expire::SetEx,
-            expire::PSetEx,
-            expire::PTtl,
+            exp::Expire,
+            exp::Ttl,
+            exp::SetEx,
+            exp::PSetEx,
+            exp::PTtl,
         );
 
         register_commands!(self, hash::HSet, hash::HGetAll);

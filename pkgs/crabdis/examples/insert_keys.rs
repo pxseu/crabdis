@@ -1,7 +1,7 @@
 use clap::Parser;
 use crabdis::error::Result;
 use crabdis::storage::value::Value;
-use tokio::io::{ AsyncWriteExt, BufReader, BufWriter};
+use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 use tokio::net::TcpStream;
 
 #[tokio::main]

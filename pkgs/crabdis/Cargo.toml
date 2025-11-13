@@ -7,6 +7,8 @@ readme = "../../README.md"
 homepage = "https://github.com/pxseu/crabdis/tree/senpai/pkgs/crabdis#readme"
 version = "0.1.27"
 edition = "2024"
+keywords = ["redis", "key-value", "database", "cache", "resp", "server"]
+categories = ["database", "network-programming", "web-programming"]
 
 [dependencies]
 log = "0.4"
@@ -22,6 +24,7 @@ tokio = { version = "1.38", features = [
 ] }
 async-trait = "0.1"
 glob = "0.3"
+
 
 [dev-dependencies]
 criterion = { version = "0.7", features = ["async_tokio"] }

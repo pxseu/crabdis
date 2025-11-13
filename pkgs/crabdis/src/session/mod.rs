@@ -56,8 +56,7 @@ impl Session {
     pub async fn send_versioned(&self, value: Value) -> Result<()> {
         if let Some(tx) = &*self.tx.read().await {
             tx.send(value).map_err(|e| {
-                Error::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
+                Error::Io(std::io::Error::other(
                     e.to_string(),
                 ))
             })?;

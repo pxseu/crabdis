@@ -40,10 +40,11 @@ impl CommandTrait for Unsubscribe {
 
         // Send unsubscription confirmation for each channel
         for channel in channels {
-            let mut response = Vec::new();
-            response.push(Value::String("unsubscribe".into()));
-            response.push(Value::String(channel));
-            response.push(Value::Integer(0)); // Number of remaining subscriptions
+            let response = vec![
+                Value::String("unsubscribe".into()),
+                Value::String(channel),
+                Value::Integer(0), // Number of remaining subscriptions
+            ];
 
             session
                 .versioned_response(&Value::Multi(response.into()), writer)

@@ -40,11 +40,7 @@ impl CommandTrait for Ttl {
             Some(Value::Expire((_, ttl))) => {
                 let duration = ttl.duration_since(tokio::time::Instant::now()).as_secs() as i64;
 
-                if duration != 0 {
-                    duration
-                } else {
-                    -2
-                }
+                if duration != 0 { duration } else { -2 }
             }
 
             // non-expire keys should return -1

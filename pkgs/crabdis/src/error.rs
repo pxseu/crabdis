@@ -65,7 +65,7 @@ where
                 ctx
             };
 
-            Error::Io(IoError::new(std::io::ErrorKind::Other, msg))
+            Error::Io(IoError::other(msg))
         })
     }
 }

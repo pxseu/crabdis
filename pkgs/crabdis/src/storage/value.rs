@@ -92,7 +92,7 @@ impl Value {
     pub fn is_some(&self) -> bool {
         match self {
             Self::Nil => false,
-            _ if Self::expired(&self) => false,
+            _ if Self::expired(self) => false,
             _ => true,
         }
     }
@@ -141,7 +141,7 @@ impl Value {
 
                     Ok(())
                 }
-                Self::String(s) if s.len() == 0 => Ok(writer.write_all(b"$-1\r\n").await?),
+                Self::String(s) if s.is_empty() => Ok(writer.write_all(b"$-1\r\n").await?),
                 Self::String(s) => {
                     writer.write_all(b"$").await?;
                     writer.write_all(s.len().to_string().as_bytes()).await?;
@@ -193,7 +193,7 @@ impl Value {
                     Ok(())
                 }
 
-                Self::Expire(_) if Self::expired(&self) => Self::Nil.to_resp2(writer).await,
+                Self::Expire(_) if Self::expired(self) => Self::Nil.to_resp2(writer).await,
                 Self::Expire((v, _)) => v.to_resp2(writer).await,
             }
         })
@@ -256,7 +256,7 @@ impl Value {
                     Ok(())
                 }
 
-                Self::Expire(_) if Self::expired(&self) => Self::Nil.to_resp3(writer).await,
+                Self::Expire(_) if Self::expired(self) => Self::Nil.to_resp3(writer).await,
                 Self::Expire((v, _)) => v.to_resp3(writer).await,
 
                 // rest of the code is the same as to_resp2

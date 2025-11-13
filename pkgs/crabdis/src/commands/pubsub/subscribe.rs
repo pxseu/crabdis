@@ -37,10 +37,11 @@ impl CommandTrait for Subscribe {
 
         // Send subscription confirmation for each channel
         for channel in channels {
-            let mut response = Vec::new();
-            response.push(Value::String("subscribe".into()));
-            response.push(Value::String(channel));
-            response.push(Value::Integer(1)); // Number of subscriptions
+            let response = vec![
+                Value::String("subscribe".into()),
+                Value::String(channel),
+                Value::Integer(1), // Number of subscriptions
+            ];
 
             session
                 .versioned_response(&Value::Push(response.into()), writer)

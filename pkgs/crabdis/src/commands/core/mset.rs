@@ -14,7 +14,7 @@ impl CommandTrait for MSet {
         args: &mut VecDeque<Value>,
         session: SessionRef,
     ) -> Result<()> {
-        if args.len() < 2 || args.len() % 2 != 0 {
+        if args.len() < 2 || !args.len().is_multiple_of(2) {
             return value_error!("Invalid number of arguments")
                 .to_resp2(writer)
                 .await;

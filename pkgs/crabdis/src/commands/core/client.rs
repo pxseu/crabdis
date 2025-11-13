@@ -1,5 +1,3 @@
-// implement some of the client commands
-
 use crate::prelude::*;
 
 pub struct Client;
@@ -16,7 +14,7 @@ impl CommandTrait for Client {
         args: &mut VecDeque<Value>,
         session: SessionRef,
     ) -> Result<()> {
-        if args.len() < 1 {
+        if args.is_empty() {
             return session
                 .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;

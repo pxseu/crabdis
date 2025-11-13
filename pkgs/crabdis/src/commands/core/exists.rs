@@ -14,7 +14,7 @@ impl CommandTrait for Exists {
         args: &mut VecDeque<Value>,
         session: SessionRef,
     ) -> Result<()> {
-        if args.len() < 1 {
+        if args.is_empty() {
             return value_error!("Invalid number of arguments")
                 .to_resp2(writer)
                 .await;

@@ -1,5 +1,5 @@
 use crabdis::storage::value::Value;
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use std::collections::{HashMap, HashSet};
 use std::hint::black_box;
 use std::io::Cursor;
@@ -166,7 +166,7 @@ fn bench_resp2_serialize_complex(c: &mut Criterion) {
 
     // Expire value
     let expire = Value::Expire((
-        Arc::new(Value::String("cached_value".into())).into(),
+        Arc::new(Value::String("cached_value".into())),
         tokio::time::Instant::now() + tokio::time::Duration::from_secs(3600),
     ));
 
