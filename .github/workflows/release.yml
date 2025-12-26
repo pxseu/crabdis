@@ -4,6 +4,9 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 env:
   MACOSX_DEPLOYMENT_TARGET: 10.7
   EXECUTABLE_NAME: crabdis
@@ -151,16 +154,16 @@ jobs:
       - name: Create Checksums
         run: for file in ${{ env.EXECUTABLE_NAME }}-*/${{ env.EXECUTABLE_NAME }}-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
 
-      - name: Update Release
-        run: gh release edit ${{ needs.draft-release.outputs.tag_name }} --draft=false --repo=${{ github.repository }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Add Artifacts to Release
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.EXECUTABLE_NAME }}-*/${{ env.EXECUTABLE_NAME }}-*
           tag_name: ${{ needs.draft-release.outputs.tag_name }}
+
+      - name: Update Release
+        run: gh release edit ${{ needs.draft-release.outputs.tag_name }} --draft=false --repo=${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-crates:
     name: Publish Crates
