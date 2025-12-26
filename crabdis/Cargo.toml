@@ -7,7 +7,7 @@ readme = "../README.md"
 homepage = "https://github.com/pxseu/crabdis#readme"
 version = "0.1.29"
 edition = "2024"
-keywords = ["redis", "key-value", "database", "cache", "resp", "server"]
+keywords = ["redis", "key-value", "database", "resp", "server"]
 categories = ["database", "network-programming", "web-programming"]
 
 [dependencies]
