@@ -3,7 +3,7 @@ name = "crabdis"
 description = "It's like Redis but a bit rusty..."
 license = "MIT"
 repository = "https://github.com/pxseu/crabdis"
-readme = "../../README.md"
+readme = "../README.md"
 homepage = "https://github.com/pxseu/crabdis#readme"
 version = "0.1.28"
 edition = "2024"
@@ -27,7 +27,7 @@ glob = "0.3"
 
 
 [dev-dependencies]
-criterion = { version = "0.7", features = ["async_tokio"] }
+criterion = { version = "0.8", features = ["async_tokio"] }
 tokio = { version = "1.48", features = ["full", "tracing"] }
 
 [[bench]]
