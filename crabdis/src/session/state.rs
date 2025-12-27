@@ -157,9 +157,10 @@ impl State {
                     let store = state.store.read().await;
                     for key in keys_to_check {
                         if let Some(Value::Expire((_, expire_at))) = store.get(&key)
-                            && now > *expire_at {
-                                keys_to_remove.push(key);
-                            }
+                            && now > *expire_at
+                        {
+                            keys_to_remove.push(key);
+                        }
                     }
                 }
 

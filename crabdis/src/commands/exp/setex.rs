@@ -31,6 +31,8 @@ impl CommandTrait for SetEx {
         let commands = session.state.handler.commands.read().await;
         let set_cmd = commands.get("SET").unwrap();
 
-        set_cmd.handle_command(writer, &mut set_args, session.clone()).await
+        set_cmd
+            .handle_command(writer, &mut set_args, session.clone())
+            .await
     }
 }

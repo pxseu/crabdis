@@ -4,7 +4,8 @@ use crate::prelude::*;
 ///
 /// # Errors
 ///
-/// Returns the original `Ok(Arc<str>)` value if successful, or an [`Error::Io`] if it fails.
+/// Returns the original `Ok(Arc<str>)` value if successful, or an [`Error::Io`]
+/// if it fails.
 pub async fn deserialize<T>(reader: &mut T) -> Result<Arc<str>>
 where
     T: AsyncRead + Unpin,

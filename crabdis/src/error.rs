@@ -1,8 +1,8 @@
-use crabdis_core::error::Error as CoreError;
 use std::error::Error as StdError;
 use std::fmt::{self, Display};
 use std::io::Error as IoError;
 
+use crabdis_core::error::Error as CoreError;
 use glob::PatternError;
 
 pub type Result<T> = std::result::Result<T, Error>;

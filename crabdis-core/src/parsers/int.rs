@@ -15,7 +15,8 @@ use crate::prelude::*;
 ///
 /// # Errors
 ///
-/// Returns the original `Ok(i64)` value if successful, or an [`Error::Io`] if it fails.
+/// Returns the original `Ok(i64)` value if successful, or an [`Error::Io`] if
+/// it fails.
 pub async fn deserialize<T>(reader: &mut T) -> Result<i64>
 where
     T: AsyncRead + Unpin,
@@ -64,12 +65,14 @@ const INT_MAX_LEN: usize = 22;
 /// Serializes an integer to a writer.
 ///
 /// The function writes the integer to the writer.
-/// The function assumes the writer is a buffered writer, as it calls `write_all()` multiple times.
-/// The function appends the CRLF to the end of the integer.
+/// The function assumes the writer is a buffered writer, as it calls
+/// `write_all()` multiple times. The function appends the CRLF to the end of
+/// the integer.
 ///
 /// # Errors
 ///
-/// Returns the original `Ok(())` value if successful, or an [`Error::Io`] if it fails.
+/// Returns the original `Ok(())` value if successful, or an [`Error::Io`] if it
+/// fails.
 pub async fn serialize<T>(writer: &mut T, value: i64) -> Result<()>
 where
     T: AsyncWrite + Unpin + ?Sized,

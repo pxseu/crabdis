@@ -1,9 +1,7 @@
-pub use crabdis_core::parsers;
-pub use crabdis_core::value;
-
 use std::collections::HashSet;
 use std::sync::Arc;
 
+pub use crabdis_core::{parsers, value};
 use tokio::sync::RwLock;
 
 use crate::prelude::*;

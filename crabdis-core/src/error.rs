@@ -34,7 +34,8 @@ impl StdError for Error {
 pub trait Context<T> {
     /// # Errors
     ///
-    /// Returns the original `Ok(T)` value if successful, or wraps the error with additional context as an [`Error::Io`] if it fails.
+    /// Returns the original `Ok(T)` value if successful, or wraps the error
+    /// with additional context as an [`Error::Io`] if it fails.
     fn context<C>(self, ctx: C) -> Result<T>
     where
         C: Display + Send + Sync + 'static;

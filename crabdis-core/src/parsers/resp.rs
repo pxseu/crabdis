@@ -6,8 +6,9 @@ use crate::value::Value;
 
 /// # Errors
 ///
-/// Returns the original `Ok(true)` value if the reader is not empty, or `Ok(false)` if the reader is empty.
-/// Returns an [`Error::Io`] if the reader fails to fill the buffer.
+/// Returns the original `Ok(true)` value if the reader is not empty, or
+/// `Ok(false)` if the reader is empty. Returns an [`Error::Io`] if the reader
+/// fails to fill the buffer.
 pub async fn can_read<R>(reader: &mut R) -> Result<bool>
 where
     R: AsyncBufRead + Unpin,
@@ -17,8 +18,9 @@ where
 
 /// # Errors
 ///
-/// Returns the original `Ok(Some(Value))` value if successful, or `Ok(None)` if the reader is empty.
-/// Returns an [`Error::Io`] if the reader fails to fill the buffer.
+/// Returns the original `Ok(Some(Value))` value if successful, or `Ok(None)` if
+/// the reader is empty. Returns an [`Error::Io`] if the reader fails to fill
+/// the buffer.
 pub async fn try_parse<'a, R>(
     reader: &'a mut R,
     version: u8,
@@ -367,10 +369,10 @@ mod tests {
     use std::io::Cursor;
     use std::sync::Arc;
 
+    use tokio::time::Instant;
+
     use super::*;
     use crate::{value_multi, value_push};
-
-    use tokio::time::Instant;
 
     #[tokio::test]
     async fn test_resp2_simple_string() {
