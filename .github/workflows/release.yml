@@ -91,9 +91,9 @@ jobs:
           fetch-depth: 1
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: stable
+          toolchain: nightly
           targets: ${{ matrix.target }}
           components: rustfmt, clippy
 
@@ -178,9 +178,9 @@ jobs:
           fetch-depth: 1
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: stable
+          toolchain: nightly
           components: rustfmt, clippy
 
       - name: Login to Crates
