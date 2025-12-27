@@ -22,14 +22,12 @@ impl CommandTrait for Keys {
                 .await;
         }
 
-        let pattern = match args.next() {
-            Some(Value::String(s)) => Pattern::new(s)?,
-            _ => {
-                return session
-                    .versioned_response(&value_error!("Invalid pattern"), writer)
-                    .await;
-            }
+        let Some(pattern_str) = args.next_string() else {
+            return session
+                .versioned_response(&value_error!("Invalid pattern"), writer)
+                .await;
         };
+        let pattern = Pattern::new(pattern_str)?;
 
         let mut keys = Vec::new();
 

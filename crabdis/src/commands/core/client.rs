@@ -20,14 +20,12 @@ impl CommandTrait for Client {
                 .await;
         }
 
-        let command = match args.next() {
-            Some(Value::String(command)) => command.to_uppercase(),
-            _ => {
-                return session
-                    .versioned_response(&value_error!("Invalid command"), writer)
-                    .await;
-            }
+        let Some(command) = args.next_string() else {
+            return session
+                .versioned_response(&value_error!("Invalid command"), writer)
+                .await;
         };
+        let command = command.to_uppercase();
 
         match command.as_ref() {
             "GETNAME" => {
@@ -37,13 +35,10 @@ impl CommandTrait for Client {
             }
 
             "SETNAME" => {
-                let name = match args.next() {
-                    Some(Value::String(name)) => name.clone(),
-                    _ => {
-                        return session
-                            .versioned_response(&value_error!("Invalid name"), writer)
-                            .await;
-                    }
+                let Some(name) = args.next_string_owned() else {
+                    return session
+                        .versioned_response(&value_error!("Invalid name"), writer)
+                        .await;
                 };
 
                 session.set_name(name).await;

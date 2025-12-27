@@ -20,22 +20,16 @@ impl CommandTrait for RenameNx {
                 .await;
         }
 
-        let key = match args.next() {
-            Some(Value::String(s)) => s.clone(),
-            _ => {
-                return session
-                    .versioned_response(&value_error!("Invalid argument"), writer)
-                    .await;
-            }
+        let Some(key) = args.next_string_owned() else {
+            return session
+                .versioned_response(&value_error!("Invalid argument"), writer)
+                .await;
         };
 
-        let new_key = match args.next() {
-            Some(Value::String(s)) => s.clone(),
-            _ => {
-                return session
-                    .versioned_response(&value_error!("Invalid argument"), writer)
-                    .await;
-            }
+        let Some(new_key) = args.next_string_owned() else {
+            return session
+                .versioned_response(&value_error!("Invalid argument"), writer)
+                .await;
         };
 
         // check new

@@ -20,18 +20,10 @@ impl CommandTrait for HGetAll {
                 .await;
         }
 
-        let key = match args.next() {
-            Some(Value::String(key)) => key,
-            Some(_) => {
-                return session
-                    .versioned_response(&value_error!("Invalid key"), writer)
-                    .await;
-            }
-            None => {
-                return session
-                    .versioned_response(&value_error!("Missing key"), writer)
-                    .await;
-            }
+        let Some(key) = args.next_string() else {
+            return session
+                .versioned_response(&value_error!("Invalid key"), writer)
+                .await;
         };
 
         let store = session.state.store.read().await;

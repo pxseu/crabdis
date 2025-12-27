@@ -20,7 +20,7 @@ impl CommandTrait for Hello {
                 .await;
         }
 
-        if let Some(Value::String(version)) = args.next() {
+        if let Some(version) = args.next_string() {
             if version.as_ref() != "2" && version.as_ref() != "3" {
                 return session
                     .versioned_response(&value_error!("Invalid version"), writer)

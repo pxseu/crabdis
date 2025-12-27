@@ -96,17 +96,15 @@ impl CommandHandler {
         args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
-        let command = match args.next() {
-            Some(Value::String(command)) => command.to_uppercase(),
-            invalid => {
-                #[cfg(debug_assertions)]
-                log::debug!("Invalid command: {invalid:?} {args:?}");
+        let Some(command) = args.next_string() else {
+            #[cfg(debug_assertions)]
+            log::debug!("Invalid command: {args:?}");
 
-                return session
-                    .versioned_response(&value_error!("Invalid command: {invalid:?}"), writer)
-                    .await;
-            }
+            return session
+                .versioned_response(&value_error!("Invalid command"), writer)
+                .await;
         };
+        let command = command.to_uppercase();
 
         match self.commands.read().await.get(&command) {
             Some(command) => command.handle_command(writer, args, session).await,

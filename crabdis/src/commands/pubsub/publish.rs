@@ -20,13 +20,10 @@ impl CommandTrait for Publish {
                 .await;
         }
 
-        let channel = match args.next() {
-            Some(Value::String(channel)) => channel,
-            _ => {
-                return session
-                    .versioned_response(&value_error!("Invalid channel"), writer)
-                    .await;
-            }
+        let Some(channel) = args.next_string() else {
+            return session
+                .versioned_response(&value_error!("Invalid channel"), writer)
+                .await;
         };
 
         let message = match args.next_owned() {

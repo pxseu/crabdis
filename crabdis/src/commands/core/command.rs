@@ -37,8 +37,8 @@ impl CommandTrait for Command {
             return session.versioned_response(&Value::Map(map), writer).await;
         }
 
-        match args.next() {
-            Some(Value::String(subcommand)) => {
+        match args.next_string() {
+            Some(subcommand) => {
                 match subcommand.to_uppercase().as_str() {
                     "DOCS" => {
                         let commands = session.state.handler.commands.read().await;

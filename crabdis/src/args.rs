@@ -14,7 +14,6 @@ impl<'a> Args<'a> {
         Self { slice, pos: 0 }
     }
 
-    /// Returns the next argument, advancing the position.
     #[inline]
     pub fn next(&mut self) -> Option<&'a Value> {
         if self.pos < self.slice.len() {
@@ -26,8 +25,6 @@ impl<'a> Args<'a> {
         }
     }
 
-    /// Returns the next argument as an owned Value (clones if needed).
-    /// Use this when you need to store the value.
     #[inline]
     pub fn next_owned(&mut self) -> Option<Value> {
         self.next().cloned()
@@ -40,6 +37,12 @@ impl<'a> Args<'a> {
             Value::String(s) => Some(s),
             _ => None,
         }
+    }
+
+    /// Returns the next argument if it's a String (cloned), otherwise None.
+    #[inline]
+    pub fn next_string_owned(&mut self) -> Option<Arc<str>> {
+        self.next_string().cloned()
     }
 
     /// Returns the number of remaining arguments.
