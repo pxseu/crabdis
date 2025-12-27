@@ -5,13 +5,18 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite};
 use crate::prelude::*;
 
 /// Parses an integer from a reader.
+///
 /// The function reads the integer until the \r\n is encountered.
 /// The function returns the integer and the reader is advanced to the next byte
 /// after the \r\n. It is recommended and expected to use a buffered reader for
 /// this function, as it calls `read_u8()` multiple times. This function assumes
 /// the first byte is already checked to be a digit from resp (simple, any bulk
 /// operation etc)
-pub async fn deserialize_integer<T>(reader: &mut T) -> Result<i64>
+///
+/// # Errors
+///
+/// Returns the original `Ok(i64)` value if successful, or an [`Error::Io`] if it fails.
+pub async fn deserialize<T>(reader: &mut T) -> Result<i64>
 where
     T: AsyncRead + Unpin,
 {
@@ -37,7 +42,7 @@ where
                 return Ok(if negative { -value } else { value });
             }
             byte @ b'0'..=b'9' => {
-                let digit = (byte - b'0') as i64;
+                let digit = i64::from(byte - b'0');
 
                 // inline the check for integer overflow, the speed is drastically faster than
                 // the checked_mul/add
@@ -53,12 +58,21 @@ where
     }
 }
 
-/// eq to i64::MAX.to_string().len() + 2 (for CRLF) + 1 (for sign)
+/// eq to `i64::MAX.to_string().len()` + 2 (for CRLF) + 1 (for sign)
 const INT_MAX_LEN: usize = 22;
 
-pub async fn serialize_integer<T>(writer: &mut T, value: i64) -> Result<()>
+/// Serializes an integer to a writer.
+///
+/// The function writes the integer to the writer.
+/// The function assumes the writer is a buffered writer, as it calls `write_all()` multiple times.
+/// The function appends the CRLF to the end of the integer.
+///
+/// # Errors
+///
+/// Returns the original `Ok(())` value if successful, or an [`Error::Io`] if it fails.
+pub async fn serialize<T>(writer: &mut T, value: i64) -> Result<()>
 where
-    T: AsyncWrite + Unpin,
+    T: AsyncWrite + Unpin + ?Sized,
 {
     // cheap buffer on the stack for the integer
     let mut buf = [0u8; INT_MAX_LEN];
@@ -69,11 +83,7 @@ where
     buf[idx..].copy_from_slice(b"\r\n");
 
     let negative = value < 0;
-    let mut u = if negative {
-        value.wrapping_neg() as u64
-    } else {
-        value as u64
-    };
+    let mut u = value.unsigned_abs();
 
     if u == 0 {
         idx -= 1;
@@ -108,7 +118,7 @@ mod tests {
     async fn parse_from(bytes: &[u8]) -> Result<i64> {
         let mut reader = Cursor::new(bytes);
 
-        match deserialize_integer(&mut reader).await {
+        match deserialize(&mut reader).await {
             Ok(value) => {
                 assert!(
                     reader.read_u8().await.is_err(),
@@ -134,7 +144,7 @@ mod tests {
         assert_eq!(value, 0);
 
         let value = parse_from(b"1234567890\r\n").await.unwrap();
-        assert_eq!(value, 1234567890);
+        assert_eq!(value, 1_234_567_890);
 
         let value = parse_from(b"-1\r\n").await.unwrap();
         assert_eq!(value, -1); // this is also NIL, but we don't care about that here
@@ -167,7 +177,7 @@ mod tests {
     #[tokio::test]
     async fn consumes_all_of_crlf() {
         let mut reader = Cursor::new(b"5\r\nZ");
-        let value = deserialize_integer(&mut reader).await.unwrap();
+        let value = deserialize(&mut reader).await.unwrap();
         assert_eq!(value, 5);
         // next byte should be 'Z'
         assert_eq!(reader.read_u8().await.unwrap(), b'Z');
@@ -177,15 +187,15 @@ mod tests {
     #[tokio::test]
     async fn test_serialize_integer() {
         let mut writer = Cursor::new(Vec::new());
-        serialize_integer(&mut writer, 42).await.unwrap();
+        serialize(&mut writer, 42).await.unwrap();
         assert_eq!(writer.get_ref(), b"42\r\n");
 
         let mut writer = Cursor::new(Vec::new());
-        serialize_integer(&mut writer, -100).await.unwrap();
+        serialize(&mut writer, -100).await.unwrap();
         assert_eq!(writer.get_ref(), b"-100\r\n");
 
         let mut writer = Cursor::new(Vec::new());
-        serialize_integer(&mut writer, 0).await.unwrap();
+        serialize(&mut writer, 0).await.unwrap();
         assert_eq!(writer.get_ref(), b"0\r\n");
     }
 }

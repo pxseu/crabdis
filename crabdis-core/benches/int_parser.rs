@@ -1,7 +1,7 @@
 use std::hint::black_box;
 use std::io::Cursor;
 
-use crabdis::storage::parser::{deserialize_integer, serialize_integer};
+use crabdis_core::parsers::int::{deserialize, serialize};
 use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use tokio::runtime::Runtime;
 
@@ -22,7 +22,7 @@ fn bench_int_deserialize_fast(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("cursor", label), &input, |b, data| {
             b.to_async(&rt).iter(|| async {
                 let mut cursor = Cursor::new(*data);
-                let v = deserialize_integer(&mut cursor).await.unwrap();
+                let v = deserialize(&mut cursor).await.unwrap();
                 black_box(v)
             })
         });
@@ -43,7 +43,7 @@ fn bench_int_serialize_fast(c: &mut Criterion) {
             |b, data| {
                 b.to_async(&rt).iter(|| async {
                     let mut writer = Cursor::new(Vec::new());
-                    serialize_integer(&mut writer, *data).await.unwrap();
+                    serialize(&mut writer, *data).await.unwrap();
                     black_box(writer.into_inner())
                 })
             },

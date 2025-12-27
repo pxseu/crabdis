@@ -39,6 +39,8 @@ impl CommandTrait for Del {
             }
         }
 
-        Value::Integer(count).to_resp2(writer).await
+        session
+            .versioned_response(&Value::Integer(count), writer)
+            .await
     }
 }

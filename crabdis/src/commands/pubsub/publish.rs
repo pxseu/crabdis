@@ -15,8 +15,8 @@ impl CommandTrait for Publish {
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 2 {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -39,6 +39,8 @@ impl CommandTrait for Publish {
         };
 
         let count = session.state.publish(&channel, message).await?;
-        Value::Integer(count).to_resp2(writer).await
+        session
+            .versioned_response(&Value::Integer(count), writer)
+            .await
     }
 }

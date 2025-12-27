@@ -44,8 +44,8 @@ impl Session {
         log::debug!("Writing response to client: {:?}", response);
 
         match self.get_proto_version().await {
-            2 => response.to_resp2(writer).await,
-            3 => response.to_resp3(writer).await,
+            2 => Resp::to2(response, writer).await.map_err(Error::from),
+            3 => Resp::to3(response, writer).await.map_err(Error::from),
             _ => unreachable!("Invalid protocol version"),
         }
     }

@@ -15,8 +15,8 @@ impl CommandTrait for MSet {
         session: SessionRef,
     ) -> Result<()> {
         if args.len() < 2 || !args.len().is_multiple_of(2) {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -37,6 +37,6 @@ impl CommandTrait for MSet {
             }
         }
 
-        Value::Ok.to_resp2(writer).await
+        session.versioned_response(&Value::Ok, writer).await
     }
 }

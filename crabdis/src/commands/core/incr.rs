@@ -15,8 +15,8 @@ impl CommandTrait for Incr {
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 1 {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -52,6 +52,8 @@ impl CommandTrait for Incr {
         // store it as int at some point
         store.insert(key, Value::String(value.to_string().into()));
 
-        Value::Integer(value).to_resp2(writer).await
+        session
+            .versioned_response(&Value::Integer(value), writer)
+            .await
     }
 }

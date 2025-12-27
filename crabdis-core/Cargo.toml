@@ -1,0 +1,27 @@
+[package]
+name = "crabdis-core"
+description = "Core types and RESP protocol implementation for crabdis"
+readme = "../README.md"
+keywords = ["redis", "resp", "protocol", "serialization"]
+categories = ["encoding", "network-programming"]
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+tokio = { version = "1.48", features = ["io-util", "time", "sync"] }
+
+[dev-dependencies]
+criterion = { version = "0.8", features = ["async_tokio"] }
+tokio = { version = "1.48", features = ["full", "tracing"] }
+
+
+[[bench]]
+name = "int_parser"
+harness = false
+
+[[bench]]
+name = "value_benchmarks"
+harness = false

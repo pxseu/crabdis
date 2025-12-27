@@ -15,8 +15,8 @@ impl CommandTrait for SetEx {
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 3 {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 

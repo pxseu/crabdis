@@ -15,8 +15,8 @@ impl CommandTrait for Get {
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 1 {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -30,8 +30,8 @@ impl CommandTrait for Get {
         };
 
         match session.state.store.read().await.get(&key) {
-            Some(value) => value.to_resp2(writer).await,
-            None => Value::Nil.to_resp2(writer).await,
+            Some(value) => session.versioned_response(value, writer).await,
+            None => session.versioned_response(&Value::Nil, writer).await,
         }
     }
 }

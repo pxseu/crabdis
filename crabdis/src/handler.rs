@@ -1,8 +1,8 @@
+use crabdis_core::parsers;
 use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 use tokio::sync::mpsc;
 
 use crate::prelude::*;
-use crate::utils::try_parse;
 
 pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionRef) -> Result<()> {
     let (mut read, mut writer) = stream.split();
@@ -27,7 +27,7 @@ pub async fn handle_client(stream: &mut tokio::net::TcpStream, session: SessionR
             }
 
              // Handle incoming requests from the client
-            result = try_parse(&mut reader) => {
+            result = parsers::resp::try_parse(&mut reader, session.get_proto_version().await) => {
                 match result?.await? {
                     Some(Value::Multi(args)) => {
                         #[cfg(debug_assertions)]

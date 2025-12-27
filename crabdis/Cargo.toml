@@ -1,16 +1,17 @@
 [package]
 name = "crabdis"
 description = "It's like Redis but a bit rusty..."
-license = "MIT"
-repository = "https://github.com/pxseu/crabdis"
 readme = "../README.md"
-homepage = "https://github.com/pxseu/crabdis#readme"
-version = "0.1.29"
-edition = "2024"
 keywords = ["redis", "key-value", "database", "resp", "server"]
 categories = ["database", "network-programming", "web-programming"]
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
 
 [dependencies]
+crabdis-core.workspace = true
 log = "0.4"
 fern = "0.7"
 clap = { version = "4.5", features = ["derive"] }
@@ -24,16 +25,3 @@ tokio = { version = "1.48", features = [
 ] }
 async-trait = "0.1"
 glob = "0.3"
-
-
-[dev-dependencies]
-criterion = { version = "0.8", features = ["async_tokio"] }
-tokio = { version = "1.48", features = ["full", "tracing"] }
-
-[[bench]]
-name = "value_benchmarks"
-harness = false
-
-[[bench]]
-name = "int_parser"
-harness = false

@@ -1,6 +1,7 @@
 use clap::Parser;
 use crabdis::error::Result;
 use crabdis::storage::value::Value;
+use crabdis_core::parsers::resp::Resp;
 use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 use tokio::net::TcpStream;
 
@@ -29,15 +30,17 @@ async fn main() -> Result<()> {
 
     let start = tokio::time::Instant::now();
     for i in 0..1_000_000 {
-        Value::Multi(
-            vec![
-                Value::String("SET".into()),
-                Value::String(format!("key{i}").into()),
-                Value::String(format!("value{i}").into()),
-            ]
-            .into(),
+        Resp::to2(
+            &Value::Multi(
+                vec![
+                    Value::String("SET".into()),
+                    Value::String(format!("key{i}").into()),
+                    Value::String(format!("value{i}").into()),
+                ]
+                .into(),
+            ),
+            &mut writer,
         )
-        .to_resp2(&mut writer)
         .await?;
     }
 
@@ -49,7 +52,7 @@ async fn main() -> Result<()> {
 
     let start = tokio::time::Instant::now();
     for _ in 0..1_000_000 {
-        if let Some(Value::Ok) = Value::from_resp(&mut reader).await? {
+        if let Some(Value::Ok) = Resp::from2(&mut reader).await? {
             count += 1;
         }
     }

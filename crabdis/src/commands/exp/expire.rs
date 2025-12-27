@@ -15,8 +15,8 @@ impl CommandTrait for Expire {
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 2 {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -77,6 +77,6 @@ impl CommandTrait for Expire {
         ));
         session.state.expire_keys.write().await.insert(key);
 
-        Value::Ok.to_resp2(writer).await
+        session.versioned_response(&Value::Ok, writer).await
     }
 }

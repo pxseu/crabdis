@@ -31,8 +31,8 @@ impl CommandTrait for Set {
         session: SessionRef,
     ) -> Result<()> {
         if args.len() < 2 {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -95,8 +95,8 @@ impl CommandTrait for Set {
                             continue;
                         }
 
-                        return value_error!("Invalid argument {arg}")
-                            .to_resp2(writer)
+                        return session
+                            .versioned_response(&value_error!("Invalid argument {arg}"), writer)
                             .await;
                     }
                 },
@@ -113,11 +113,11 @@ impl CommandTrait for Set {
         let prev_key = lock.entry(key.clone()).or_insert(Value::Nil.clone());
 
         if arguments.set_nx && prev_key.is_some() {
-            return Value::Nil.to_resp2(writer).await;
+            return session.versioned_response(&Value::Nil, writer).await;
         }
 
         if arguments.set_xx && prev_key.is_none() {
-            return Value::Nil.to_resp2(writer).await;
+            return session.versioned_response(&Value::Nil, writer).await;
         }
 
         let expire_at = if arguments.keepttl {
@@ -148,9 +148,9 @@ impl CommandTrait for Set {
         };
 
         if arguments.get {
-            prev_key.to_resp2(writer).await?;
+            session.versioned_response(prev_key, writer).await?;
         } else {
-            Value::Ok.to_resp2(writer).await?;
+            session.versioned_response(&Value::Ok, writer).await?;
         }
 
         *prev_key = if let Some(expire_at) = expire_at {

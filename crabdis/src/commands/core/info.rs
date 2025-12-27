@@ -17,8 +17,8 @@ impl CommandTrait for Info {
         let length = args.len();
 
         if length > 1 {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 

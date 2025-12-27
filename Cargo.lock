@@ -212,10 +212,18 @@ version = "0.1.29"
 dependencies = [
  "async-trait",
  "clap",
- "criterion",
+ "crabdis-core",
  "fern",
  "glob",
  "log",
+ "tokio",
+]
+
+[[package]]
+name = "crabdis-core"
+version = "0.1.29"
+dependencies = [
+ "criterion",
  "tokio",
 ]
 

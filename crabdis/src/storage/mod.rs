@@ -1,5 +1,5 @@
-pub mod parser;
-pub mod value;
+pub use crabdis_core::parsers;
+pub use crabdis_core::value;
 
 use std::collections::HashSet;
 use std::sync::Arc;

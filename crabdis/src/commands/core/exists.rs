@@ -15,8 +15,8 @@ impl CommandTrait for Exists {
         session: SessionRef,
     ) -> Result<()> {
         if args.is_empty() {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -42,6 +42,8 @@ impl CommandTrait for Exists {
             }
         }
 
-        Value::Integer(count).to_resp2(writer).await
+        session
+            .versioned_response(&Value::Integer(count), writer)
+            .await
     }
 }

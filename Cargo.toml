@@ -1,6 +1,16 @@
 [workspace]
-members = ["crabdis"]
+members = ["crabdis", "crabdis-core"]
 resolver = "2"
+
+[workspace.package]
+version = "0.1.29"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/pxseu/crabdis"
+homepage = "https://github.com/pxseu/crabdis#readme"
+
+[workspace.dependencies]
+crabdis-core = { path = "crabdis-core", version = "0.1.29" }
 
 [profile.release]
 strip = true

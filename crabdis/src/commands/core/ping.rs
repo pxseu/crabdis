@@ -12,19 +12,18 @@ impl CommandTrait for Ping {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut VecDeque<Value>,
-        _session: SessionRef,
+        session: SessionRef,
     ) -> Result<()> {
         if args.len() > 1 {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
-        match args.pop_front() {
+        let response = match args.pop_front() {
             Some(s) => s,
             _ => Value::Pong,
-        }
-        .to_resp2(writer)
-        .await
+        };
+        session.versioned_response(&response, writer).await
     }
 }

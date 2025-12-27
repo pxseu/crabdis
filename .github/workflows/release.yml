@@ -186,7 +186,10 @@ jobs:
       - name: Login to Crates
         run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-      - name: Publish Crates
+      - name: Publish crabdis-core
+        run: cargo publish --locked --no-verify --package crabdis-core
+
+      - name: Publish crabdis
         run: cargo publish --locked --no-verify --package ${{ env.EXECUTABLE_NAME }}
 
   publish-docker:

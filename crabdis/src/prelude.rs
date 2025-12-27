@@ -9,4 +9,6 @@ pub(crate) use super::error::{Context as ErrorContext, Error, Result};
 pub(crate) use super::session::SessionRef;
 pub(crate) use super::session::state::StateRef;
 pub(crate) use super::storage::Store;
-pub(crate) use super::storage::value::{Value, value_error};
+pub(crate) use crabdis_core::parsers::resp::Resp;
+pub(crate) use crabdis_core::value::Value;
+pub(crate) use crabdis_core::value_error;

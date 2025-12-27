@@ -17,8 +17,8 @@ impl CommandTrait for Type {
         let length = args.len();
 
         if length != 1 {
-            return value_error!("Invalid number of arguments")
-                .to_resp2(writer)
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -49,6 +49,8 @@ impl CommandTrait for Type {
             }
         };
 
-        Value::String(value_type.into()).to_resp2(writer).await
+        session
+            .versioned_response(&Value::String(value_type.into()), writer)
+            .await
     }
 }
