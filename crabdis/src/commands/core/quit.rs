@@ -11,7 +11,7 @@ impl CommandTrait for Quit {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if !args.is_empty() {

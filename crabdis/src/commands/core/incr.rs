@@ -11,7 +11,7 @@ impl CommandTrait for Incr {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 1 {
@@ -20,8 +20,8 @@ impl CommandTrait for Incr {
                 .await;
         }
 
-        let key = match args.pop_front() {
-            Some(Value::String(key)) => key,
+        let key = match args.next() {
+            Some(Value::String(key)) => key.clone(),
             Some(_) => {
                 return session
                     .versioned_response(&value_error!("Invalid key"), writer)

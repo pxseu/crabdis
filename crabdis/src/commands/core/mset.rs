@@ -11,7 +11,7 @@ impl CommandTrait for MSet {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() < 2 || !args.len().is_multiple_of(2) {
@@ -22,11 +22,11 @@ impl CommandTrait for MSet {
 
         let mut store = session.state.store.write().await;
 
-        while let Some(key) = args.pop_front() {
+        while let Some(key) = args.next() {
             match key {
                 Value::String(k) => {
                     // safe to unwrap because we checked the length of the args
-                    store.insert(k, args.pop_front().unwrap());
+                    store.insert(k.clone(), args.next_owned().unwrap());
                 }
 
                 _ => {

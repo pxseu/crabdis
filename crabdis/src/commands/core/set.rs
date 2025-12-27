@@ -27,7 +27,7 @@ impl CommandTrait for Set {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() < 2 {
@@ -36,8 +36,8 @@ impl CommandTrait for Set {
                 .await;
         }
 
-        let key = match args.pop_front() {
-            Some(Value::String(key)) => key,
+        let key = match args.next() {
+            Some(Value::String(key)) => key.clone(),
             Some(_) => {
                 return session
                     .versioned_response(&value_error!("Invalid key"), writer)
@@ -50,7 +50,7 @@ impl CommandTrait for Set {
             }
         };
 
-        let value = match args.pop_front() {
+        let value = match args.next_owned() {
             Some(value) => value,
             _ => {
                 return session

@@ -11,7 +11,7 @@ impl CommandTrait for Unsubscribe {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         let mut channels = Vec::new();
@@ -21,9 +21,9 @@ impl CommandTrait for Unsubscribe {
             let subs = session.state.subscriptions.read().await;
             channels = subs.keys().cloned().collect();
         } else {
-            while let Some(arg) = args.pop_front() {
+            for arg in args.iter() {
                 match arg {
-                    Value::String(channel) => channels.push(channel),
+                    Value::String(channel) => channels.push(channel.clone()),
                     _ => {
                         return session
                             .versioned_response(&value_error!("Invalid channel"), writer)

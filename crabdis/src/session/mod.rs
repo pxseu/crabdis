@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU8, Ordering};
 
 use tokio::sync::{RwLock, mpsc};
 
@@ -10,7 +11,7 @@ pub struct Session {
     pub id: u64,
     // private since are rwlocked and accessed via methods
     name: RwLock<Option<Arc<str>>>,
-    proto_version: RwLock<u8>,
+    proto_version: AtomicU8,
     pub state: state::StateRef,
     pub tx: RwLock<Option<mpsc::UnboundedSender<Value>>>,
 }
@@ -22,17 +23,17 @@ impl Session {
             state,
             name: RwLock::new(None),
             // default to RESP2 protocol, can be changed via HELLO command
-            proto_version: RwLock::new(2),
+            proto_version: AtomicU8::new(2),
             tx: RwLock::new(None),
         })
     }
 
-    pub async fn get_proto_version(&self) -> u8 {
-        *self.proto_version.read().await
+    pub fn get_proto_version(&self) -> u8 {
+        self.proto_version.load(Ordering::Relaxed)
     }
 
-    pub async fn set_proto_version(&self, version: u8) {
-        *self.proto_version.write().await = version;
+    pub fn set_proto_version(&self, version: u8) {
+        self.proto_version.store(version, Ordering::Relaxed);
     }
 
     pub async fn versioned_response(
@@ -43,7 +44,7 @@ impl Session {
         #[cfg(debug_assertions)]
         log::debug!("Writing response to client: {:?}", response);
 
-        match self.get_proto_version().await {
+        match self.get_proto_version() {
             2 => Resp::to2(response, writer).await.map_err(Error::from),
             3 => Resp::to3(response, writer).await.map_err(Error::from),
             _ => unreachable!("Invalid protocol version"),

@@ -11,7 +11,7 @@ impl CommandTrait for Type {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         let length = args.len();
@@ -22,7 +22,7 @@ impl CommandTrait for Type {
                 .await;
         }
 
-        let key = match args.pop_front() {
+        let key = match args.next() {
             Some(Value::String(key)) => key,
             _ => {
                 return session
@@ -34,7 +34,7 @@ impl CommandTrait for Type {
         log::debug!("TYPE key: {key}");
 
         let store = session.state.store.read().await;
-        let value = store.get(&key);
+        let value = store.get(key);
 
         let value_type = match value {
             Some(Value::String(_) | Value::Integer(_)) => "string",

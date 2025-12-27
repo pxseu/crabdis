@@ -191,11 +191,24 @@ impl Resp {
     where
         T: AsyncRead + Unpin + Send + 'a,
     {
+        Self::from2_impl(reader, None)
+    }
+
+    fn from2_impl<'a, T>(
+        reader: &'a mut T,
+        preread_byte: Option<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<Value>>> + Send + 'a>>
+    where
+        T: AsyncRead + Unpin + Send + 'a,
+    {
         Box::pin(async move {
-            let first_byte = match reader.read_u8().await {
-                Ok(byte) => byte,
-                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(None),
-                Err(e) => return Err(e.into()),
+            let first_byte = match preread_byte {
+                Some(b) => b,
+                None => match reader.read_u8().await {
+                    Ok(byte) => byte,
+                    Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(None),
+                    Err(e) => return Err(e.into()),
+                },
             };
 
             match first_byte {
@@ -343,7 +356,7 @@ impl Resp {
                     }))
                 }
 
-                _ => Self::from2(reader).await,
+                _ => Self::from2_impl(reader, Some(first_byte)).await,
             }
         })
     }
@@ -631,7 +644,7 @@ mod tests {
     async fn test_parse_set() {
         let buff = b"~3\r\n$1\r\na\r\n$1\r\nb\r\n:1\r\n".as_ref();
         let mut reader = Cursor::new(buff);
-        let value = Resp::from2(&mut reader).await.unwrap();
+        let value = Resp::from3(&mut reader).await.unwrap();
 
         if let Some(Value::Set(set)) = value {
             assert_eq!(set.len(), 3);
@@ -647,7 +660,7 @@ mod tests {
     async fn test_parse_push() {
         let buff = b">2\r\n$7\r\nmessage\r\n$7\r\nchannel\r\n".as_ref();
         let mut reader = Cursor::new(buff);
-        let value = Resp::from2(&mut reader).await.unwrap();
+        let value = Resp::from3(&mut reader).await.unwrap();
         assert_eq!(
             value,
             Some(value_push!(

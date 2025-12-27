@@ -11,7 +11,7 @@ impl CommandTrait for Command {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.is_empty() {
@@ -37,7 +37,7 @@ impl CommandTrait for Command {
             return session.versioned_response(&Value::Map(map), writer).await;
         }
 
-        match args.pop_front() {
+        match args.next() {
             Some(Value::String(subcommand)) => {
                 match subcommand.to_uppercase().as_str() {
                     "DOCS" => {

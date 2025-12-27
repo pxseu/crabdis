@@ -11,7 +11,7 @@ impl CommandTrait for Del {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.is_empty() {
@@ -21,12 +21,13 @@ impl CommandTrait for Del {
         }
 
         let mut store = session.state.store.write().await;
+        let mut expire_keys = session.state.expire_keys.write().await;
         let mut count = 0;
-        while let Some(key) = args.pop_front() {
+        for key in args.iter() {
             match key {
                 Value::String(k) => {
-                    if store.remove(&k).is_some() {
-                        session.state.expire_keys.write().await.remove(&k);
+                    if store.remove(k).is_some() {
+                        expire_keys.remove(k);
                         count += 1;
                     }
                 }

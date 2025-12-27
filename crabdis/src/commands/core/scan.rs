@@ -11,26 +11,26 @@ impl CommandTrait for Scan {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         let mut cursor = Option::<usize>::None;
         let mut pattern = Option::<Arc<str>>::None;
         let mut count = 10;
 
-        while let Some(arg) = args.pop_front() {
+        while let Some(arg) = args.next() {
             match arg {
                 Value::String(s) => {
                     if s.to_uppercase() == "MATCH" {
-                        if let Some(Value::String(p)) = args.pop_front() {
-                            pattern = Some(p);
+                        if let Some(Value::String(p)) = args.next() {
+                            pattern = Some(p.clone());
                         } else {
                             return session
                                 .versioned_response(&value_error!("Invalid pattern"), writer)
                                 .await;
                         }
                     } else if s.to_uppercase() == "COUNT" {
-                        match args.pop_front() {
+                        match args.next() {
                             Some(Value::Integer(c)) => {
                                 // make sure the count is positive
                                 count = c.unsigned_abs() as usize;
@@ -74,34 +74,37 @@ impl CommandTrait for Scan {
         }
 
         let store = session.state.store.read().await;
-        let keys = store.keys().cloned().collect::<Vec<Arc<str>>>();
-        let mut results = Vec::new();
+        let mut results = Vec::with_capacity(count);
+        let cursor_start = cursor.unwrap_or(0);
+        let mut next_cursor = 0;
 
         #[cfg(debug_assertions)]
         log::debug!("SCAN cursor: {cursor:?}, pattern: {pattern:?}, count: {count}");
 
-        for key in keys.iter().skip(cursor.unwrap_or(0)) {
+        for (idx, key) in store.keys().enumerate().skip(cursor_start) {
             #[cfg(debug_assertions)]
             log::debug!("SCAN key: {key}");
 
-            if let Some(pattern) = &pattern {
-                if !key.contains(pattern.as_ref()) {
-                    continue;
-                }
-            } else {
-                results.push(Value::String(key.clone()));
-            }
+            let matches = match &pattern {
+                Some(p) => key.contains(p.as_ref()),
+                None => true,
+            };
 
-            if results.len() >= count {
-                break;
+            if matches {
+                results.push(Value::String(key.clone()));
+                if results.len() >= count {
+                    next_cursor = idx + 1;
+                    break;
+                }
             }
         }
 
+        // If we didn't break early, we've scanned everything - cursor is 0
         session
             .versioned_response(
                 &Value::Multi(
                     Vec::from([
-                        Value::String(results.len().to_string().into()),
+                        Value::String(next_cursor.to_string().into()),
                         Value::Multi(results.into()),
                     ])
                     .into(),

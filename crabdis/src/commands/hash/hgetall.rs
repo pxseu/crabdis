@@ -11,7 +11,7 @@ impl CommandTrait for HGetAll {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 1 {
@@ -20,7 +20,7 @@ impl CommandTrait for HGetAll {
                 .await;
         }
 
-        let key = match args.pop_front() {
+        let key = match args.next() {
             Some(Value::String(key)) => key,
             Some(_) => {
                 return session
@@ -36,7 +36,7 @@ impl CommandTrait for HGetAll {
 
         let store = session.state.store.read().await;
 
-        match store.get(&key) {
+        match store.get(key) {
             Some(value @ Value::Map(_)) => session.versioned_response(value, writer).await,
 
             Some(_) => {

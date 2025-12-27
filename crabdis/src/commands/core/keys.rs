@@ -13,7 +13,7 @@ impl CommandTrait for Keys {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 1 {
@@ -22,8 +22,8 @@ impl CommandTrait for Keys {
                 .await;
         }
 
-        let pattern = match args.pop_front() {
-            Some(Value::String(s)) => Pattern::new(&s)?,
+        let pattern = match args.next() {
+            Some(Value::String(s)) => Pattern::new(s)?,
             _ => {
                 return session
                     .versioned_response(&value_error!("Invalid pattern"), writer)

@@ -11,7 +11,7 @@ impl CommandTrait for Client {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.is_empty() {
@@ -20,7 +20,7 @@ impl CommandTrait for Client {
                 .await;
         }
 
-        let command = match args.pop_front() {
+        let command = match args.next() {
             Some(Value::String(command)) => command.to_uppercase(),
             _ => {
                 return session
@@ -37,8 +37,8 @@ impl CommandTrait for Client {
             }
 
             "SETNAME" => {
-                let name = match args.pop_front() {
-                    Some(Value::String(name)) => name,
+                let name = match args.next() {
+                    Some(Value::String(name)) => name.clone(),
                     _ => {
                         return session
                             .versioned_response(&value_error!("Invalid name"), writer)

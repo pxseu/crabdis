@@ -11,7 +11,7 @@ impl CommandTrait for HSet {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         // HSET key field value [field value ...]
@@ -22,8 +22,8 @@ impl CommandTrait for HSet {
                 .await;
         }
 
-        let key = match args.pop_front() {
-            Some(Value::String(key)) => key,
+        let key = match args.next() {
+            Some(Value::String(key)) => key.clone(),
             Some(_) => {
                 return session
                     .versioned_response(&value_error!("Invalid key"), writer)
@@ -40,9 +40,9 @@ impl CommandTrait for HSet {
 
         let mut count = 0;
 
-        while let Some(field) = args.pop_front() {
-            // SAFETY: we know that we have a field, so we can unwrap
-            let value = args.pop_front().unwrap();
+        while let Some(field) = args.next_owned() {
+            // SAFETY: we know that we have a value, so we can unwrap
+            let value = args.next_owned().unwrap();
 
             let fields = store
                 .entry(key.clone())

@@ -11,7 +11,7 @@ impl CommandTrait for Subscribe {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.is_empty() {
@@ -21,11 +21,11 @@ impl CommandTrait for Subscribe {
         }
 
         let mut channels = Vec::new();
-        while let Some(arg) = args.pop_front() {
+        for arg in args.iter() {
             match arg {
                 Value::String(channel) => {
-                    session.state.subscribe(&channel, session.clone()).await;
-                    channels.push(channel);
+                    session.state.subscribe(channel, session.clone()).await;
+                    channels.push(channel.clone());
                 }
                 _ => {
                     return session

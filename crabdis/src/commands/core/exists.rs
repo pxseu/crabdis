@@ -11,7 +11,7 @@ impl CommandTrait for Exists {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.is_empty() {
@@ -23,9 +23,9 @@ impl CommandTrait for Exists {
         let store = session.state.store.read().await;
 
         let mut count = 0;
-        while let Some(key) = args.pop_front() {
+        for key in args.iter() {
             match key {
-                Value::String(k) => match store.get(&k) {
+                Value::String(k) => match store.get(k) {
                     // Expired keys are not counted
                     Some(v) if v.expired() => {}
                     Some(_) => {

@@ -11,7 +11,7 @@ impl CommandTrait for Ping {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() > 1 {
@@ -20,10 +20,10 @@ impl CommandTrait for Ping {
                 .await;
         }
 
-        let response = match args.pop_front() {
+        let response = match args.next() {
             Some(s) => s,
-            _ => Value::Pong,
+            _ => &Value::Pong,
         };
-        session.versioned_response(&response, writer).await
+        session.versioned_response(response, writer).await
     }
 }

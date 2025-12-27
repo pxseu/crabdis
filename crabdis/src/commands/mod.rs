@@ -16,7 +16,7 @@ pub trait CommandTrait {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()>;
 }
@@ -93,10 +93,10 @@ impl CommandHandler {
     pub async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
-        let command = match args.pop_front() {
+        let command = match args.next() {
             Some(Value::String(command)) => command.to_uppercase(),
             invalid => {
                 #[cfg(debug_assertions)]

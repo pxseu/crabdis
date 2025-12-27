@@ -11,7 +11,7 @@ impl CommandTrait for RenameNx {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 2 {
@@ -20,8 +20,8 @@ impl CommandTrait for RenameNx {
                 .await;
         }
 
-        let key = match args.pop_front() {
-            Some(Value::String(s)) => s,
+        let key = match args.next() {
+            Some(Value::String(s)) => s.clone(),
             _ => {
                 return session
                     .versioned_response(&value_error!("Invalid argument"), writer)
@@ -29,8 +29,8 @@ impl CommandTrait for RenameNx {
             }
         };
 
-        let new_key = match args.pop_front() {
-            Some(Value::String(s)) => s,
+        let new_key = match args.next() {
+            Some(Value::String(s)) => s.clone(),
             _ => {
                 return session
                     .versioned_response(&value_error!("Invalid argument"), writer)

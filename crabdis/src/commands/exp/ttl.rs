@@ -11,7 +11,7 @@ impl CommandTrait for Ttl {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 1 {
@@ -20,7 +20,7 @@ impl CommandTrait for Ttl {
                 .await;
         }
 
-        let key = match args.pop_front() {
+        let key = match args.next() {
             Some(Value::String(key)) => key,
             Some(_) => {
                 return session
@@ -36,7 +36,7 @@ impl CommandTrait for Ttl {
 
         let store = session.state.store.read().await;
 
-        let duration = match store.get(&key) {
+        let duration = match store.get(key) {
             Some(Value::Expire((_, ttl))) => {
                 let duration = ttl.duration_since(tokio::time::Instant::now()).as_secs() as i64;
 

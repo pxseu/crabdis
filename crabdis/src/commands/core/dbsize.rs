@@ -11,7 +11,7 @@ impl CommandTrait for DBSize {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        _args: &mut VecDeque<Value>,
+        _args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         let key_count = {

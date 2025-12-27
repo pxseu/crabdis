@@ -1,9 +1,10 @@
-pub(crate) use std::collections::{HashMap, VecDeque};
+pub(crate) use std::collections::HashMap;
 pub(crate) use std::sync::Arc;
 
 pub(crate) use async_trait::async_trait;
 pub(crate) use tokio::io::AsyncWriteExt;
 
+pub(crate) use super::args::Args;
 pub(crate) use super::commands::CommandTrait;
 pub(crate) use super::error::{Context as ErrorContext, Error, Result};
 pub(crate) use super::session::SessionRef;

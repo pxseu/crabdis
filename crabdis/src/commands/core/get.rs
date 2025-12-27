@@ -11,7 +11,7 @@ impl CommandTrait for Get {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 1 {
@@ -20,7 +20,7 @@ impl CommandTrait for Get {
                 .await;
         }
 
-        let key = match args.pop_front() {
+        let key = match args.next() {
             Some(Value::String(key)) => key,
             _ => {
                 return session
@@ -29,7 +29,7 @@ impl CommandTrait for Get {
             }
         };
 
-        match session.state.store.read().await.get(&key) {
+        match session.state.store.read().await.get(key) {
             Some(value) => session.versioned_response(value, writer).await,
             None => session.versioned_response(&Value::Nil, writer).await,
         }

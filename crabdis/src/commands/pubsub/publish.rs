@@ -11,7 +11,7 @@ impl CommandTrait for Publish {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 2 {
@@ -20,7 +20,7 @@ impl CommandTrait for Publish {
                 .await;
         }
 
-        let channel = match args.pop_front() {
+        let channel = match args.next() {
             Some(Value::String(channel)) => channel,
             _ => {
                 return session
@@ -29,7 +29,7 @@ impl CommandTrait for Publish {
             }
         };
 
-        let message = match args.pop_front() {
+        let message = match args.next_owned() {
             Some(message) => message,
             _ => {
                 return session
@@ -38,7 +38,7 @@ impl CommandTrait for Publish {
             }
         };
 
-        let count = session.state.publish(&channel, message).await?;
+        let count = session.state.publish(channel, message).await?;
         session
             .versioned_response(&Value::Integer(count), writer)
             .await

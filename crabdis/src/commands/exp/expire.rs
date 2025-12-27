@@ -11,7 +11,7 @@ impl CommandTrait for Expire {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() != 2 {
@@ -20,8 +20,8 @@ impl CommandTrait for Expire {
                 .await;
         }
 
-        let key = match args.pop_front() {
-            Some(Value::String(key)) => key,
+        let key = match args.next() {
+            Some(Value::String(key)) => key.clone(),
             Some(_) => {
                 return session
                     .versioned_response(&value_error!("Invalid key"), writer)
@@ -34,8 +34,8 @@ impl CommandTrait for Expire {
             }
         };
 
-        let seconds = match args.pop_front() {
-            Some(Value::Integer(seconds)) => seconds,
+        let seconds = match args.next() {
+            Some(Value::Integer(seconds)) => *seconds,
             Some(Value::String(seconds)) => seconds.parse::<i64>().unwrap_or(-1),
             Some(_) => {
                 return session

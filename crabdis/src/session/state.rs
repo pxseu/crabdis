@@ -113,7 +113,7 @@ impl State {
             );
 
             for session in sessions {
-                let version = session.get_proto_version().await;
+                let version = session.get_proto_version();
 
                 log::debug!(
                     "Sending to session: {} with protocol version {}",
@@ -146,26 +146,34 @@ impl State {
 
                 let now = tokio::time::Instant::now();
 
+                // Collect keys to check while holding expire_keys lock briefly
+                let keys_to_check: Vec<_> =
+                    state.expire_keys.read().await.iter().cloned().collect();
+
                 let mut keys_to_remove = Vec::new();
 
-                for key in state.expire_keys.read().await.iter() {
-                    let expire_at = state.store.read().await;
-                    let expire_at = match expire_at.get(key) {
-                        Some(Value::Expire((_, expire_at))) => expire_at,
-                        _ => continue,
-                    };
-
-                    if now > *expire_at {
-                        keys_to_remove.push(key.clone());
+                // Check expiration times with a single store read lock
+                {
+                    let store = state.store.read().await;
+                    for key in keys_to_check {
+                        if let Some(Value::Expire((_, expire_at))) = store.get(&key)
+                            && now > *expire_at {
+                                keys_to_remove.push(key);
+                            }
                     }
                 }
 
                 #[cfg(debug_assertions)]
                 log::debug!("Removing keys: {keys_to_remove:?}");
 
-                for key in keys_to_remove {
-                    state.store.write().await.remove(&key);
-                    state.expire_keys.write().await.remove(&key);
+                // Remove expired keys - batch the removals
+                if !keys_to_remove.is_empty() {
+                    let mut store = state.store.write().await;
+                    let mut expire_keys = state.expire_keys.write().await;
+                    for key in keys_to_remove {
+                        store.remove(&key);
+                        expire_keys.remove(&key);
+                    }
                 }
             }
         });

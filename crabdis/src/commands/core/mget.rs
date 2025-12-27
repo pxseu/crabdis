@@ -11,7 +11,7 @@ impl CommandTrait for MGet {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.is_empty() {
@@ -22,11 +22,11 @@ impl CommandTrait for MGet {
 
         let mut values = Vec::with_capacity(args.len());
 
-        let store = session.state.store.write().await;
+        let store = session.state.store.read().await;
 
-        while let Some(key) = args.pop_front() {
+        for key in args.iter() {
             match key {
-                Value::String(k) => match store.get(&k) {
+                Value::String(k) => match store.get(k) {
                     Some(value) => values.push(value.clone()),
                     None => values.push(Value::Nil),
                 },

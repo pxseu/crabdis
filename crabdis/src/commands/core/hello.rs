@@ -11,7 +11,7 @@ impl CommandTrait for Hello {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
         if args.len() > 1 {
@@ -20,7 +20,7 @@ impl CommandTrait for Hello {
                 .await;
         }
 
-        if let Some(Value::String(version)) = args.pop_front() {
+        if let Some(Value::String(version)) = args.next() {
             if version.as_ref() != "2" && version.as_ref() != "3" {
                 return session
                     .versioned_response(&value_error!("Invalid version"), writer)
@@ -28,9 +28,7 @@ impl CommandTrait for Hello {
             }
 
             // safe to unwrap since we've already checked the value
-            session
-                .set_proto_version(version.parse::<u8>().unwrap())
-                .await;
+            session.set_proto_version(version.parse::<u8>().unwrap());
         }
 
         let response = Value::Map(HashMap::from([
@@ -44,7 +42,7 @@ impl CommandTrait for Hello {
             ),
             (
                 Value::String("proto".into()),
-                Value::Integer(session.get_proto_version().await.into()),
+                Value::Integer(session.get_proto_version().into()),
             ),
             (
                 Value::String("id".into()),

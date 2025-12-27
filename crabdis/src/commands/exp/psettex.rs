@@ -11,18 +11,26 @@ impl CommandTrait for PSetEx {
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut VecDeque<Value>,
+        args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
-        // add EX to the arguments and call SET command
-        args.insert(2, Value::String("PX".into()));
+        if args.len() != 3 {
+            return session
+                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .await;
+        }
 
-        let clone = session.clone();
+        // PSETEX key milliseconds value -> SET key value PX milliseconds
+        let key = args.next_owned().unwrap();
+        let milliseconds = args.next_owned().unwrap();
+        let value = args.next_owned().unwrap();
 
-        let commands = clone.state.handler.commands.read().await;
+        let set_args = vec![key, value, Value::String("PX".into()), milliseconds];
+        let mut set_args = Args::new(&set_args);
 
+        let commands = session.state.handler.commands.read().await;
         let set_cmd = commands.get("SET").unwrap();
 
-        set_cmd.handle_command(writer, args, session).await
+        set_cmd.handle_command(writer, &mut set_args, session.clone()).await
     }
 }
