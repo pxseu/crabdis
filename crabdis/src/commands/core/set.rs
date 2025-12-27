@@ -54,7 +54,7 @@ impl CommandTrait for Set {
         let mut arguments = Arguments::default();
         let mut prev_ex_arg = None;
 
-        for arg in args.iter() {
+        for arg in args {
             match arg {
                 Value::String(arg) => match arg.to_uppercase().as_str() {
                     "NX" if !arguments.set_xx => {

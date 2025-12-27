@@ -1,7 +1,8 @@
 use crate::prelude::*;
+use crate::value::Value;
 
 /// Zero-copy argument parser that iterates over a slice of Values.
-/// Avoids cloning the entire args vector for each command.
+/// Avoids cloning the entire args vector for each request / response.
 pub struct Args<'a> {
     slice: &'a [Value],
     pos: usize,
@@ -10,19 +11,9 @@ pub struct Args<'a> {
 #[allow(dead_code)]
 impl<'a> Args<'a> {
     #[inline]
-    pub fn new(slice: &'a [Value]) -> Self {
+    #[must_use]
+    pub const fn new(slice: &'a [Value]) -> Self {
         Self { slice, pos: 0 }
-    }
-
-    #[inline]
-    pub fn next(&mut self) -> Option<&'a Value> {
-        if self.pos < self.slice.len() {
-            let val = &self.slice[self.pos];
-            self.pos += 1;
-            Some(val)
-        } else {
-            None
-        }
     }
 
     #[inline]
@@ -47,24 +38,26 @@ impl<'a> Args<'a> {
 
     /// Returns the number of remaining arguments.
     #[inline]
-    pub fn len(&self) -> usize {
+    #[must_use]
+    pub const fn len(&self) -> usize {
         self.slice.len() - self.pos
     }
 
     /// Returns true if no arguments remain.
     #[inline]
-    pub fn is_empty(&self) -> bool {
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
         self.pos >= self.slice.len()
     }
 
-    /// Returns an iterator over the remaining arguments.
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &'a Value> {
-        self.slice[self.pos..].iter()
+        self.into_iter()
     }
 
     /// Peeks at the next argument without consuming it.
     #[inline]
+    #[must_use]
     pub fn peek(&self) -> Option<&'a Value> {
         self.slice.get(self.pos)
     }
@@ -72,6 +65,39 @@ impl<'a> Args<'a> {
 
 impl std::fmt::Debug for Args<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list().entries(self.iter()).finish()
+        f.debug_list().entries(self).finish()
+    }
+}
+
+impl<'a> Iterator for Args<'a> {
+    type Item = &'a Value;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos < self.slice.len() {
+            let val = &self.slice[self.pos];
+            self.pos += 1;
+            Some(val)
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.slice.len() - self.pos;
+        (remaining, Some(remaining))
+    }
+}
+
+impl ExactSizeIterator for Args<'_> {}
+
+impl<'a> IntoIterator for &Args<'a> {
+    type IntoIter = std::slice::Iter<'a, Value>;
+    type Item = &'a Value;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.slice[self.pos..].iter()
     }
 }

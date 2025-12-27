@@ -3,6 +3,9 @@ use std::sync::Arc;
 
 use tokio::time::Instant;
 
+/// Value is the type that can be returned via the RESP protocol.
+/// It is also used to store values in the store.
+/// It is almost free to clone, so we can use it as a reference type.
 #[derive(Clone, Debug)]
 pub enum Value {
     Ok,   // only for response

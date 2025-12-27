@@ -21,7 +21,7 @@ impl CommandTrait for Unsubscribe {
             let subs = session.state.subscriptions.read().await;
             channels = subs.keys().cloned().collect();
         } else {
-            for arg in args.iter() {
+            for arg in args {
                 match arg {
                     Value::String(channel) => channels.push(channel.clone()),
                     _ => {

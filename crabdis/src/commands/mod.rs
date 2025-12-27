@@ -70,7 +70,15 @@ impl CommandHandler {
             exp::PTtl,
         );
 
-        register_commands!(self, hash::HSet, hash::HGetAll);
+        register_commands!(
+            self,
+            hash::HSet,
+            hash::HGetAll,
+            hash::HGet,
+            hash::HDel,
+            hash::HExists,
+            hash::HLen,
+        );
 
         register_commands!(
             self,

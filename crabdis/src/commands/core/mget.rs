@@ -20,11 +20,11 @@ impl CommandTrait for MGet {
                 .await;
         }
 
-        let mut values = Vec::with_capacity(args.len());
-
         let store = session.state.store.read().await;
 
-        for key in args.iter() {
+        let mut values = Vec::with_capacity(args.len());
+
+        for key in args {
             match key {
                 Value::String(k) => match store.get(k) {
                     Some(value) => values.push(value.clone()),

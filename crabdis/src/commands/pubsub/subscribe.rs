@@ -21,7 +21,7 @@ impl CommandTrait for Subscribe {
         }
 
         let mut channels = Vec::new();
-        for arg in args.iter() {
+        for arg in args {
             match arg {
                 Value::String(channel) => {
                     session.state.subscribe(channel, session.clone()).await;

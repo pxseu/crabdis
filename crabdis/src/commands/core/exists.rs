@@ -23,7 +23,7 @@ impl CommandTrait for Exists {
         let store = session.state.store.read().await;
 
         let mut count = 0;
-        for key in args.iter() {
+        for key in args {
             match key {
                 Value::String(k) => match store.get(k) {
                     // Expired keys are not counted

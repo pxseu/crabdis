@@ -23,7 +23,7 @@ impl CommandTrait for Del {
         let mut store = session.state.store.write().await;
         let mut expire_keys = session.state.expire_keys.write().await;
         let mut count = 0;
-        for key in args.iter() {
+        for key in args {
             match key {
                 Value::String(k) => {
                     if store.remove(k).is_some() {
