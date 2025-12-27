@@ -1,6 +1,6 @@
 services:
   crabdis:
-    image: pxseu/crabdis
+    image: pxseu/crabdis:latest
     build:
       context: .
       dockerfile: crabdis/Dockerfile

@@ -184,13 +184,12 @@ jobs:
           components: rustfmt, clippy
 
       - name: Login to Crates
-        run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: echo "$CARGO_REGISTRY_TOKEN" | cargo login
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-      - name: Publish crabdis-core
-        run: cargo publish --locked --no-verify --package crabdis-core
-
-      - name: Publish crabdis
-        run: cargo publish --locked --no-verify --package ${{ env.EXECUTABLE_NAME }}
+      - name: Publish Crates
+        run: cargo publish --locked --no-verify --workspace
 
   publish-docker:
     name: Publish Docker

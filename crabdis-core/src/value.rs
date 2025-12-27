@@ -12,13 +12,13 @@ pub enum Value {
     Error(Arc<str>),
     Integer(i64),
     String(Arc<str>),
-    Multi(Arc<[Value]>),
-    Expire((Arc<Value>, Instant)),
-    Map(HashMap<Value, Value>),
-    Push(Arc<[Value]>), // For RESP3 push messages (pub/sub)
+    Multi(Arc<[Self]>),
+    Expire((Arc<Self>, Instant)),
+    Map(HashMap<Self, Self>),
+    Push(Arc<[Self]>), // For RESP3 push messages (pub/sub)
 
     // not implemented yet
-    Set(HashSet<Value>),
+    Set(HashSet<Self>),
 }
 
 impl PartialEq for Value {
