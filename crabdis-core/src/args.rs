@@ -24,8 +24,13 @@ impl<'a> Args<'a> {
     /// Returns the next argument if it's a String, otherwise None.
     #[inline]
     pub fn next_string(&mut self) -> Option<&'a Arc<str>> {
-        match self.next()? {
-            Value::String(s) => Some(s),
+        match self.peek()? {
+            Value::String(s) => {
+                // advance the position
+                self.pos += 1;
+                Some(s)
+            }
+
             _ => None,
         }
     }
@@ -40,6 +45,8 @@ impl<'a> Args<'a> {
     #[inline]
     #[must_use]
     pub const fn len(&self) -> usize {
+        debug_assert!(self.pos <= self.slice.len(), "Args.pos is out of bounds");
+
         self.slice.len() - self.pos
     }
 
@@ -74,13 +81,9 @@ impl<'a> Iterator for Args<'a> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if self.pos < self.slice.len() {
-            let val = &self.slice[self.pos];
+        self.peek().inspect(|_| {
             self.pos += 1;
-            Some(val)
-        } else {
-            None
-        }
+        })
     }
 
     #[inline]

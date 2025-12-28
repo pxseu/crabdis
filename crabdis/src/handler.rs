@@ -28,10 +28,10 @@ pub async fn handle_client(
             result = Resp::try_parse(&mut reader, session.get_proto_version()) => {
                 match result?.await? {
                     Some(Value::Multi(args)) => {
+                        let mut args = Args::new(&args);
+
                         #[cfg(debug_assertions)]
                         log::debug!("Received command: {args:?} from session: {:?}", session.id);
-
-                        let mut args = Args::new(&args);
 
                         session
                             .state
