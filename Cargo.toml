@@ -3,14 +3,14 @@ members = ["crabdis", "crabdis-core"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.32"
+version = "0.1.33"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/pxseu/crabdis"
 homepage = "https://github.com/pxseu/crabdis#readme"
 
 [workspace.dependencies]
-crabdis-core = { path = "crabdis-core", version = "0.1.30" }
+crabdis-core = { path = "crabdis-core", version = "0.1.33" }
 
 [profile.release]
 strip = true
