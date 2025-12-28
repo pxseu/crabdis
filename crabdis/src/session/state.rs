@@ -103,14 +103,11 @@ impl State {
         let subs = self.subscriptions.read().await;
 
         if let Some(sessions) = subs.get(channel) {
-            let pubsub_value = Value::Push(
-                [
-                    Value::String("message".into()),
-                    Value::String(channel.into()),
-                    message.clone(),
-                ]
-                .into(),
-            );
+            let pubsub_value = value_push![
+                Value::String("message".into()),
+                Value::String(channel.into()),
+                message.clone()
+            ];
 
             for session in sessions {
                 let version = session.get_proto_version();
@@ -120,10 +117,12 @@ impl State {
                     session.id,
                     version
                 );
-                if let Err(e) = session.send_versioned(pubsub_value.clone()).await {
+
+                if let Err(e) = session.send(pubsub_value.clone()) {
                     log::error!("Failed to publish to session: {}", e);
                     continue;
                 }
+
                 count += 1;
             }
         }
@@ -150,31 +149,35 @@ impl State {
                 let keys_to_check: Vec<_> =
                     state.expire_keys.read().await.iter().cloned().collect();
 
+                if keys_to_check.is_empty() {
+                    continue;
+                }
+
                 let mut keys_to_remove = Vec::new();
 
                 // Check expiration times with a single store read lock
-                {
-                    let store = state.store.read().await;
-                    for key in keys_to_check {
-                        if let Some(Value::Expire((_, expire_at))) = store.get(&key)
-                            && now > *expire_at
-                        {
-                            keys_to_remove.push(key);
-                        }
+                let store = state.store.read().await;
+                for key in keys_to_check {
+                    if let Some(Value::Expire((_, expire_at))) = store.get(&key)
+                        && now > *expire_at
+                    {
+                        keys_to_remove.push(key);
                     }
                 }
+                drop(store);
 
                 #[cfg(debug_assertions)]
                 log::debug!("Removing keys: {keys_to_remove:?}");
 
-                // Remove expired keys - batch the removals
-                if !keys_to_remove.is_empty() {
-                    let mut store = state.store.write().await;
-                    let mut expire_keys = state.expire_keys.write().await;
-                    for key in keys_to_remove {
-                        store.remove(&key);
-                        expire_keys.remove(&key);
-                    }
+                if keys_to_remove.is_empty() {
+                    continue;
+                }
+
+                let mut store = state.store.write().await;
+                let mut expire_keys = state.expire_keys.write().await;
+                for key in keys_to_remove {
+                    store.remove(&key);
+                    expire_keys.remove(&key);
                 }
             }
         });

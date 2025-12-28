@@ -9,8 +9,8 @@ mod utils;
 use std::net::{IpAddr, SocketAddr};
 
 use clap::Parser;
-use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
+use tokio::sync::mpsc;
 
 use self::prelude::*;
 use crate::handler::handle_client;
@@ -68,8 +68,9 @@ pub async fn run(cli: CLI) -> Result<()> {
                 return;
             }
 
+            let (tx, rx) = mpsc::unbounded_channel();
             let session_id = state.get_next_session_id().await;
-            let session = session::Session::new(session_id, state.clone());
+            let session = session::Session::new(session_id, state.clone(), tx);
             state.add_session(session.clone()).await;
 
             #[cfg(debug_assertions)]
@@ -77,7 +78,8 @@ pub async fn run(cli: CLI) -> Result<()> {
                 "Accepted connection from {addr} for session: {}",
                 session.id
             );
-            if let Err(e) = handle_client(&mut stream, session.clone()).await {
+
+            if let Err(e) = handle_client(&mut stream, session.clone(), rx).await {
                 match e {
                     Error::Io(e)
                         if matches!(

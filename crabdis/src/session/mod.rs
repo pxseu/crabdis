@@ -13,18 +13,18 @@ pub struct Session {
     name: RwLock<Option<Arc<str>>>,
     proto_version: AtomicU8,
     pub state: state::StateRef,
-    pub tx: RwLock<Option<mpsc::UnboundedSender<Value>>>,
+    pub tx: mpsc::UnboundedSender<Value>,
 }
 
 impl Session {
-    pub fn new(id: u64, state: StateRef) -> Arc<Self> {
+    pub fn new(id: u64, state: StateRef, tx: mpsc::UnboundedSender<Value>) -> Arc<Self> {
         Arc::new(Self {
             id,
             state,
             name: RwLock::new(None),
             // default to RESP2 protocol, can be changed via HELLO command
             proto_version: AtomicU8::new(2),
-            tx: RwLock::new(None),
+            tx,
         })
     }
 
@@ -51,16 +51,10 @@ impl Session {
         }
     }
 
-    pub async fn set_sender(&self, sender: mpsc::UnboundedSender<Value>) {
-        *self.tx.write().await = Some(sender);
-    }
-
-    pub async fn send_versioned(&self, value: Value) -> Result<()> {
-        if let Some(tx) = &*self.tx.read().await {
-            tx.send(value)
-                .map_err(|e| Error::Io(std::io::Error::other(e.to_string())))?;
-        }
-        Ok(())
+    pub fn send(&self, value: Value) -> Result<()> {
+        self.tx
+            .send(value)
+            .map_err(|e| Error::Io(std::io::Error::other(e.to_string())))
     }
 
     pub async fn set_name(&self, name: Arc<str>) {

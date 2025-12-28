@@ -85,7 +85,7 @@ impl<'a> Iterator for Args<'a> {
 
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.slice.len() - self.pos;
+        let remaining = self.len();
         (remaining, Some(remaining))
     }
 }

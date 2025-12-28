@@ -4,46 +4,49 @@ use std::pin::Pin;
 use crate::prelude::*;
 use crate::value::Value;
 
-/// # Errors
+/// RESP parser implementation.
 ///
-/// Returns the original `Ok(true)` value if the reader is not empty, or
-/// `Ok(false)` if the reader is empty. Returns an [`Error::Io`] if the reader
-/// fails to fill the buffer.
-pub async fn can_read<R>(reader: &mut R) -> Result<bool>
-where
-    R: AsyncBufRead + Unpin,
-{
-    Ok(!reader.fill_buf().await?.is_empty())
-}
-
-/// # Errors
-///
-/// Returns the original `Ok(Some(Value))` value if successful, or `Ok(None)` if
-/// the reader is empty. Returns an [`Error::Io`] if the reader fails to fill
-/// the buffer.
-pub async fn try_parse<'a, R>(
-    reader: &'a mut R,
-    version: u8,
-) -> Result<Pin<Box<dyn Future<Output = Result<Option<Value>>> + Send + 'a>>>
-where
-    R: AsyncBufRead + Unpin + Send + 'a,
-{
-    if !can_read(reader).await? {
-        let fut: Pin<Box<dyn Future<Output = Result<Option<Value>>> + Send>> =
-            Box::pin(async move { Ok(None) });
-        return Ok(fut);
-    }
-
-    Ok(match version {
-        2 => Resp::from2(reader),
-        3 => Resp::from3(reader),
-        _ => unreachable!("Invalid protocol version"),
-    })
-}
-
+/// It is a singleton struct that can be used to parse RESP messages.
 pub struct Resp;
 
 impl Resp {
+    /// # Errors
+    ///
+    /// Returns the original `Ok(true)` value if the reader is not empty, or
+    /// `Ok(false)` if the reader is empty. Returns an [`Error::Io`] if the reader
+    /// fails to fill the buffer.
+    async fn can_read<R>(reader: &mut R) -> Result<bool>
+    where
+        R: AsyncBufRead + Unpin,
+    {
+        Ok(!reader.fill_buf().await?.is_empty())
+    }
+
+    /// # Errors
+    ///
+    /// Returns the original `Ok(Some(Value))` value if successful, or `Ok(None)` if
+    /// the reader is empty. Returns an [`Error::Io`] if the reader fails to fill
+    /// the buffer.
+    pub async fn try_parse<'a, R>(
+        reader: &'a mut R,
+        version: u8,
+    ) -> Result<Pin<Box<dyn Future<Output = Result<Option<Value>>> + Send + 'a>>>
+    where
+        R: AsyncBufRead + Unpin + Send + 'a,
+    {
+        if !Self::can_read(reader).await? {
+            let fut: Pin<Box<dyn Future<Output = Result<Option<Value>>> + Send>> =
+                Box::pin(async move { Ok(None) });
+            return Ok(fut);
+        }
+
+        Ok(match version {
+            2 => Self::from2(reader),
+            3 => Self::from3(reader),
+            _ => unreachable!("Invalid protocol version"),
+        })
+    }
+
     pub fn to2<'b, T>(
         value: &'b Value,
         writer: &'b mut T,
@@ -373,6 +376,44 @@ mod tests {
 
     use super::*;
     use crate::{value_multi, value_push};
+
+    #[tokio::test]
+    async fn test_resp2_can_read() {
+        let mut reader = Cursor::new(b"*3\r\n$5\r\nhello\r\n:42\r\n$-1\r\n");
+        assert!(Resp::can_read(&mut reader).await.expect("Failed to read"));
+
+        let mut reader = Cursor::new(b"");
+        assert!(!Resp::can_read(&mut reader).await.expect("Failed to read"));
+    }
+
+    #[tokio::test]
+    async fn test_resp2_try_parse() {
+        let mut reader = Cursor::new(b"*3\r\n$5\r\nhello\r\n:42\r\n$-1\r\n");
+        let value = Resp::try_parse(&mut reader, 2)
+            .await
+            .expect("Failed to parse")
+            .await
+            .expect("Failed to await");
+        assert_eq!(
+            value,
+            Some(value_multi![
+                Value::String("hello".into()),
+                Value::Integer(42),
+                Value::Nil
+            ])
+        );
+    }
+
+    #[tokio::test]
+    async fn test_resp2_try_parse_empty() {
+        let mut reader = Cursor::new(b"");
+        let value = Resp::try_parse(&mut reader, 2)
+            .await
+            .expect("Failed to parse")
+            .await
+            .expect("Failed to await");
+        assert_eq!(value, None);
+    }
 
     #[tokio::test]
     async fn test_resp2_simple_string() {
