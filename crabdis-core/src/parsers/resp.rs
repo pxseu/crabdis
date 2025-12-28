@@ -13,8 +13,8 @@ impl Resp {
     /// # Errors
     ///
     /// Returns the original `Ok(true)` value if the reader is not empty, or
-    /// `Ok(false)` if the reader is empty. Returns an [`Error::Io`] if the reader
-    /// fails to fill the buffer.
+    /// `Ok(false)` if the reader is empty. Returns an [`Error::Io`] if the
+    /// reader fails to fill the buffer.
     async fn can_read<R>(reader: &mut R) -> Result<bool>
     where
         R: AsyncBufRead + Unpin,
@@ -24,9 +24,9 @@ impl Resp {
 
     /// # Errors
     ///
-    /// Returns the original `Ok(Some(Value))` value if successful, or `Ok(None)` if
-    /// the reader is empty. Returns an [`Error::Io`] if the reader fails to fill
-    /// the buffer.
+    /// Returns the original `Ok(Some(Value))` value if successful, or
+    /// `Ok(None)` if the reader is empty. Returns an [`Error::Io`] if the
+    /// reader fails to fill the buffer.
     pub async fn try_parse<'a, R>(
         reader: &'a mut R,
         version: u8,
