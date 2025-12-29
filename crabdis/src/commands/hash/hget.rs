@@ -16,19 +16,17 @@ impl CommandTrait for HGet {
     ) -> Result<()> {
         if args.len() != 2 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string() else {
-            return session
-                .versioned_response(&value_error!("Invalid key"), writer)
-                .await;
+            return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
         let Some(field) = args.next_string_owned() else {
             return session
-                .versioned_response(&value_error!("Invalid field"), writer)
+                .respond(&value_error!("Invalid field"), writer)
                 .await;
         };
 
@@ -36,15 +34,15 @@ impl CommandTrait for HGet {
 
         match store.get(key) {
             Some(Value::Map(map)) => match map.get(&Value::String(field)) {
-                Some(value) => session.versioned_response(value, writer).await,
-                None => session.versioned_response(&Value::Nil, writer).await,
+                Some(value) => session.respond(value, writer).await,
+                None => session.respond(&Value::Nil, writer).await,
             },
             Some(_) => {
                 session
-                    .versioned_response(&value_error!("Key is not a hashmap"), writer)
+                    .respond(&value_error!("Key is not a hashmap"), writer)
                     .await
             }
-            None => session.versioned_response(&Value::Nil, writer).await,
+            None => session.respond(&Value::Nil, writer).await,
         }
     }
 }

@@ -26,7 +26,7 @@ impl CommandTrait for Scan {
                             pattern = Some(p.clone());
                         } else {
                             return session
-                                .versioned_response(&value_error!("Invalid pattern"), writer)
+                                .respond(&value_error!("Invalid pattern"), writer)
                                 .await;
                         }
                     } else if s.to_uppercase() == "COUNT" {
@@ -38,7 +38,7 @@ impl CommandTrait for Scan {
                             Some(Value::String(s)) => {
                                 let Ok(c) = s.parse::<usize>() else {
                                     return session
-                                        .versioned_response(&value_error!("Invalid count"), writer)
+                                        .respond(&value_error!("Invalid count"), writer)
                                         .await;
                                 };
 
@@ -46,7 +46,7 @@ impl CommandTrait for Scan {
                             }
                             _ => {
                                 return session
-                                    .versioned_response(&value_error!("Invalid count"), writer)
+                                    .respond(&value_error!("Invalid count"), writer)
                                     .await;
                             }
                         }
@@ -56,7 +56,7 @@ impl CommandTrait for Scan {
                         cursor = Some(c);
                     } else {
                         return session
-                            .versioned_response(&value_error!("Invalid argument"), writer)
+                            .respond(&value_error!("Invalid argument"), writer)
                             .await;
                     }
                 }
@@ -67,7 +67,7 @@ impl CommandTrait for Scan {
 
                 _ => {
                     return session
-                        .versioned_response(&value_error!("Invalid argument"), writer)
+                        .respond(&value_error!("Invalid argument"), writer)
                         .await;
                 }
             }
@@ -101,7 +101,7 @@ impl CommandTrait for Scan {
 
         // If we didn't break early, we've scanned everything - cursor is 0
         session
-            .versioned_response(
+            .respond(
                 &Value::Multi(
                     Vec::from([
                         Value::String(next_cursor.to_string().into()),

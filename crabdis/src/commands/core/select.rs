@@ -16,10 +16,10 @@ impl CommandTrait for Select {
     ) -> Result<()> {
         if args.len() != 1 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
-        session.versioned_response(&Value::Ok, writer).await
+        session.respond(&Value::Ok, writer).await
     }
 }

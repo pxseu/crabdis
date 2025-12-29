@@ -16,7 +16,7 @@ impl CommandTrait for Subscribe {
     ) -> Result<()> {
         if args.is_empty() {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -29,7 +29,7 @@ impl CommandTrait for Subscribe {
                 }
                 _ => {
                     return session
-                        .versioned_response(&value_error!("Invalid channel"), writer)
+                        .respond(&value_error!("Invalid channel"), writer)
                         .await;
                 }
             }
@@ -44,7 +44,7 @@ impl CommandTrait for Subscribe {
             ];
 
             session
-                .versioned_response(&Value::Push(response.into()), writer)
+                .respond(&Value::Push(response.into()), writer)
                 .await?;
         }
 

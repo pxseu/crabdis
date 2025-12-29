@@ -32,21 +32,19 @@ impl CommandTrait for Set {
     ) -> Result<()> {
         if args.len() < 2 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string_owned() else {
-            return session
-                .versioned_response(&value_error!("Invalid key"), writer)
-                .await;
+            return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
         let value = match args.next_owned() {
             Some(value) => value,
             _ => {
                 return session
-                    .versioned_response(&value_error!("Missing value"), writer)
+                    .respond(&value_error!("Missing value"), writer)
                     .await;
             }
         };
@@ -88,13 +86,13 @@ impl CommandTrait for Set {
                         }
 
                         return session
-                            .versioned_response(&value_error!("Invalid argument {arg}"), writer)
+                            .respond(&value_error!("Invalid argument {arg}"), writer)
                             .await;
                     }
                 },
                 _ => {
                     return session
-                        .versioned_response(&value_error!("Invalid argument"), writer)
+                        .respond(&value_error!("Invalid argument"), writer)
                         .await;
                 }
             }
@@ -105,11 +103,11 @@ impl CommandTrait for Set {
         let prev_key = lock.entry(key.clone()).or_insert(Value::Nil.clone());
 
         if arguments.set_nx && prev_key.is_some() {
-            return session.versioned_response(&Value::Nil, writer).await;
+            return session.respond(&Value::Nil, writer).await;
         }
 
         if arguments.set_xx && prev_key.is_none() {
-            return session.versioned_response(&Value::Nil, writer).await;
+            return session.respond(&Value::Nil, writer).await;
         }
 
         let expire_at = if arguments.keepttl {
@@ -140,9 +138,9 @@ impl CommandTrait for Set {
         };
 
         if arguments.get {
-            session.versioned_response(prev_key, writer).await?;
+            session.respond(prev_key, writer).await?;
         } else {
-            session.versioned_response(&Value::Ok, writer).await?;
+            session.respond(&Value::Ok, writer).await?;
         }
 
         *prev_key = if let Some(expire_at) = expire_at {

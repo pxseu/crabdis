@@ -28,23 +28,23 @@ impl Session {
         })
     }
 
-    pub fn get_proto_version(&self) -> u8 {
+    pub fn proto(&self) -> u8 {
         self.proto_version.load(Ordering::Relaxed)
     }
 
-    pub fn set_proto_version(&self, version: u8) {
-        self.proto_version.store(version, Ordering::Relaxed);
+    pub fn set_proto(&self, proto: u8) {
+        self.proto_version.store(proto, Ordering::Relaxed);
     }
 
-    pub async fn versioned_response(
+    pub async fn respond(
         &self,
         response: &Value,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
     ) -> Result<()> {
         #[cfg(debug_assertions)]
-        log::debug!("Writing response to client: {:?}", response);
+        log::debug!("Writing response to client: {response:?}");
 
-        match self.get_proto_version() {
+        match self.proto() {
             2 => Resp::to2(response, writer).await.map_err(Error::from),
             3 => Resp::to3(response, writer).await.map_err(Error::from),
             _ => unreachable!("Invalid protocol version"),
@@ -61,7 +61,7 @@ impl Session {
         *self.name.write().await = Some(name);
     }
 
-    pub async fn get_name(&self) -> Option<Arc<str>> {
+    pub async fn name(&self) -> Option<Arc<str>> {
         self.name.read().await.clone()
     }
 

@@ -16,19 +16,19 @@ impl CommandTrait for RenameNx {
     ) -> Result<()> {
         if args.len() != 2 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string_owned() else {
             return session
-                .versioned_response(&value_error!("Invalid argument"), writer)
+                .respond(&value_error!("Invalid argument"), writer)
                 .await;
         };
 
         let Some(new_key) = args.next_string_owned() else {
             return session
-                .versioned_response(&value_error!("Invalid argument"), writer)
+                .respond(&value_error!("Invalid argument"), writer)
                 .await;
         };
 
@@ -36,17 +36,17 @@ impl CommandTrait for RenameNx {
         let mut locked = session.state.store.write().await;
 
         if locked.contains_key(&new_key) {
-            return session.versioned_response(&Value::Nil, writer).await;
+            return session.respond(&Value::Nil, writer).await;
         }
 
         let Some((_, old_data)) = locked.remove_entry(&key) else {
             return session
-                .versioned_response(&value_error!("Key to be reanmed not found"), writer)
+                .respond(&value_error!("Key to be reanmed not found"), writer)
                 .await;
         };
 
         locked.insert(new_key, old_data);
 
-        session.versioned_response(&Value::Ok, writer).await
+        session.respond(&Value::Ok, writer).await
     }
 }

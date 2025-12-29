@@ -26,7 +26,7 @@ impl CommandTrait for Unsubscribe {
                     Value::String(channel) => channels.push(channel.clone()),
                     _ => {
                         return session
-                            .versioned_response(&value_error!("Invalid channel"), writer)
+                            .respond(&value_error!("Invalid channel"), writer)
                             .await;
                     }
                 }
@@ -47,7 +47,7 @@ impl CommandTrait for Unsubscribe {
             ];
 
             session
-                .versioned_response(&Value::Multi(response.into()), writer)
+                .respond(&Value::Multi(response.into()), writer)
                 .await?;
         }
 

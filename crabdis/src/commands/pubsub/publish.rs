@@ -16,13 +16,13 @@ impl CommandTrait for Publish {
     ) -> Result<()> {
         if args.len() != 2 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(channel) = args.next_string() else {
             return session
-                .versioned_response(&value_error!("Invalid channel"), writer)
+                .respond(&value_error!("Invalid channel"), writer)
                 .await;
         };
 
@@ -30,14 +30,12 @@ impl CommandTrait for Publish {
             Some(message) => message,
             _ => {
                 return session
-                    .versioned_response(&value_error!("Missing message"), writer)
+                    .respond(&value_error!("Missing message"), writer)
                     .await;
             }
         };
 
         let count = session.state.publish(channel, message).await?;
-        session
-            .versioned_response(&Value::Integer(count), writer)
-            .await
+        session.respond(&Value::Integer(count), writer).await
     }
 }

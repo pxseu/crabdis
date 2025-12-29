@@ -110,7 +110,7 @@ impl State {
             ];
 
             for session in sessions {
-                let version = session.get_proto_version();
+                let version = session.proto();
 
                 log::debug!(
                     "Sending to session: {} with protocol version {}",

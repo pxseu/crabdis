@@ -18,14 +18,12 @@ impl CommandTrait for Type {
 
         if length != 1 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string() else {
-            return session
-                .versioned_response(&value_error!("Invalid key"), writer)
-                .await;
+            return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
         log::debug!("TYPE key: {key}");
@@ -41,13 +39,13 @@ impl CommandTrait for Type {
             None => "none",
             _ => {
                 return session
-                    .versioned_response(&value_error!("Invalid value type"), writer)
+                    .respond(&value_error!("Invalid value type"), writer)
                     .await;
             }
         };
 
         session
-            .versioned_response(&Value::String(value_type.into()), writer)
+            .respond(&Value::String(value_type.into()), writer)
             .await
     }
 }

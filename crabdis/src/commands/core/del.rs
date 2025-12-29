@@ -16,7 +16,7 @@ impl CommandTrait for Del {
     ) -> Result<()> {
         if args.is_empty() {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -33,15 +33,11 @@ impl CommandTrait for Del {
                 }
 
                 _ => {
-                    return session
-                        .versioned_response(&value_error!("Invalid key"), writer)
-                        .await;
+                    return session.respond(&value_error!("Invalid key"), writer).await;
                 }
             }
         }
 
-        session
-            .versioned_response(&Value::Integer(count), writer)
-            .await
+        session.respond(&Value::Integer(count), writer).await
     }
 }

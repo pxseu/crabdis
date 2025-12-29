@@ -20,7 +20,7 @@ impl CommandTrait for DBSize {
         };
 
         session
-            .versioned_response(&Value::Integer(key_count as i64), writer)
+            .respond(&Value::Integer(key_count as i64), writer)
             .await
     }
 }

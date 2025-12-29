@@ -18,13 +18,13 @@ impl CommandTrait for Keys {
     ) -> Result<()> {
         if args.len() != 1 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(pattern_str) = args.next_string() else {
             return session
-                .versioned_response(&value_error!("Invalid pattern"), writer)
+                .respond(&value_error!("Invalid pattern"), writer)
                 .await;
         };
         let pattern = Pattern::new(pattern_str)?;
@@ -37,8 +37,6 @@ impl CommandTrait for Keys {
             }
         }
 
-        session
-            .versioned_response(&Value::Multi(keys.into()), writer)
-            .await
+        session.respond(&Value::Multi(keys.into()), writer).await
     }
 }

@@ -34,7 +34,7 @@ impl CommandTrait for Command {
                 );
             }
 
-            return session.versioned_response(&Value::Map(map), writer).await;
+            return session.respond(&Value::Map(map), writer).await;
         }
 
         match args.next_string() {
@@ -57,18 +57,18 @@ impl CommandTrait for Command {
                             );
                         }
 
-                        session.versioned_response(&Value::Map(map), writer).await
+                        session.respond(&Value::Map(map), writer).await
                     }
                     _ => {
                         session
-                            .versioned_response(&value_error!("Unknown subcommand"), writer)
+                            .respond(&value_error!("Unknown subcommand"), writer)
                             .await
                     }
                 }
             }
             _ => {
                 session
-                    .versioned_response(&value_error!("Invalid subcommand"), writer)
+                    .respond(&value_error!("Invalid subcommand"), writer)
                     .await
             }
         }

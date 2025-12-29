@@ -16,14 +16,12 @@ impl CommandTrait for Expire {
     ) -> Result<()> {
         if args.len() != 2 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string_owned() else {
-            return session
-                .versioned_response(&value_error!("Invalid key"), writer)
-                .await;
+            return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
         let seconds = match args.next() {
@@ -31,19 +29,19 @@ impl CommandTrait for Expire {
             Some(Value::String(seconds)) => seconds.parse::<i64>().unwrap_or(-1),
             Some(_) => {
                 return session
-                    .versioned_response(&value_error!("Invalid seconds"), writer)
+                    .respond(&value_error!("Invalid seconds"), writer)
                     .await;
             }
             None => {
                 return session
-                    .versioned_response(&value_error!("Missing seconds"), writer)
+                    .respond(&value_error!("Missing seconds"), writer)
                     .await;
             }
         };
 
         if seconds < 0 {
             return session
-                .versioned_response(&value_error!("Invalid seconds"), writer)
+                .respond(&value_error!("Invalid seconds"), writer)
                 .await;
         }
 
@@ -52,13 +50,13 @@ impl CommandTrait for Expire {
         let value = match store.get_mut(&key) {
             Some(value) if value.expired() => {
                 return session
-                    .versioned_response(&value_error!("Key is expired"), writer)
+                    .respond(&value_error!("Key is expired"), writer)
                     .await;
             }
             Some(value) => value,
             None => {
                 return session
-                    .versioned_response(&value_error!("Key not found"), writer)
+                    .respond(&value_error!("Key not found"), writer)
                     .await;
             }
         };
@@ -69,6 +67,6 @@ impl CommandTrait for Expire {
         ));
         session.state.expire_keys.write().await.insert(key);
 
-        session.versioned_response(&Value::Ok, writer).await
+        session.respond(&Value::Ok, writer).await
     }
 }

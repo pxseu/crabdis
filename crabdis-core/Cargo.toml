@@ -11,11 +11,11 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-tokio = { version = "1.48", features = ["io-util", "time", "sync"] }
+tokio = { workspace = true, features = ["io-util", "time", "sync"] }
 
 [dev-dependencies]
 criterion = { version = "0.8", features = ["async_tokio"] }
-tokio = { version = "1.48", features = ["full", "tracing"] }
+tokio = { workspace = true, features = ["full", "tracing"] }
 
 
 [[bench]]

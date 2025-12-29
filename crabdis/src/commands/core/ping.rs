@@ -16,7 +16,7 @@ impl CommandTrait for Ping {
     ) -> Result<()> {
         if args.len() > 1 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -24,6 +24,6 @@ impl CommandTrait for Ping {
             Some(s) => s,
             _ => &Value::Pong,
         };
-        session.versioned_response(response, writer).await
+        session.respond(response, writer).await
     }
 }

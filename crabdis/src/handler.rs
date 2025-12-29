@@ -21,11 +21,11 @@ pub async fn handle_client(
                 #[cfg(debug_assertions)]
                 log::debug!("Received message from client: {value:?}");
 
-                session.versioned_response(&value, &mut writer).await?;
+                session.respond(&value, &mut writer).await?;
             }
 
              // Handle incoming requests from the client
-            result = Resp::try_parse(&mut reader, session.get_proto_version()) => {
+            result = Resp::try_parse(&mut reader, session.proto()) => {
                 match result?.await? {
                     Some(Value::Multi(args)) => {
                         let mut args = Args::new(&args);
@@ -46,7 +46,7 @@ pub async fn handle_client(
                     }
                     _ => {
                         session
-                            .versioned_response(&value_error!("Invalid request"), &mut writer)
+                            .respond(&value_error!("Invalid request"), &mut writer)
                             .await?;
                     }
                 }

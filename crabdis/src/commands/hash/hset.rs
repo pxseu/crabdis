@@ -18,14 +18,12 @@ impl CommandTrait for HSet {
         // so the number of arguments should be at least 3 and odd
         if args.len() < 3 || args.len() % 2 != 1 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string_owned() else {
-            return session
-                .versioned_response(&value_error!("Invalid key"), writer)
-                .await;
+            return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
         let mut store = session.state.store.write().await;
@@ -46,7 +44,7 @@ impl CommandTrait for HSet {
                 }
                 _ => {
                     return session
-                        .versioned_response(&value_error!("Key is not a hashmap"), writer)
+                        .respond(&value_error!("Key is not a hashmap"), writer)
                         .await;
                 }
             }
@@ -54,8 +52,6 @@ impl CommandTrait for HSet {
             count += 1;
         }
 
-        session
-            .versioned_response(&Value::Integer(count), writer)
-            .await
+        session.respond(&Value::Integer(count), writer).await
     }
 }

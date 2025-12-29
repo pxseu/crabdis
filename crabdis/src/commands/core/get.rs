@@ -16,19 +16,17 @@ impl CommandTrait for Get {
     ) -> Result<()> {
         if args.len() != 1 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string() else {
-            return session
-                .versioned_response(&value_error!("Invalid key"), writer)
-                .await;
+            return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
         match session.state.store.read().await.get(key) {
-            Some(value) => session.versioned_response(value, writer).await,
-            None => session.versioned_response(&Value::Nil, writer).await,
+            Some(value) => session.respond(value, writer).await,
+            None => session.respond(&Value::Nil, writer).await,
         }
     }
 }

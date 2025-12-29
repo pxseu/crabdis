@@ -16,12 +16,12 @@ impl CommandTrait for Quit {
     ) -> Result<()> {
         if !args.is_empty() {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         // Send OK response before closing
-        session.versioned_response(&Value::Ok, writer).await?;
+        session.respond(&Value::Ok, writer).await?;
 
         // Close the connection
         writer.shutdown().await?;

@@ -109,7 +109,7 @@ impl CommandHandler {
             log::debug!("Invalid command: {args:?}");
 
             return session
-                .versioned_response(&value_error!("Invalid command"), writer)
+                .respond(&value_error!("Invalid command"), writer)
                 .await;
         };
         let command = command.to_uppercase();
@@ -121,7 +121,7 @@ impl CommandHandler {
                 log::debug!("Unknown command: {command} {args:?}");
 
                 session
-                    .versioned_response(&value_error!("Unknown command: {command}"), writer)
+                    .respond(&value_error!("Unknown command: {command}"), writer)
                     .await
             }
         }

@@ -12,6 +12,9 @@ homepage = "https://github.com/pxseu/crabdis#readme"
 [workspace.dependencies]
 crabdis-core = { path = "crabdis-core", version = "0.1.33" }
 
+[workspace.dependencies.tokio]
+version = "1.48"
+
 [profile.release]
 strip = true
 lto = true

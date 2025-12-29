@@ -16,19 +16,19 @@ impl CommandTrait for Hello {
     ) -> Result<()> {
         if args.len() > 1 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         if let Some(version) = args.next_string() {
             if version.as_ref() != "2" && version.as_ref() != "3" {
                 return session
-                    .versioned_response(&value_error!("Invalid version"), writer)
+                    .respond(&value_error!("Invalid version"), writer)
                     .await;
             }
 
             // safe to unwrap since we've already checked the value
-            session.set_proto_version(version.parse::<u8>().unwrap());
+            session.set_proto(version.parse::<u8>().unwrap());
         }
 
         let response = Value::Map(HashMap::from([
@@ -42,7 +42,7 @@ impl CommandTrait for Hello {
             ),
             (
                 Value::String("proto".into()),
-                Value::Integer(session.get_proto_version().into()),
+                Value::Integer(session.proto().into()),
             ),
             (
                 Value::String("id".into()),
@@ -59,6 +59,6 @@ impl CommandTrait for Hello {
             ),
         ]));
 
-        session.versioned_response(&response, writer).await
+        session.respond(&response, writer).await
     }
 }

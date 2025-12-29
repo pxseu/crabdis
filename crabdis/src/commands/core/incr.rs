@@ -16,14 +16,12 @@ impl CommandTrait for Incr {
     ) -> Result<()> {
         if args.len() != 1 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string_owned() else {
-            return session
-                .versioned_response(&value_error!("Invalid key"), writer)
-                .await;
+            return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
         let mut store = session.state.store.write().await;
@@ -33,7 +31,7 @@ impl CommandTrait for Incr {
             Some(Value::Integer(i)) => *i,
             Some(_) => {
                 return session
-                    .versioned_response(&value_error!("Invalid value"), writer)
+                    .respond(&value_error!("Invalid value"), writer)
                     .await;
             }
             None => 0,
@@ -44,8 +42,6 @@ impl CommandTrait for Incr {
         // store it as int at some point
         store.insert(key, Value::String(value.to_string().into()));
 
-        session
-            .versioned_response(&Value::Integer(value), writer)
-            .await
+        session.respond(&Value::Integer(value), writer).await
     }
 }

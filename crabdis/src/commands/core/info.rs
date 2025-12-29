@@ -18,13 +18,13 @@ impl CommandTrait for Info {
 
         if length > 1 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         if length == 0 {
             return session
-                .versioned_response(
+                .respond(
                     &Value::String(
                         format!(
                             "loading:{}\r\n",
@@ -38,9 +38,7 @@ impl CommandTrait for Info {
         }
 
         let Some(key) = args.next_string_owned() else {
-            return session
-                .versioned_response(&value_error!("Invalid key"), writer)
-                .await;
+            return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
         log::debug!("INFO key: {key}");
@@ -54,7 +52,7 @@ impl CommandTrait for Info {
 
                 if key_count == 0 {
                     return session
-                        .versioned_response(&Value::String("# Keyspace\r\n".into()), writer)
+                        .respond(&Value::String("# Keyspace\r\n".into()), writer)
                         .await;
                 }
 
@@ -64,7 +62,7 @@ impl CommandTrait for Info {
                 };
 
                 session
-                    .versioned_response(
+                    .respond(
                         &Value::String(
                             format!(
                                 "# Keyspace\r\ndb0:keys={key_count},expires={expire_keys},avg_ttl=0\r\n"
@@ -78,15 +76,11 @@ impl CommandTrait for Info {
 
             "server" => {
                 session
-                    .versioned_response(&Value::String("redis_version:7.4.0\r\n".into()), writer)
+                    .respond(&Value::String("redis_version:7.4.0\r\n".into()), writer)
                     .await
             }
 
-            _ => {
-                session
-                    .versioned_response(&value_error!("Invalid key"), writer)
-                    .await
-            }
+            _ => session.respond(&value_error!("Invalid key"), writer).await,
         }
     }
 }

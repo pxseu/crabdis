@@ -16,28 +16,26 @@ impl CommandTrait for HGetAll {
     ) -> Result<()> {
         if args.len() != 1 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string() else {
-            return session
-                .versioned_response(&value_error!("Invalid key"), writer)
-                .await;
+            return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
         let store = session.state.store.read().await;
 
         match store.get(key) {
-            Some(value @ Value::Map(_)) => session.versioned_response(value, writer).await,
+            Some(value @ Value::Map(_)) => session.respond(value, writer).await,
 
             Some(_) => {
                 session
-                    .versioned_response(&value_error!("Key is not a hashmap"), writer)
+                    .respond(&value_error!("Key is not a hashmap"), writer)
                     .await
             }
 
-            None => session.versioned_response(&Value::Nil, writer).await,
+            None => session.respond(&Value::Nil, writer).await,
         }
     }
 }

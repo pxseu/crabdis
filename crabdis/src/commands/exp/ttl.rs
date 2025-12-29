@@ -16,14 +16,12 @@ impl CommandTrait for Ttl {
     ) -> Result<()> {
         if args.len() != 1 {
             return session
-                .versioned_response(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string() else {
-            return session
-                .versioned_response(&value_error!("Invalid key"), writer)
-                .await;
+            return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
         let store = session.state.store.read().await;
@@ -42,8 +40,6 @@ impl CommandTrait for Ttl {
             None => -2,
         };
 
-        session
-            .versioned_response(&Value::Integer(duration), writer)
-            .await
+        session.respond(&Value::Integer(duration), writer).await
     }
 }
