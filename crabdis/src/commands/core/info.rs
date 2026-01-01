@@ -4,7 +4,7 @@ pub struct Info;
 
 #[async_trait]
 impl CommandTrait for Info {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "INFO"
     }
 

@@ -6,7 +6,7 @@ pub struct Keys;
 
 #[async_trait]
 impl CommandTrait for Keys {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "KEYS"
     }
 

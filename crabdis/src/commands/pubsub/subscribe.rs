@@ -4,7 +4,7 @@ pub struct Subscribe;
 
 #[async_trait]
 impl CommandTrait for Subscribe {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "SUBSCRIBE"
     }
 

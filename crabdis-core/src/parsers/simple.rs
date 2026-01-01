@@ -10,6 +10,7 @@ pub async fn deserialize<T>(reader: &mut T) -> Result<Arc<str>>
 where
     T: AsyncRead + Unpin,
 {
+    // capacity is a guess, it will be resized if needed
     let mut buf = Vec::with_capacity(16);
 
     loop {

@@ -4,7 +4,7 @@ pub struct Scan;
 
 #[async_trait]
 impl CommandTrait for Scan {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "SCAN"
     }
 
@@ -85,10 +85,7 @@ impl CommandTrait for Scan {
             #[cfg(debug_assertions)]
             log::debug!("SCAN key: {key}");
 
-            let matches = match &pattern {
-                Some(p) => key.contains(p.as_ref()),
-                None => true,
-            };
+            let matches = pattern.as_ref().is_none_or(|p| key.contains(p.as_ref()));
 
             if matches {
                 results.push(Value::String(key.clone()));

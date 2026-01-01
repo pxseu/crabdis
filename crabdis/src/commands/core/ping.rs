@@ -4,7 +4,7 @@ pub struct Ping;
 
 #[async_trait]
 impl CommandTrait for Ping {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "PING"
     }
 
@@ -20,10 +20,7 @@ impl CommandTrait for Ping {
                 .await;
         }
 
-        let response = match args.next() {
-            Some(s) => s,
-            _ => &Value::Pong,
-        };
+        let response = args.next().unwrap_or_else(|| &Value::Pong);
         session.respond(response, writer).await
     }
 }

@@ -1,9 +1,18 @@
+#![deny(clippy::pedantic, clippy::nursery, clippy::cargo)]
+#![allow(
+    clippy::multiple_crate_versions,
+    clippy::significant_drop_tightening,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss
+)]
+
 mod commands;
 pub mod error;
 mod handler;
 mod prelude;
 mod session;
-pub mod storage;
+mod storage;
 mod utils;
 
 use std::net::{IpAddr, SocketAddr};
@@ -31,6 +40,12 @@ pub struct CLI {
     pub verbose: bool,
 }
 
+/// Runs the Crabdis server with the given CLI configuration.
+///
+/// # Errors
+///
+/// Returns an error if binding to the specified address fails or if the
+/// server encounters an unrecoverable I/O error.
 pub async fn run(cli: CLI) -> Result<()> {
     utils::logger::init(cfg!(debug_assertions) || cli.verbose);
 

@@ -11,7 +11,7 @@ use crate::prelude::*;
 
 #[async_trait]
 pub trait CommandTrait {
-    fn name(&self) -> &str;
+    fn name(&self) -> &'static str;
 
     async fn handle_command(
         &self,
@@ -35,7 +35,7 @@ pub struct CommandHandler {
 }
 
 impl CommandHandler {
-    pub async fn register(&mut self) {
+    pub async fn register(&self) {
         register_commands!(
             self,
             core::Client,
@@ -88,7 +88,7 @@ impl CommandHandler {
         );
     }
 
-    async fn register_command<C>(&mut self, command: C)
+    async fn register_command<C>(&self, command: C)
     where
         C: CommandTrait + Send + Sync + 'static,
     {
@@ -114,16 +114,15 @@ impl CommandHandler {
         };
         let command = command.to_uppercase();
 
-        match self.commands.read().await.get(&command) {
-            Some(command) => command.handle_command(writer, args, session).await,
-            None => {
-                #[cfg(debug_assertions)]
-                log::debug!("Unknown command: {command} {args:?}");
+        if let Some(command) = self.commands.read().await.get(&command) {
+            command.handle_command(writer, args, session).await
+        } else {
+            #[cfg(debug_assertions)]
+            log::debug!("Unknown command: {command} {args:?}");
 
-                session
-                    .respond(&value_error!("Unknown command: {command}"), writer)
-                    .await
-            }
+            session
+                .respond(&value_error!("Unknown command: {command}"), writer)
+                .await
         }
     }
 }

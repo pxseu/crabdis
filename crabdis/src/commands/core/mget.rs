@@ -4,7 +4,7 @@ pub struct MGet;
 
 #[async_trait]
 impl CommandTrait for MGet {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "MGET"
     }
 

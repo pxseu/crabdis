@@ -4,7 +4,7 @@ pub struct HExists;
 
 #[async_trait]
 impl CommandTrait for HExists {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "HEXISTS"
     }
 
@@ -36,7 +36,7 @@ impl CommandTrait for HExists {
             Some(Value::Map(map)) => {
                 session
                     .respond(
-                        &Value::Integer(map.contains_key(&Value::String(field)) as i64),
+                        &Value::Integer(i64::from(map.contains_key(&Value::String(field)))),
                         writer,
                     )
                     .await

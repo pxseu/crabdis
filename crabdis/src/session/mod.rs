@@ -1,3 +1,4 @@
+use std::hint::unreachable_unchecked;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
 
@@ -47,7 +48,7 @@ impl Session {
         match self.proto() {
             2 => Resp::to2(response, writer).await.map_err(Error::from),
             3 => Resp::to3(response, writer).await.map_err(Error::from),
-            _ => unreachable!("Invalid protocol version"),
+            _ => unsafe { unreachable_unchecked() },
         }
     }
 

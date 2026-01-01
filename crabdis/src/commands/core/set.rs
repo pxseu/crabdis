@@ -6,6 +6,7 @@ use crate::prelude::*;
 
 pub struct Set;
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Default, Debug)]
 struct Arguments {
     pub set_nx: bool,
@@ -20,7 +21,7 @@ struct Arguments {
 
 #[async_trait]
 impl CommandTrait for Set {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "SET"
     }
 
@@ -40,13 +41,10 @@ impl CommandTrait for Set {
             return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
-        let value = match args.next_owned() {
-            Some(value) => value,
-            _ => {
-                return session
-                    .respond(&value_error!("Missing value"), writer)
-                    .await;
-            }
+        let Some(value) = args.next_owned() else {
+            return session
+                .respond(&value_error!("Missing value"), writer)
+                .await;
         };
 
         let mut arguments = Arguments::default();

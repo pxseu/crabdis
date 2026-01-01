@@ -4,7 +4,7 @@ pub struct Command;
 
 #[async_trait]
 impl CommandTrait for Command {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "COMMAND"
     }
 
@@ -34,6 +34,8 @@ impl CommandTrait for Command {
                 );
             }
 
+            drop(commands);
+
             return session.respond(&Value::Map(map), writer).await;
         }
 
@@ -56,6 +58,8 @@ impl CommandTrait for Command {
                                 Value::Multi(cmd_info.into()),
                             );
                         }
+
+                        drop(commands);
 
                         session.respond(&Value::Map(map), writer).await
                     }

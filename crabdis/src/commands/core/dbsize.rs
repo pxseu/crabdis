@@ -4,7 +4,7 @@ pub struct DBSize;
 
 #[async_trait]
 impl CommandTrait for DBSize {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "DBSIZE"
     }
 
@@ -20,7 +20,10 @@ impl CommandTrait for DBSize {
         };
 
         session
-            .respond(&Value::Integer(key_count as i64), writer)
+            .respond(
+                &Value::Integer(i64::try_from(key_count).unwrap_or(i64::MAX)),
+                writer,
+            )
             .await
     }
 }

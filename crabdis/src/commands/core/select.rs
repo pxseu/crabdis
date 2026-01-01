@@ -4,7 +4,7 @@ pub struct Select;
 
 #[async_trait]
 impl CommandTrait for Select {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "SELECT"
     }
 

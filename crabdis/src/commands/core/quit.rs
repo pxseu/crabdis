@@ -4,7 +4,7 @@ pub struct Quit;
 
 #[async_trait]
 impl CommandTrait for Quit {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "QUIT"
     }
 

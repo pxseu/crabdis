@@ -4,7 +4,7 @@ pub struct HSet;
 
 #[async_trait]
 impl CommandTrait for HSet {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "HSET"
     }
 

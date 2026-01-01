@@ -4,7 +4,7 @@ pub struct Incr;
 
 #[async_trait]
 impl CommandTrait for Incr {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "INCR"
     }
 
@@ -25,8 +25,7 @@ impl CommandTrait for Incr {
         };
 
         let mut store = session.state.store.write().await;
-
-        let mut value = match store.get(&key).map(|v| v.inner()) {
+        let mut value = match store.get(&key).map(Value::inner) {
             Some(Value::String(s)) => s.parse::<i64>().unwrap_or(0),
             Some(Value::Integer(i)) => *i,
             Some(_) => {

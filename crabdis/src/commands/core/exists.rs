@@ -4,7 +4,7 @@ pub struct Exists;
 
 #[async_trait]
 impl CommandTrait for Exists {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "EXISTS"
     }
 

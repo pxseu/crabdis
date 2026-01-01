@@ -4,7 +4,7 @@ pub struct PTtl;
 
 #[async_trait]
 impl CommandTrait for PTtl {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "PTTL"
     }
 

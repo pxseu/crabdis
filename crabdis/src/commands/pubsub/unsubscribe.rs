@@ -4,7 +4,7 @@ pub struct Unsubscribe;
 
 #[async_trait]
 impl CommandTrait for Unsubscribe {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "UNSUBSCRIBE"
     }
 
@@ -14,13 +14,12 @@ impl CommandTrait for Unsubscribe {
         args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
-        let mut channels = Vec::new();
-
         // If no channels specified, unsubscribe from all
-        if args.is_empty() {
+        let channels = if args.is_empty() {
             let subs = session.state.subscriptions.read().await;
-            channels = subs.keys().cloned().collect();
+            subs.keys().cloned().collect()
         } else {
+            let mut channels = Vec::new();
             for arg in args {
                 match arg {
                     Value::String(channel) => channels.push(channel.clone()),
@@ -31,7 +30,8 @@ impl CommandTrait for Unsubscribe {
                     }
                 }
             }
-        }
+            channels
+        };
 
         // Unsubscribe from each channel
         for channel in &channels {

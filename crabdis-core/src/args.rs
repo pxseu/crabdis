@@ -92,8 +92,6 @@ impl<'a> Iterator for Args<'a> {
     }
 }
 
-impl ExactSizeIterator for Args<'_> {}
-
 impl<'a> IntoIterator for &Args<'a> {
     type IntoIter = std::slice::Iter<'a, Value>;
     type Item = &'a Value;

@@ -4,7 +4,7 @@ pub struct HDel;
 
 #[async_trait]
 impl CommandTrait for HDel {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "HDEL"
     }
 

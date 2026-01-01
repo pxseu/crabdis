@@ -4,7 +4,7 @@ pub struct Expire;
 
 #[async_trait]
 impl CommandTrait for Expire {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "EXPIRE"
     }
 

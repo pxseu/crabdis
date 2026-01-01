@@ -59,8 +59,9 @@ where
     }
 }
 
-/// eq to `i64::MAX.to_string().len()` + 2 (for CRLF) + 1 (for sign)
-const INT_MAX_LEN: usize = 22;
+/// eq to `log10(i64::MAX)` = 18.996 gets floored to 18 so we add 1 for the
+/// rounding error and 1 for the sign and 2 for the CRLF
+const INT_MAX_LEN: usize = i64::MAX.ilog10() as usize + 1 + 1 + 2;
 
 /// Serializes an integer to a writer.
 ///
@@ -79,10 +80,8 @@ where
 {
     // cheap buffer on the stack for the integer
     let mut buf = [0u8; INT_MAX_LEN];
-    let mut idx = INT_MAX_LEN;
+    let mut idx = INT_MAX_LEN - 2;
 
-    // add CRLF
-    idx -= 2;
     buf[idx..].copy_from_slice(b"\r\n");
 
     let negative = value < 0;

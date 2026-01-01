@@ -4,7 +4,7 @@ pub struct Hello;
 
 #[async_trait]
 impl CommandTrait for Hello {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "HELLO"
     }
 
@@ -27,8 +27,10 @@ impl CommandTrait for Hello {
                     .await;
             }
 
-            // safe to unwrap since we've already checked the value
-            session.set_proto(version.parse::<u8>().unwrap());
+            // above check ensures that the version is either 2 or 3
+            let version = version.as_bytes()[0] - b'0';
+
+            session.set_proto(version);
         }
 
         let response = Value::Map(HashMap::from([
@@ -55,7 +57,7 @@ impl CommandTrait for Hello {
             (Value::String("role".into()), Value::String("master".into())),
             (
                 Value::String("modules".into()),
-                Value::Multi(Default::default()),
+                Value::Multi(Arc::default()),
             ),
         ]));
 

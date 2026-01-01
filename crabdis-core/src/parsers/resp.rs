@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::hint::unreachable_unchecked;
 use std::pin::Pin;
 
 use crate::prelude::*;
@@ -357,7 +358,7 @@ impl Resp {
 
                             Value::Set(set)
                         }
-                        _ => unreachable!(),
+                        _ => unsafe { unreachable_unchecked() },
                     }))
                 }
 

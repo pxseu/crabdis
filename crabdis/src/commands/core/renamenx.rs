@@ -4,7 +4,7 @@ pub struct RenameNx;
 
 #[async_trait]
 impl CommandTrait for RenameNx {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "RENAMENX"
     }
 

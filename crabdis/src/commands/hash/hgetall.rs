@@ -4,7 +4,7 @@ pub struct HGetAll;
 
 #[async_trait]
 impl CommandTrait for HGetAll {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "HGETALL"
     }
 

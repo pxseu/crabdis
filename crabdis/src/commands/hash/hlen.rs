@@ -4,7 +4,7 @@ pub struct HLen;
 
 #[async_trait]
 impl CommandTrait for HLen {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "HLEN"
     }
 

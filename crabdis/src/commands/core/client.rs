@@ -4,7 +4,7 @@ pub struct Client;
 
 #[async_trait]
 impl CommandTrait for Client {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "CLIENT"
     }
 
@@ -43,10 +43,13 @@ impl CommandTrait for Client {
                 let mut list = String::new();
 
                 for (id, session) in session.state.sessions.read().await.iter() {
-                    list.push_str(&format!(
-                        "id={id} name={}\n",
-                        session.name().await.unwrap_or("(nil)".into())
-                    ));
+                    use std::fmt::Write;
+                    writeln!(
+                        list,
+                        "id={id} name={}",
+                        session.name().await.unwrap_or_else(|| "(nil)".into())
+                    )
+                    .expect("Writing to String should not fail");
                 }
 
                 session.respond(&Value::String(list.into()), writer).await

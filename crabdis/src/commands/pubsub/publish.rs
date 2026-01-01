@@ -4,7 +4,7 @@ pub struct Publish;
 
 #[async_trait]
 impl CommandTrait for Publish {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "PUBLISH"
     }
 
@@ -26,13 +26,10 @@ impl CommandTrait for Publish {
                 .await;
         };
 
-        let message = match args.next_owned() {
-            Some(message) => message,
-            _ => {
-                return session
-                    .respond(&value_error!("Missing message"), writer)
-                    .await;
-            }
+        let Some(message) = args.next_owned() else {
+            return session
+                .respond(&value_error!("Missing message"), writer)
+                .await;
         };
 
         let count = session.state.publish(channel, message).await?;

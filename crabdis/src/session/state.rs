@@ -20,7 +20,7 @@ pub struct State {
 
 impl State {
     pub async fn new() -> Arc<Self> {
-        let mut state = State {
+        let mut state = Self {
             loaded: false,
             store: Store::default(),
             handler: CommandHandler::default(),
@@ -79,8 +79,8 @@ impl State {
     }
 
     pub async fn subscribe(&self, channel: &str, session: SessionRef) {
-        let mut subs = self.subscriptions.write().await;
-        let sessions = subs.entry(channel.into()).or_default();
+        let mut sessions = self.subscriptions.write().await;
+        let sessions = sessions.entry(channel.into()).or_default();
 
         // Check if session is already subscribed
         if !sessions.iter().any(|s| s.id == session.id) {
@@ -119,7 +119,7 @@ impl State {
                 );
 
                 if let Err(e) = session.send(pubsub_value.clone()) {
-                    log::error!("Failed to publish to session: {}", e);
+                    log::error!("Failed to publish to session: {e}");
                     continue;
                 }
 

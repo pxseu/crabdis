@@ -52,7 +52,13 @@ impl StdError for Error {
     }
 }
 
+/// Extension trait for adding context to errors.
 pub trait Context<T, E> {
+    /// Wraps the error with additional context.
+    ///
+    /// # Errors
+    ///
+    /// Returns the original error wrapped with the provided context message.
     fn context<C>(self, ctx: C) -> Result<T>
     where
         C: Display + Send + Sync + 'static;

@@ -4,7 +4,7 @@ pub struct SetEx;
 
 #[async_trait]
 impl CommandTrait for SetEx {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "SETEX"
     }
 

@@ -4,7 +4,7 @@ pub struct FlushDB;
 
 #[async_trait]
 impl CommandTrait for FlushDB {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "FLUSHDB"
     }
 

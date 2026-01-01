@@ -4,7 +4,7 @@ pub struct PSetEx;
 
 #[async_trait]
 impl CommandTrait for PSetEx {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "PSETEX"
     }
 
