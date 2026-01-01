@@ -8,7 +8,6 @@ pub struct Args<'a> {
     pos: usize,
 }
 
-#[allow(dead_code)]
 impl<'a> Args<'a> {
     #[inline]
     #[must_use]
