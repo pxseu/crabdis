@@ -1,3 +1,6 @@
+pub mod int;
+pub mod simple;
+
 use std::collections::{HashMap, HashSet};
 use std::hint::unreachable_unchecked;
 use std::pin::Pin;
@@ -62,28 +65,26 @@ impl Resp {
                 Value::Nil => Ok(writer.write_all(b"$-1\r\n").await?),
                 Value::Simple(s) => {
                     writer.write_u8(b'+').await?;
-                    writer.write_all(s.as_bytes()).await?;
-                    writer.write_all(b"\r\n").await?;
+                    self::simple::serialize(writer, s).await?;
 
                     Ok(())
                 }
                 Value::Error(e) => {
                     writer.write_u8(b'-').await?;
-                    writer.write_all(e.as_bytes()).await?;
-                    writer.write_all(b"\r\n").await?;
+                    self::simple::serialize(writer, e).await?;
 
                     Ok(())
                 }
                 Value::Integer(i) => {
                     writer.write_u8(b':').await?;
-                    crate::parsers::int::serialize(writer, *i).await?;
+                    self::int::serialize(writer, *i).await?;
 
                     Ok(())
                 }
                 Value::String(s) if s.is_empty() => Ok(writer.write_all(b"$-1\r\n").await?),
                 Value::String(s) => {
                     writer.write_u8(b'$').await?;
-                    crate::parsers::int::serialize(writer, s.len() as i64).await?;
+                    self::int::serialize(writer, s.len() as i64).await?;
                     writer.write_all(s.as_bytes()).await?;
                     writer.write_all(b"\r\n").await?;
 
@@ -91,7 +92,7 @@ impl Resp {
                 }
                 Value::Multi(v) | Value::Push(v) => {
                     writer.write_u8(b'*').await?;
-                    crate::parsers::int::serialize(writer, v.len() as i64).await?;
+                    self::int::serialize(writer, v.len() as i64).await?;
 
                     for value in v.iter() {
                         Self::to2(value, writer).await?;
@@ -103,7 +104,7 @@ impl Resp {
                     writer.write_u8(b'*').await?;
                     // map in non resp3 is serialized as a list of key-value pairs
                     let len = h.len() * 2;
-                    crate::parsers::int::serialize(writer, len as i64).await?;
+                    self::int::serialize(writer, len as i64).await?;
 
                     for (k, v) in h {
                         Self::to2(k, writer).await?;
@@ -114,7 +115,7 @@ impl Resp {
                 }
                 Value::Set(s) => {
                     writer.write_u8(b'*').await?;
-                    crate::parsers::int::serialize(writer, s.len() as i64).await?;
+                    self::int::serialize(writer, s.len() as i64).await?;
 
                     for v in s {
                         Self::to2(v, writer).await?;
@@ -141,7 +142,7 @@ impl Resp {
                 Value::Nil => Ok(writer.write_all(b"$_\r\n").await?),
                 Value::Map(map) => {
                     writer.write_u8(b'%').await?;
-                    crate::parsers::int::serialize(writer, map.len() as i64).await?;
+                    self::int::serialize(writer, map.len() as i64).await?;
 
                     for (k, v) in map {
                         Self::to3(k, writer).await?;
@@ -153,7 +154,7 @@ impl Resp {
 
                 Value::Set(set) => {
                     writer.write_u8(b'~').await?;
-                    crate::parsers::int::serialize(writer, set.len() as i64).await?;
+                    self::int::serialize(writer, set.len() as i64).await?;
 
                     for v in set {
                         Self::to3(v, writer).await?;
@@ -164,7 +165,7 @@ impl Resp {
 
                 Value::Error(s) => {
                     writer.write_u8(b'!').await?;
-                    crate::parsers::int::serialize(writer, s.len() as i64).await?;
+                    self::int::serialize(writer, s.len() as i64).await?;
                     writer.write_all(s.as_bytes()).await?;
                     writer.write_all(b"\r\n").await?;
 
@@ -173,7 +174,7 @@ impl Resp {
 
                 Value::Push(v) => {
                     writer.write_u8(b'>').await?;
-                    crate::parsers::int::serialize(writer, v.len() as i64).await?;
+                    self::int::serialize(writer, v.len() as i64).await?;
 
                     for value in v.iter() {
                         Self::to3(value, writer).await?;
@@ -219,7 +220,7 @@ impl Resp {
 
             match first_byte {
                 b'$' => {
-                    let len = crate::parsers::int::deserialize(reader).await?;
+                    let len = self::int::deserialize(reader).await?;
 
                     if len == -1 {
                         return Ok(Some(Value::Nil));
@@ -242,13 +243,13 @@ impl Resp {
                 }
 
                 b':' => {
-                    let value = crate::parsers::int::deserialize(reader).await?;
+                    let value = self::int::deserialize(reader).await?;
 
                     Ok(Some(Value::Integer(value)))
                 }
 
                 b'*' => {
-                    let len = crate::parsers::int::deserialize(reader).await?;
+                    let len = self::int::deserialize(reader).await?;
 
                     if len == 0 {
                         return Ok(Some(Value::Multi([].into())));
@@ -270,7 +271,7 @@ impl Resp {
                 }
 
                 b'%' => {
-                    let len = crate::parsers::int::deserialize(reader).await?;
+                    let len = self::int::deserialize(reader).await?;
 
                     if len == 0 {
                         return Ok(Some(Value::Map(HashMap::with_capacity(0))));
@@ -294,7 +295,7 @@ impl Resp {
                 }
 
                 b'+' => {
-                    let value = crate::parsers::simple::deserialize(reader).await?;
+                    let value = self::simple::deserialize(reader).await?;
 
                     match value.as_ref() {
                         "OK" => Ok(Some(Value::Ok)),
@@ -304,7 +305,7 @@ impl Resp {
                 }
 
                 b'-' => {
-                    let value = crate::parsers::simple::deserialize(reader).await?;
+                    let value = self::simple::deserialize(reader).await?;
 
                     Ok(Some(Value::Error(value)))
                 }
@@ -330,7 +331,7 @@ impl Resp {
             match first_byte {
                 // apart from bulk array i dont think any of these can be sent to a server
                 b'>' | b'*' | b'~' => {
-                    let len = crate::parsers::int::deserialize(reader).await?;
+                    let len = self::int::deserialize(reader).await?;
 
                     let mut values = Vec::with_capacity(len.unsigned_abs() as usize);
 

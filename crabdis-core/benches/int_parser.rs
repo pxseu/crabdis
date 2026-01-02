@@ -1,7 +1,7 @@
 use std::hint::black_box;
 use std::io::Cursor;
 
-use crabdis_core::parsers::int::{deserialize, serialize};
+use crabdis_core::parsers::resp::int::{deserialize, serialize};
 use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use tokio::runtime::Runtime;
 
