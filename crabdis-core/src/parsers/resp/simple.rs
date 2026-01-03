@@ -16,7 +16,7 @@ where
     loop {
         match reader.read_u8().await? {
             b'\r' => {
-                reader.read_exact(&mut [0; 1]).await?;
+                super::crlf::deserialize_lf(reader).await?;
                 // SAFETY: RESP simple strings should be ASCII
                 let s = unsafe { str::from_utf8_unchecked(&buf) };
                 return Ok(Arc::from(s));
@@ -38,7 +38,7 @@ where
     T: AsyncWrite + Unpin + ?Sized,
 {
     writer.write_all(value.as_bytes()).await?;
-    writer.write_all(b"\r\n").await?;
+    super::crlf::serialize(writer).await?;
     Ok(())
 }
 

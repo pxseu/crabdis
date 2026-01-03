@@ -1,10 +1,6 @@
 #![forbid(clippy::nursery)]
 #![deny(clippy::cargo, clippy::pedantic)]
-#![allow(
-    clippy::multiple_crate_versions,
-    clippy::cast_possible_wrap,
-    clippy::cast_possible_truncation
-)]
+#![allow(clippy::multiple_crate_versions)]
 
 pub mod args;
 pub mod error;

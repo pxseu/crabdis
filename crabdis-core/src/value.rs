@@ -56,7 +56,7 @@ impl std::hash::Hash for Value {
             Self::Integer(i) => i.hash(state),
             Self::Multi(v) | Self::Push(v) => v.hash(state),
             Self::Expire((v, _)) => v.hash(state),
-            Self::Map(_) | Self::Set(_) => unreachable!(),
+            Self::Map(_) | Self::Set(_) => unreachable!("Map and Set should not be hashed"),
         }
     }
 }

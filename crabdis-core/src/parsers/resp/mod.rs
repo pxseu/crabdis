@@ -1,5 +1,8 @@
+pub mod bulk;
+pub mod crlf;
 pub mod int;
 pub mod simple;
+pub mod size;
 
 use std::collections::{HashMap, HashSet};
 use std::hint::unreachable_unchecked;
@@ -84,15 +87,13 @@ impl Resp {
                 Value::String(s) if s.is_empty() => Ok(writer.write_all(b"$-1\r\n").await?),
                 Value::String(s) => {
                     writer.write_u8(b'$').await?;
-                    self::int::serialize(writer, s.len() as i64).await?;
-                    writer.write_all(s.as_bytes()).await?;
-                    writer.write_all(b"\r\n").await?;
+                    self::bulk::serialize(writer, s).await?;
 
                     Ok(())
                 }
                 Value::Multi(v) | Value::Push(v) => {
                     writer.write_u8(b'*').await?;
-                    self::int::serialize(writer, v.len() as i64).await?;
+                    self::size::serialize(writer, v.len()).await?;
 
                     for value in v.iter() {
                         Self::to2(value, writer).await?;
@@ -103,8 +104,7 @@ impl Resp {
                 Value::Map(h) => {
                     writer.write_u8(b'*').await?;
                     // map in non resp3 is serialized as a list of key-value pairs
-                    let len = h.len() * 2;
-                    self::int::serialize(writer, len as i64).await?;
+                    self::size::serialize(writer, h.len() * 2).await?;
 
                     for (k, v) in h {
                         Self::to2(k, writer).await?;
@@ -115,7 +115,7 @@ impl Resp {
                 }
                 Value::Set(s) => {
                     writer.write_u8(b'*').await?;
-                    self::int::serialize(writer, s.len() as i64).await?;
+                    self::size::serialize(writer, s.len()).await?;
 
                     for v in s {
                         Self::to2(v, writer).await?;
@@ -142,7 +142,7 @@ impl Resp {
                 Value::Nil => Ok(writer.write_all(b"$_\r\n").await?),
                 Value::Map(map) => {
                     writer.write_u8(b'%').await?;
-                    self::int::serialize(writer, map.len() as i64).await?;
+                    self::size::serialize(writer, map.len()).await?;
 
                     for (k, v) in map {
                         Self::to3(k, writer).await?;
@@ -154,7 +154,7 @@ impl Resp {
 
                 Value::Set(set) => {
                     writer.write_u8(b'~').await?;
-                    self::int::serialize(writer, set.len() as i64).await?;
+                    self::size::serialize(writer, set.len()).await?;
 
                     for v in set {
                         Self::to3(v, writer).await?;
@@ -165,16 +165,14 @@ impl Resp {
 
                 Value::Error(s) => {
                     writer.write_u8(b'!').await?;
-                    self::int::serialize(writer, s.len() as i64).await?;
-                    writer.write_all(s.as_bytes()).await?;
-                    writer.write_all(b"\r\n").await?;
+                    self::bulk::serialize(writer, s).await?;
 
                     Ok(())
                 }
 
                 Value::Push(v) => {
                     writer.write_u8(b'>').await?;
-                    self::int::serialize(writer, v.len() as i64).await?;
+                    self::size::serialize(writer, v.len()).await?;
 
                     for value in v.iter() {
                         Self::to3(value, writer).await?;
@@ -220,26 +218,9 @@ impl Resp {
 
             match first_byte {
                 b'$' => {
-                    let len = self::int::deserialize(reader).await?;
+                    let value = self::bulk::deserialize(reader).await?;
 
-                    if len == -1 {
-                        return Ok(Some(Value::Nil));
-                    }
-
-                    if len == 0 {
-                        return Ok(Some(Value::String("".into())));
-                    }
-
-                    let mut value = vec![0; len.unsigned_abs() as usize];
-                    reader.read_exact(&mut value).await?;
-
-                    // SAFETY: we know that the value is a valid utf8 string, or at least it should
-                    let value = unsafe { std::str::from_utf8_unchecked(&value) };
-
-                    // +2 for `\r\n
-                    reader.read_exact(&mut [0; 2]).await?;
-
-                    Ok(Some(Value::String(value.into())))
+                    value.map_or(Ok(Some(Value::Nil)), |s| Ok(Some(Value::String(s))))
                 }
 
                 b':' => {
@@ -249,13 +230,13 @@ impl Resp {
                 }
 
                 b'*' => {
-                    let len = self::int::deserialize(reader).await?;
+                    let len = self::size::deserialize(reader).await?;
 
                     if len == 0 {
                         return Ok(Some(Value::Multi([].into())));
                     }
 
-                    let mut values = Vec::with_capacity(len.unsigned_abs() as usize);
+                    let mut values = Vec::with_capacity(len);
 
                     for _ in 0..len {
                         let value = Self::from2(reader).await?;
@@ -271,13 +252,13 @@ impl Resp {
                 }
 
                 b'%' => {
-                    let len = self::int::deserialize(reader).await?;
+                    let len = self::size::deserialize(reader).await?;
 
                     if len == 0 {
                         return Ok(Some(Value::Map(HashMap::with_capacity(0))));
                     }
 
-                    let mut map = HashMap::with_capacity(len.unsigned_abs() as usize);
+                    let mut map = HashMap::with_capacity(len);
 
                     for _ in 0..len {
                         let key = Self::from2(reader).await?;
@@ -331,9 +312,9 @@ impl Resp {
             match first_byte {
                 // apart from bulk array i dont think any of these can be sent to a server
                 b'>' | b'*' | b'~' => {
-                    let len = self::int::deserialize(reader).await?;
+                    let len = self::size::deserialize(reader).await?;
 
-                    let mut values = Vec::with_capacity(len.unsigned_abs() as usize);
+                    let mut values = Vec::with_capacity(len);
 
                     for _ in 0..len {
                         let value = Self::from3(reader).await?;
@@ -350,7 +331,7 @@ impl Resp {
                         b'*' => Value::Multi(values.into()),
                         b'~' => {
                             // this is basically 1:1 copy of the code that is using .extend
-                            let mut set = HashSet::with_capacity(len.unsigned_abs() as usize);
+                            let mut set = HashSet::with_capacity(len);
 
                             // force into_iter to free the values vector after the loop
                             for v in values {
