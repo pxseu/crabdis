@@ -121,14 +121,16 @@ where
     let mut idx = SIZE_MAX_LEN;
 
     let mut v = value;
-    while v > 0 {
+    loop {
         idx -= 1;
         buf[idx] = b'0' + (v % 10) as u8;
         v /= 10;
-    }
 
-    writer.write_all(&buf[idx..]).await?;
-    Ok(())
+        if v == 0 {
+            writer.write_all(&buf[idx..]).await?;
+            return Ok(());
+        }
+    }
 }
 
 #[cfg(test)]
