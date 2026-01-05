@@ -101,8 +101,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_serialize() {
-        let mut writer = Cursor::new(Vec::new());
+        let mut writer = Vec::new();
         serialize(&mut writer).await.unwrap();
-        assert_eq!(writer.into_inner(), b"\r\n");
+        assert_eq!(writer, b"\r\n");
     }
 }

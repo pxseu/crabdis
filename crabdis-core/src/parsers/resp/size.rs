@@ -93,8 +93,14 @@ where
 }
 
 /// eq to `log10(usize::MAX)` on 64-bit = 19.27 floored to 19, +1 for rounding,
-/// +2 for CRLF
-const SIZE_MAX_LEN: usize = usize::MAX.ilog10() as usize + 1 + 2;
+const SIZE_MAX_LEN: usize = usize::MAX.ilog10() as usize + 1;
+// +2 for CRLF
+const SIZE_BUFFER_INIT: [u8; SIZE_MAX_LEN + 2] = {
+    let mut buf = [0u8; SIZE_MAX_LEN + 2];
+    buf[SIZE_MAX_LEN] = b'\r';
+    buf[SIZE_MAX_LEN + 1] = b'\n';
+    buf
+};
 
 /// Serializes an unsigned size/length value.
 ///
@@ -111,18 +117,8 @@ pub async fn serialize<T>(writer: &mut T, value: usize) -> Result<()>
 where
     T: AsyncWrite + Unpin + ?Sized,
 {
-    let mut buf = [0u8; SIZE_MAX_LEN];
-    let mut idx = SIZE_MAX_LEN - 2;
-
-    buf[idx..].copy_from_slice(b"\r\n");
-
-    if value == 0 {
-        idx -= 1;
-        buf[idx] = b'0';
-
-        writer.write_all(&buf[idx..]).await?;
-        return Ok(());
-    }
+    let mut buf = SIZE_BUFFER_INIT;
+    let mut idx = SIZE_MAX_LEN;
 
     let mut v = value;
     while v > 0 {
