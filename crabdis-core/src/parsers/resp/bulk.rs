@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-
 use crate::prelude::*;
 
 /// Deserializes a bulk string/error (after the `$` or `!` prefix was consumed).

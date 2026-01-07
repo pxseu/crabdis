@@ -1,7 +1,5 @@
 use std::io::{Error as IoError, ErrorKind};
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite};
-
 use crate::prelude::*;
 
 /// Deserializes an unsigned size/length value until `\r\n`.
@@ -41,7 +39,7 @@ where
                 super::crlf::deserialize_lf(reader).await?;
 
                 if !seen_digit {
-                    return Err(IoError::new(ErrorKind::InvalidData, "Invalid size").into());
+                    return Err(IoError::from(ErrorKind::InvalidData).into());
                 }
                 return Ok(value);
             }
@@ -56,7 +54,7 @@ where
                 value = value * 10 + digit;
                 seen_digit = true;
             }
-            _ => return Err(IoError::new(ErrorKind::InvalidData, "Invalid size").into()),
+            _ => return Err(IoError::from(ErrorKind::InvalidData).into()),
         }
 
         current = reader.read_u8().await?;

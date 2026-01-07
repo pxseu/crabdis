@@ -300,7 +300,7 @@ impl Resp {
         reader: &'a mut T,
     ) -> Pin<Box<dyn Future<Output = Result<Option<Value>>> + Send + 'a>>
     where
-        T: AsyncBufRead + Unpin + Send + 'a,
+        T: AsyncRead + Unpin + Send + 'a,
     {
         Box::pin(async move {
             let first_byte = match reader.read_u8().await {
@@ -580,34 +580,29 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_simple_string() {
-        let buff = b"+OK\r\n".as_ref();
-        let mut reader = Cursor::new(buff);
+        let mut reader = b"+OK\r\n".as_ref();
         let value = Resp::from2(&mut reader).await.unwrap();
         assert_eq!(value, Some(Value::Ok));
 
-        let buff = b"+PONG\r\n".as_ref();
-        let mut reader = Cursor::new(buff);
+        let mut reader = b"+PONG\r\n".as_ref();
         let value = Resp::from2(&mut reader).await.unwrap();
         assert_eq!(value, Some(Value::Pong));
     }
 
     #[tokio::test]
     async fn test_parse_error() {
-        let buff = b"-ERR unknown command\r\n".as_ref();
-        let mut reader = Cursor::new(buff);
+        let mut reader = b"-ERR unknown command\r\n".as_ref();
         let value = Resp::from2(&mut reader).await.unwrap();
         assert_eq!(value, Some(Value::Error("ERR unknown command".into())));
     }
 
     #[tokio::test]
     async fn test_parse_integer() {
-        let buff = b":42\r\n".as_ref();
-        let mut reader = Cursor::new(buff);
+        let mut reader = b":42\r\n".as_ref();
         let value = Resp::from2(&mut reader).await.unwrap();
         assert_eq!(value, Some(Value::Integer(42)));
 
-        let buff = b":-100\r\n".as_ref();
-        let mut reader = Cursor::new(buff);
+        let mut reader = b":-100\r\n".as_ref();
         let value = Resp::from2(&mut reader).await.unwrap();
         assert_eq!(value, Some(Value::Integer(-100)));
     }
@@ -627,8 +622,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_array() {
-        let buff = b"*3\r\n$5\r\nhello\r\n:42\r\n$-1\r\n".as_ref();
-        let mut reader = Cursor::new(buff);
+        let mut reader = b"*3\r\n$5\r\nhello\r\n:42\r\n$-1\r\n".as_ref();
         let value = Resp::from2(&mut reader).await.unwrap();
         assert_eq!(
             value,
@@ -639,16 +633,14 @@ mod tests {
             ]),
         );
 
-        let buff = b"*0\r\n".as_ref();
-        let mut reader = Cursor::new(buff);
+        let mut reader = b"*0\r\n".as_ref();
         let value = Resp::from2(&mut reader).await.unwrap();
         assert_eq!(value, Some(value_multi![]));
     }
 
     #[tokio::test]
     async fn test_parse_map() {
-        let buff = b"%2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n$4\r\nkey2\r\n:42\r\n".as_ref();
-        let mut reader = Cursor::new(buff);
+        let mut reader = b"%2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n$4\r\nkey2\r\n:42\r\n".as_ref();
         let value = Resp::from2(&mut reader).await.unwrap();
 
         if let Some(Value::Map(map)) = value {
@@ -668,8 +660,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_set() {
-        let buff = b"~3\r\n$1\r\na\r\n$1\r\nb\r\n:1\r\n".as_ref();
-        let mut reader = Cursor::new(buff);
+        let mut reader = b"~3\r\n$1\r\na\r\n$1\r\nb\r\n:1\r\n".as_ref();
         let value = Resp::from3(&mut reader).await.unwrap();
 
         if let Some(Value::Set(set)) = value {
@@ -684,8 +675,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_push() {
-        let buff = b">2\r\n$7\r\nmessage\r\n$7\r\nchannel\r\n".as_ref();
-        let mut reader = Cursor::new(buff);
+        let mut reader = b">2\r\n$7\r\nmessage\r\n$7\r\nchannel\r\n".as_ref();
         let value = Resp::from3(&mut reader).await.unwrap();
         assert_eq!(
             value,
@@ -712,8 +702,7 @@ mod tests {
             let mut buff = Vec::new();
             Resp::to2(&original, &mut buff).await.unwrap();
 
-            let mut reader = Cursor::new(&buff);
-            let parsed = Resp::from2(&mut reader).await.unwrap().unwrap();
+            let parsed = Resp::from2(&mut buff.as_ref()).await.unwrap().unwrap();
 
             assert_eq!(original, parsed, "Round trip failed for {original:?}");
         }
@@ -721,14 +710,12 @@ mod tests {
         // Ok and Pong have special parsing behavior
         let mut buff = Vec::new();
         Resp::to2(&Value::Ok, &mut buff).await.unwrap();
-        let mut reader = Cursor::new(&buff);
-        let parsed = Resp::from2(&mut reader).await.unwrap().unwrap();
+        let parsed = Resp::from2(&mut buff.as_ref()).await.unwrap().unwrap();
         assert_eq!(parsed, Value::Ok);
 
         let mut buff = Vec::new();
         Resp::to2(&Value::Pong, &mut buff).await.unwrap();
-        let mut reader = Cursor::new(&buff);
-        let parsed = Resp::from2(&mut reader).await.unwrap().unwrap();
+        let parsed = Resp::from2(&mut buff.as_ref()).await.unwrap().unwrap();
         assert_eq!(parsed, Value::Pong);
     }
 
@@ -776,8 +763,7 @@ mod tests {
         let mut buff = Vec::new();
         Resp::to2(&value, &mut buff).await.unwrap();
 
-        let mut reader = Cursor::new(&buff);
-        let parsed = Resp::from2(&mut reader).await.unwrap().unwrap();
+        let parsed = Resp::from2(&mut buff.as_ref()).await.unwrap().unwrap();
 
         assert_eq!(value, parsed);
     }

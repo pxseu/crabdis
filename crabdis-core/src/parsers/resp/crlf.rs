@@ -1,7 +1,5 @@
 use std::io::{Error as IoError, ErrorKind};
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-
 use crate::prelude::*;
 
 /// Deserializes (consumes and validates) a CRLF sequence.
