@@ -9,35 +9,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    /// IO error from standard library
     Io(IoError),
-
-    /// Core library error
     Core(CoreError),
-
-    /// Glob pattern error
     Glob(PatternError),
-
-    /// Configuration error
-    Config(String),
-
-    /// An error with additional context
-    WithContext { message: String, source: Box<Error> },
-}
-
-impl Error {
-    /// Create a new configuration error
-    pub fn config(msg: impl Into<String>) -> Self {
-        Self::Config(msg.into())
-    }
-
-    /// Add context to this error
-    pub fn context(self, msg: impl Into<String>) -> Self {
-        Self::WithContext {
-            message: msg.into(),
-            source: Box::new(self),
-        }
-    }
 }
 
 impl From<IoError> for Error {
@@ -58,16 +32,12 @@ impl From<PatternError> for Error {
     }
 }
 
-impl Display for Error {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Io(inner) => write!(f, "IO error: {inner}"),
-            Self::Core(inner) => write!(f, "Core error: {inner}"),
-            Self::Glob(inner) => write!(f, "Glob pattern error: {inner}"),
-            Self::Config(msg) => write!(f, "Configuration error: {msg}"),
-            Self::WithContext { message, source } => {
-                write!(f, "{message}: {source}")
-            }
+            Self::Io(inner) => fmt::Display::fmt(&inner, f),
+            Self::Core(inner) => fmt::Display::fmt(&inner, f),
+            Self::Glob(inner) => fmt::Display::fmt(&inner, f),
         }
     }
 }
@@ -78,45 +48,40 @@ impl StdError for Error {
             Self::Io(inner) => Some(inner),
             Self::Core(inner) => Some(inner),
             Self::Glob(inner) => Some(inner),
-            Self::WithContext { source, .. } => Some(source.as_ref()),
-            Self::Config(_) => None,
         }
     }
 }
 
-/// Extension trait for adding context to results
-pub trait Context<T> {
-    /// Add context to an error
+/// Extension trait for adding context to errors.
+pub trait Context<T, E> {
+    /// Wraps the error with additional context.
     ///
     /// # Errors
     ///
-    /// Returns the original `Ok(T)` value if successful, or wraps the error
-    /// with additional context if it fails.
-    fn context(self, msg: impl Into<String>) -> Result<T>;
-
-    /// Add context using a lazy closure (only evaluated on error)
-    ///
-    /// # Errors
-    ///
-    /// Returns the original `Ok(T)` value if successful, or wraps the error
-    /// with additional context if it fails.
-    fn with_context<F>(self, f: F) -> Result<T>
+    /// Returns the original error wrapped with the provided context message.
+    fn context<C>(self, ctx: C) -> Result<T>
     where
-        F: FnOnce() -> String;
+        C: Display + Send + Sync + 'static;
 }
 
-impl<T, E> Context<T> for std::result::Result<T, E>
+impl<T, E> Context<T, E> for std::result::Result<T, E>
 where
-    E: Into<Error>,
+    E: std::error::Error + Send + Sync + 'static,
 {
-    fn context(self, msg: impl Into<String>) -> Result<T> {
-        self.map_err(|err| err.into().context(msg))
-    }
-
-    fn with_context<F>(self, f: F) -> Result<T>
+    fn context<C>(self, ctx: C) -> Result<T>
     where
-        F: FnOnce() -> String,
+        C: Display + Send + Sync + 'static,
     {
-        self.map_err(|err| err.into().context(f()))
+        self.map_err(|err| {
+            let ctx = ctx.to_string();
+
+            let msg = if let Some(source) = err.source() {
+                format!("{ctx}: {source}")
+            } else {
+                ctx
+            };
+
+            Error::Io(IoError::other(msg))
+        })
     }
 }

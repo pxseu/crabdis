@@ -93,25 +93,25 @@ mod tests {
     #[tokio::test]
     async fn rejects_empty_integer() {
         let err = parse_from(b"\r\n").await.unwrap_err();
-        assert_eq!(err.to_string(), "Invalid size");
+        assert_eq!(err.to_string(), "invalid data");
     }
 
     #[tokio::test]
     async fn rejects_minus_only() {
         let err = parse_from(b"-\r\n").await.unwrap_err();
-        assert_eq!(err.to_string(), "Invalid size");
+        assert_eq!(err.to_string(), "invalid data");
     }
 
     #[tokio::test]
     async fn rejects_minus_after_digits() {
         let err = parse_from(b"12-\r\n").await.unwrap_err();
-        assert_eq!(err.to_string(), "Invalid size");
+        assert_eq!(err.to_string(), "invalid data");
     }
 
     #[tokio::test]
     async fn rejects_garbage_in_number() {
         let err = parse_from(b"12x\r\n").await.unwrap_err();
-        assert_eq!(err.to_string(), "Invalid size");
+        assert_eq!(err.to_string(), "invalid data");
     }
 
     #[tokio::test]

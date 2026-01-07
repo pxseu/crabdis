@@ -83,7 +83,7 @@ where
         if val == 1 {
             return Ok(None);
         }
-        return Err(IoError::new(ErrorKind::InvalidData, "Invalid size").into());
+        return Err(IoError::from(ErrorKind::InvalidData).into());
     }
 
     let val = deserialize_first(first, reader).await?;
@@ -174,19 +174,19 @@ mod tests {
     async fn test_deserialize_rejects_negative() {
         // `-` is not a valid digit, so it errors
         let err = parse_from(b"-1\r\n").await.unwrap_err();
-        assert_eq!(err.to_string(), "Invalid size");
+        assert_eq!(err.to_string(), "invalid data");
     }
 
     #[tokio::test]
     async fn test_deserialize_rejects_empty() {
         let err = parse_from(b"\r\n").await.unwrap_err();
-        assert_eq!(err.to_string(), "Invalid size");
+        assert_eq!(err.to_string(), "invalid data");
     }
 
     #[tokio::test]
     async fn test_deserialize_rejects_garbage() {
         let err = parse_from(b"12x\r\n").await.unwrap_err();
-        assert_eq!(err.to_string(), "Invalid size");
+        assert_eq!(err.to_string(), "invalid data");
     }
 
     #[tokio::test]
@@ -218,7 +218,7 @@ mod tests {
     async fn test_deserialize_nullable_rejects_other_negatives() {
         let mut reader = Cursor::new(b"-2\r\n");
         let err = deserialize_nullable(&mut reader).await.unwrap_err();
-        assert_eq!(err.to_string(), "Invalid size");
+        assert_eq!(err.to_string(), "invalid data");
     }
 
     #[tokio::test]
