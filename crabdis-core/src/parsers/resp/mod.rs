@@ -3,6 +3,7 @@ pub mod crlf;
 pub mod int;
 pub mod simple;
 pub mod size;
+pub mod symbols;
 
 use std::collections::{HashMap, HashSet};
 use std::hint::unreachable_unchecked;
@@ -67,32 +68,32 @@ impl Resp {
                 Value::Pong => Self::to2(&Value::Simple("PONG".into()), writer).await,
                 Value::Nil => Ok(writer.write_all(b"$-1\r\n").await?),
                 Value::Simple(s) => {
-                    writer.write_u8(b'+').await?;
+                    writer.write_u8(self::symbols::SIMPLE).await?;
                     self::simple::serialize(writer, s).await?;
 
                     Ok(())
                 }
                 Value::Error(e) => {
-                    writer.write_u8(b'-').await?;
+                    writer.write_u8(self::symbols::ERROR).await?;
                     self::simple::serialize(writer, e).await?;
 
                     Ok(())
                 }
                 Value::Integer(i) => {
-                    writer.write_u8(b':').await?;
+                    writer.write_u8(self::symbols::INTEGER).await?;
                     self::int::serialize(writer, *i).await?;
 
                     Ok(())
                 }
                 Value::String(s) if s.is_empty() => Ok(writer.write_all(b"$-1\r\n").await?),
                 Value::String(s) => {
-                    writer.write_u8(b'$').await?;
+                    writer.write_u8(self::symbols::BULK).await?;
                     self::bulk::serialize(writer, s).await?;
 
                     Ok(())
                 }
                 Value::Multi(v) | Value::Push(v) => {
-                    writer.write_u8(b'*').await?;
+                    writer.write_u8(self::symbols::ARRAY).await?;
                     self::size::serialize(writer, v.len()).await?;
 
                     for value in v.iter() {
@@ -102,7 +103,7 @@ impl Resp {
                     Ok(())
                 }
                 Value::Map(h) => {
-                    writer.write_u8(b'*').await?;
+                    writer.write_u8(self::symbols::ARRAY).await?;
                     // map in non resp3 is serialized as a list of key-value pairs
                     self::size::serialize(writer, h.len() * 2).await?;
 
@@ -114,7 +115,7 @@ impl Resp {
                     Ok(())
                 }
                 Value::Set(s) => {
-                    writer.write_u8(b'*').await?;
+                    writer.write_u8(self::symbols::ARRAY).await?;
                     self::size::serialize(writer, s.len()).await?;
 
                     for v in s {
@@ -141,7 +142,7 @@ impl Resp {
             match value {
                 Value::Nil => Ok(writer.write_all(b"$_\r\n").await?),
                 Value::Map(map) => {
-                    writer.write_u8(b'%').await?;
+                    writer.write_u8(self::symbols::MAP).await?;
                     self::size::serialize(writer, map.len()).await?;
 
                     for (k, v) in map {
@@ -153,7 +154,7 @@ impl Resp {
                 }
 
                 Value::Set(set) => {
-                    writer.write_u8(b'~').await?;
+                    writer.write_u8(self::symbols::SET).await?;
                     self::size::serialize(writer, set.len()).await?;
 
                     for v in set {
@@ -164,14 +165,14 @@ impl Resp {
                 }
 
                 Value::Error(s) => {
-                    writer.write_u8(b'!').await?;
+                    writer.write_u8(self::symbols::BULK_ERROR).await?;
                     self::bulk::serialize(writer, s).await?;
 
                     Ok(())
                 }
 
                 Value::Push(v) => {
-                    writer.write_u8(b'>').await?;
+                    writer.write_u8(self::symbols::PUSH).await?;
                     self::size::serialize(writer, v.len()).await?;
 
                     for value in v.iter() {
@@ -217,19 +218,19 @@ impl Resp {
             };
 
             match first_byte {
-                b'$' => {
+                self::symbols::BULK => {
                     let value = self::bulk::deserialize(reader).await?;
 
                     value.map_or(Ok(Some(Value::Nil)), |s| Ok(Some(Value::String(s))))
                 }
 
-                b':' => {
+                self::symbols::INTEGER => {
                     let value = self::int::deserialize(reader).await?;
 
                     Ok(Some(Value::Integer(value)))
                 }
 
-                b'*' => {
+                self::symbols::ARRAY => {
                     let len = self::size::deserialize(reader).await?;
 
                     if len == 0 {
@@ -251,7 +252,7 @@ impl Resp {
                     Ok(Some(Value::Multi(values.into())))
                 }
 
-                b'%' => {
+                self::symbols::MAP => {
                     let len = self::size::deserialize(reader).await?;
 
                     if len == 0 {
@@ -275,7 +276,7 @@ impl Resp {
                     Ok(Some(Value::Map(map)))
                 }
 
-                b'+' => {
+                self::symbols::SIMPLE => {
                     let value = self::simple::deserialize(reader).await?;
 
                     match value.as_ref() {
@@ -285,7 +286,7 @@ impl Resp {
                     }
                 }
 
-                b'-' => {
+                self::symbols::ERROR => {
                     let value = self::simple::deserialize(reader).await?;
 
                     Ok(Some(Value::Error(value)))
@@ -311,7 +312,7 @@ impl Resp {
 
             match first_byte {
                 // apart from bulk array i dont think any of these can be sent to a server
-                b'>' | b'*' | b'~' => {
+                self::symbols::PUSH | self::symbols::ARRAY | self::symbols::SET => {
                     let len = self::size::deserialize(reader).await?;
 
                     let mut values = Vec::with_capacity(len);
@@ -327,9 +328,9 @@ impl Resp {
                     }
 
                     Ok(Some(match first_byte {
-                        b'>' => Value::Push(values.into()),
-                        b'*' => Value::Multi(values.into()),
-                        b'~' => {
+                        self::symbols::PUSH => Value::Push(values.into()),
+                        self::symbols::ARRAY => Value::Multi(values.into()),
+                        self::symbols::SET => {
                             // this is basically 1:1 copy of the code that is using .extend
                             let mut set = HashSet::with_capacity(len);
 

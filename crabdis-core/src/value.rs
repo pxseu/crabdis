@@ -18,10 +18,8 @@ pub enum Value {
     Multi(Arc<[Self]>),
     Expire((Arc<Self>, Instant)),
     Map(HashMap<Self, Self>),
-    Push(Arc<[Self]>), // For RESP3 push messages (pub/sub)
-
-    // not implemented yet
     Set(HashSet<Self>),
+    Push(Arc<[Self]>), // For RESP3 push messages (pub/sub)
 }
 
 impl PartialEq for Value {
