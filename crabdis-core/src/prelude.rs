@@ -1,3 +1,4 @@
+pub(crate) use std::collections::HashMap;
 pub(crate) use std::sync::Arc;
 
 pub(crate) use tokio::io::{
