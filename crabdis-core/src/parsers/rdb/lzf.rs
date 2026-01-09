@@ -3,6 +3,9 @@
 //! LZF is a simple, fast compression algorithm used by Redis to compress
 //! strings in RDB files. It uses a combination of literal runs and
 //! back-references.
+//!
+//! LZF, originally by Apple Inc., released under the BSD license.
+//! <https://github.com/lzfse/lzfse>
 
 use std::io::{Error as IoError, ErrorKind};
 
