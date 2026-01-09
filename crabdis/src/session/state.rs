@@ -1,8 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
+use crabdis_core::parsers::rdb::Rdb;
 use tokio::sync::RwLock;
 
+use crate::CLI;
 use crate::commands::CommandHandler;
 use crate::prelude::*;
 use crate::storage::ExpireKey;
@@ -12,6 +15,7 @@ pub struct State {
     pub store: Store,
     pub handler: CommandHandler,
     pub expire_keys: ExpireKey,
+    pub rdb_config: RdbConfig,
     pub subscriptions: RwLock<HashMap<Arc<str>, Vec<SessionRef>>>,
     pub sessions: RwLock<HashMap<u64, SessionRef>>,
     next_session_id: RwLock<u64>,
@@ -19,12 +23,56 @@ pub struct State {
 }
 
 impl State {
-    pub async fn new() -> Arc<Self> {
+    pub async fn new(cli: &CLI) -> Arc<Self> {
+        // Check if user explicitly disabled RDB persistence with --save ""
+        let rdb_disabled = cli.save_points.iter().any(|s| s.trim().is_empty());
+
+        // Parse save points
+        let save_points: Vec<SavePoint> = cli
+            .save_points
+            .iter()
+            .filter_map(|s| SavePoint::parse(s))
+            .collect();
+
+        // Use default save points if none specified (and not explicitly disabled)
+        let (save_points, rdb_enabled) = if rdb_disabled {
+            log::info!("RDB persistence disabled via --save \"\"");
+            (vec![], false)
+        } else if save_points.is_empty() {
+            (
+                vec![
+                    SavePoint {
+                        seconds: 3600,
+                        changes: 1,
+                    }, // After 1 hour if at least 1 change
+                    SavePoint {
+                        seconds: 300,
+                        changes: 100,
+                    }, // After 5 mins if at least 100 changes
+                    SavePoint {
+                        seconds: 60,
+                        changes: 10000,
+                    }, // After 1 min if at least 10000 changes
+                ],
+                true,
+            )
+        } else {
+            (save_points, true)
+        };
+
+        let rdb_config = RdbConfig::new(
+            cli.dir.clone(),
+            cli.dbfilename.clone(),
+            save_points,
+            rdb_enabled,
+        );
+
         let mut state = Self {
             loaded: false,
             store: Store::default(),
             handler: CommandHandler::default(),
             expire_keys: ExpireKey::default(),
+            rdb_config,
             subscriptions: RwLock::new(HashMap::new()),
             sessions: RwLock::new(HashMap::new()),
             next_session_id: RwLock::new(1),
@@ -32,12 +80,165 @@ impl State {
         };
 
         state.handler.register().await;
+
+        // Load RDB if exists (still load even if persistence is disabled)
+        if let Err(e) = state.load_rdb().await {
+            log::warn!("Failed to load RDB: {e}");
+        }
+
         state.loaded = true;
 
         let state = Arc::new(state);
         Self::expire_keys_task(state.clone());
 
+        // Only start auto-save task if RDB persistence is enabled
+        if rdb_enabled {
+            Self::auto_save_task(state.clone());
+        }
+
         state
+    }
+
+    /// Loads data from RDB file if it exists.
+    pub async fn load_rdb(&self) -> Result<usize> {
+        let path = self.rdb_config.rdb_path();
+
+        if !path.exists() {
+            log::info!(
+                "No RDB file found at {}, starting with empty database",
+                path.display()
+            );
+            return Ok(0);
+        }
+
+        log::info!("Loading RDB from {}", path.display());
+
+        let file = tokio::fs::File::open(&path).await?;
+        let reader = tokio::io::BufReader::new(file);
+
+        let db = Rdb::from(reader).await?;
+
+        // Convert HashMap<Value, Value> to HashMap<Arc<str>, Value>
+        let mut store = self.store.write().await;
+        let mut expire_keys = self.expire_keys.write().await;
+
+        store.clear();
+        expire_keys.clear();
+
+        let mut count = 0;
+
+        for (key, value) in db {
+            let key_str: Arc<str> = match key {
+                Value::String(s) => s,
+                _ => continue,
+            };
+
+            // Track expiring keys
+            if matches!(value, Value::Expire(_)) {
+                expire_keys.insert(key_str.clone());
+            }
+
+            store.insert(key_str, value);
+
+            count += 1;
+        }
+
+        log::info!("Loaded {count} keys from RDB");
+
+        Ok(count)
+    }
+
+    /// Saves data to RDB file (blocking, for SAVE command).
+    pub async fn save_rdb(&self) -> Result<()> {
+        let path = self.rdb_config.rdb_path();
+
+        // Create temp file
+        let temp_path = path.with_extension("rdb.tmp");
+
+        log::info!("Saving RDB to {}", path.display());
+
+        // Convert store to HashMap<Value, Value>
+        let store = self.store.read().await;
+        let db: HashMap<Value, Value> = store
+            .iter()
+            .map(|(k, v)| (Value::String(k.clone()), v.clone()))
+            .collect();
+        drop(store);
+
+        // Write to temp file
+        let file = tokio::fs::File::create(&temp_path).await?;
+        let mut writer = tokio::io::BufWriter::new(file);
+        Rdb::to(&mut writer, &db).await?;
+        writer.flush().await?;
+
+        // Rename temp file to actual file (atomic on most systems)
+        tokio::fs::rename(&temp_path, &path).await?;
+
+        self.rdb_config.mark_saved();
+        log::info!("RDB saved successfully ({} keys)", db.len());
+
+        Ok(())
+    }
+
+    /// Starts a background save (for BGSAVE command).
+    pub fn bgsave_rdb(state: Arc<Self>) -> Result<()> {
+        // Check if already in progress
+        if state.rdb_config.bgsave_in_progress.load(Ordering::Relaxed) != 0 {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                "Background save already in progress",
+            )
+            .into());
+        }
+
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        state
+            .rdb_config
+            .bgsave_in_progress
+            .store(now, Ordering::Relaxed);
+
+        tokio::spawn(async move {
+            if let Err(e) = state.save_rdb().await {
+                log::error!("Background save failed: {e}");
+            }
+            state
+                .rdb_config
+                .bgsave_in_progress
+                .store(0, Ordering::Relaxed);
+        });
+
+        Ok(())
+    }
+
+    /// Auto-save task that checks save points periodically.
+    fn auto_save_task(state: Arc<Self>) {
+        tokio::spawn(async move {
+            let mut interval = interval(1).await;
+
+            loop {
+                interval.tick().await;
+
+                // Skip if bgsave already in progress
+                if state.rdb_config.bgsave_in_progress.load(Ordering::Relaxed) != 0 {
+                    continue;
+                }
+
+                if state.rdb_config.should_save() {
+                    log::debug!("Auto-save triggered");
+                    if let Err(e) = Self::bgsave_rdb(state.clone()) {
+                        log::error!("Auto-save failed to start: {e}");
+                    }
+                }
+            }
+        });
+    }
+
+    /// Notifies that data has changed (for auto-save tracking).
+    pub fn notify_change(&self) {
+        self.rdb_config.increment_changes();
     }
 
     pub async fn get_next_session_id(&self) -> u64 {
@@ -90,6 +291,7 @@ impl State {
 
     pub async fn unsubscribe(&self, channel: &str, session: &SessionRef) {
         let mut subs = self.subscriptions.write().await;
+
         if let Some(sessions) = subs.get_mut(channel) {
             sessions.retain(|s| s.id != session.id);
             if sessions.is_empty() {
@@ -132,10 +334,7 @@ impl State {
     fn expire_keys_task(state: Arc<Self>) {
         tokio::spawn(async move {
             // run every 60 seconds
-            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
-
-            // skip the first tick
-            interval.tick().await;
+            let mut interval = interval(60).await;
 
             loop {
                 interval.tick().await;

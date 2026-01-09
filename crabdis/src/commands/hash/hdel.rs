@@ -48,6 +48,10 @@ impl CommandTrait for HDel {
             store.remove(&key);
         }
 
+        if count > 0 {
+            session.state.notify_change();
+        }
+
         session.respond(&Value::Integer(count), writer).await
     }
 }

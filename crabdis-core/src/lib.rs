@@ -6,4 +6,5 @@ pub mod args;
 pub mod error;
 pub mod parsers;
 pub mod prelude;
+pub mod shutdown;
 pub mod value;

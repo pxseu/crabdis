@@ -1,6 +1,7 @@
 use crate::CLI;
 
 pub mod logger;
+pub mod time;
 
 pub fn bootlog(cli: &CLI) {
     let name = env!("CARGO_PKG_NAME");

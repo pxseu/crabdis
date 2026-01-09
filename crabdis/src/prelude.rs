@@ -9,4 +9,5 @@ pub use super::commands::CommandTrait;
 pub use super::error::{Context as ErrorContext, Error, Result};
 pub use super::session::SessionRef;
 pub use super::session::state::StateRef;
-pub use super::storage::Store;
+pub use super::storage::{RdbConfig, SavePoint, Store};
+pub use super::utils::time::interval;

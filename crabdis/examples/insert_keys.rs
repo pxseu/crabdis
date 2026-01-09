@@ -6,14 +6,11 @@ use tokio::net::TcpStream;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tokio::spawn(async move {
-        if let Err(e) = crabdis::run(crabdis::CLI::parse_from([
-            "crabdis",
-            "--address",
-            "127.0.0.1",
-            "--port",
-            "6379",
-        ]))
+    let thread = tokio::spawn(async move {
+        if let Err(e) = crabdis::run(
+            crabdis::CLI::parse_from(["crabdis", "--address", "127.0.0.1", "--port", "6379"]),
+            crabdis_core::shutdown::listen(),
+        )
         .await
         {
             println!("Failed to start crabdis: {e}");
@@ -54,6 +51,8 @@ async fn main() -> Result<()> {
     }
     let duration = start.elapsed();
     println!("Time taken: {:?}, count: {}", duration, count);
+
+    thread.abort();
 
     Ok(())
 }

@@ -31,7 +31,7 @@ async fn main() -> Result<()> {
                         }
 
                         let data = &redis_buffer[..n];
-                        let text = std::str::from_utf8(data).unwrap();
+                        let text = unsafe { std::str::from_utf8_unchecked(data) };
 
                         println!("REDIS -> FAKE: {text}" );
                         fake_writer.write_all(data).await.unwrap();
@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
                         }
 
                         let data = &fake_buffer[..n];
-                        let text = std::str::from_utf8(data).unwrap();
+                        let text = unsafe { std::str::from_utf8_unchecked(data) };
 
                         println!("FAKE -> REDIS: {text}");
                         redis_writer.write_all(data).await.unwrap();

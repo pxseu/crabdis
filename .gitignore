@@ -1,2 +1,4 @@
 /target
 test/dump_*
+.DS_Store
+dump.rdb

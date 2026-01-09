@@ -2,6 +2,7 @@ pub mod core;
 pub mod exp;
 pub mod hash;
 pub mod pubsub;
+pub mod store;
 
 use std::sync::Arc;
 
@@ -59,6 +60,14 @@ impl CommandHandler {
             core::Select,
             core::RenameNx,
             core::Quit,
+        );
+
+        register_commands!(
+            self,
+            store::Save,
+            store::BgSave,
+            store::LastSave,
+            store::Debug,
         );
 
         register_commands!(

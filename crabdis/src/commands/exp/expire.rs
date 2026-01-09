@@ -67,6 +67,8 @@ impl CommandTrait for Expire {
         ));
         session.state.expire_keys.write().await.insert(key);
 
+        session.state.notify_change();
+
         session.respond(&Value::Ok, writer).await
     }
 }

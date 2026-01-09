@@ -28,6 +28,7 @@ inherits = "release"
 inherits = "release"
 
 [profile.dev]
+strip = false
 debug = true
 opt-level = 3
 panic = "unwind"

@@ -38,6 +38,10 @@ impl CommandTrait for Del {
             }
         }
 
+        if count > 0 {
+            session.state.notify_change();
+        }
+
         session.respond(&Value::Integer(count), writer).await
     }
 }

@@ -47,6 +47,8 @@ impl CommandTrait for RenameNx {
 
         locked.insert(new_key, old_data);
 
+        session.state.notify_change();
+
         session.respond(&Value::Ok, writer).await
     }
 }

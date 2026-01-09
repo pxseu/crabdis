@@ -19,6 +19,7 @@ struct Arguments {
     pub keepttl: bool,
 }
 
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl CommandTrait for Set {
     fn name(&self) -> &'static str {
@@ -147,6 +148,9 @@ impl CommandTrait for Set {
         } else {
             value
         };
+
+        // Notify state that data changed (for RDB auto-save)
+        session.state.notify_change();
 
         Ok(())
     }

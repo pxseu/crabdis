@@ -41,8 +41,7 @@ crabdis
 - [x] Hash Command family (HGETALL, HSET)
 - [x] Pub/Sub support (PUBLISH, SUBSCRIBE, UNSUBSCRIBE)
 - [x] Additional commands (INCR, MGET, MSET, TYPE, SCAN, SELECT, RENAMENX, INFO, HELLO)
-- [ ] Persistence
-- [ ] More Hash commands (HGET, HDEL, etc.)
+- [x] Persistence
 - [ ] List commands
 - [ ] Set commands
 - [ ] Sorted Set commands

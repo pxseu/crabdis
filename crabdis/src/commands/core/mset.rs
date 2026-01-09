@@ -35,6 +35,8 @@ impl CommandTrait for MSet {
             }
         }
 
+        session.state.notify_change();
+
         session.respond(&Value::Ok, writer).await
     }
 }

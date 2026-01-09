@@ -1,10 +1,59 @@
+use std::io::ErrorKind;
+use std::net::SocketAddr;
+
 use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
+use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
 use crate::prelude::*;
+use crate::session::Session;
 
 pub async fn handle_client(
-    stream: &mut tokio::net::TcpStream,
+    mut stream: TcpStream,
+    state: StateRef,
+    #[cfg_attr(not(debug_assertions), allow(unused_variables))] addr: SocketAddr,
+) {
+    // Disable Nagle's algorithm to ensure immediate delivery of data
+    if let Err(e) = stream.set_nodelay(true) {
+        log::error!("Failed to set TCP_NODELAY: {e}");
+        return;
+    }
+
+    let (tx, rx) = mpsc::unbounded_channel();
+    let session_id = state.get_next_session_id().await;
+    let session = Session::new(session_id, state.clone(), tx);
+    state.add_session(session.clone()).await;
+
+    #[cfg(debug_assertions)]
+    log::debug!(
+        "Accepted connection from {addr} for session: {}",
+        session.id
+    );
+
+    if let Err(e) = handle_connection(&mut stream, session.clone(), rx).await {
+        match e {
+            Error::Io(e)
+                if matches!(
+                    e.kind(),
+                    ErrorKind::ConnectionAborted | ErrorKind::ConnectionReset
+                ) => {}
+            _ => log::error!("Unknown connection error: {e:?}"),
+        }
+    }
+
+    stream.shutdown().await.ok();
+
+    #[cfg(debug_assertions)]
+    log::debug!("Session closed: {}", session.id);
+
+    session.cleanup().await;
+
+    #[cfg(debug_assertions)]
+    log::debug!("Connection from {addr} closed");
+}
+
+async fn handle_connection(
+    stream: &mut TcpStream,
     session: SessionRef,
     mut rx: mpsc::UnboundedReceiver<Value>,
 ) -> Result<()> {

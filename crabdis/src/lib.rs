@@ -16,16 +16,17 @@ mod storage;
 mod utils;
 
 use std::net::{IpAddr, SocketAddr};
+use std::path::PathBuf;
 
 use clap::Parser;
+use crabdis_core::shutdown::Receiver;
 use tokio::net::TcpListener;
-use tokio::sync::mpsc;
 
 use self::prelude::*;
 use crate::handler::handle_client;
 use crate::session::state::State;
 
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 pub struct CLI {
     #[clap(short, long, default_value = "::")]
     pub address: IpAddr,
@@ -38,6 +39,20 @@ pub struct CLI {
 
     #[clap(short, long, default_value = "false")]
     pub verbose: bool,
+
+    /// Directory where RDB file is stored
+    #[clap(long, default_value = "./")]
+    pub dir: PathBuf,
+
+    /// RDB filename
+    #[clap(long, default_value = "dump.rdb")]
+    pub dbfilename: String,
+
+    /// Save points in format "seconds changes" (e.g., "900 1" saves after 900s
+    /// if 1+ keys changed). Can be specified multiple times. Pass --save ""
+    /// to disable RDB persistence.
+    #[clap(long = "save", value_name = "SECONDS CHANGES")]
+    pub save_points: Vec<String>,
 }
 
 /// Runs the Crabdis server with the given CLI configuration.
@@ -46,10 +61,10 @@ pub struct CLI {
 ///
 /// Returns an error if binding to the specified address fails or if the
 /// server encounters an unrecoverable I/O error.
-pub async fn run(cli: CLI) -> Result<()> {
+pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
     utils::logger::init(cfg!(debug_assertions) || cli.verbose);
 
-    let state = State::new().await;
+    let state = State::new(&cli).await;
 
     let listener = TcpListener::bind(SocketAddr::new(cli.address, cli.port)).await?;
 
@@ -63,54 +78,29 @@ pub async fn run(cli: CLI) -> Result<()> {
     );
 
     loop {
-        #[cfg(debug_assertions)]
-        let (mut stream, addr) = listener
-            .accept()
-            .await
-            .context("Failed to accept connection")?;
+        tokio::select! {
+            result = listener.accept() => {
+                let (stream, addr) = result.context("Failed to accept connection")?;
+                let state = state.clone();
 
-        #[cfg(not(debug_assertions))]
-        let (mut stream, _) = listener.accept().await?;
-
-        let state = state.clone();
-
-        tokio::spawn(async move {
-            use std::io::ErrorKind;
-
-            // Disable Nagle's algorithm to ensure immediate delivery of data
-            if let Err(e) = stream.set_nodelay(true) {
-                log::error!("Failed to set TCP_NODELAY: {e}");
-                return;
+                tokio::spawn(handle_client(stream, state, addr));
             }
+            signal = shutdown_rx.recv() => {
+                let signal = signal.context("Failed to receive shutdown signal")?;
+                log::info!("Received {signal}, saving data...");
 
-            let (tx, rx) = mpsc::unbounded_channel();
-            let session_id = state.get_next_session_id().await;
-            let session = session::Session::new(session_id, state.clone(), tx);
-            state.add_session(session.clone()).await;
-
-            #[cfg(debug_assertions)]
-            log::debug!(
-                "Accepted connection from {addr} for session: {}",
-                session.id
-            );
-
-            if let Err(e) = handle_client(&mut stream, session.clone(), rx).await {
-                match e {
-                    Error::Io(e)
-                        if matches!(
-                            e.kind(),
-                            ErrorKind::ConnectionAborted | ErrorKind::ConnectionReset
-                        ) => {}
-                    _ => log::error!("Unkown connection error: {e:?}"),
+                // Perform final save if RDB is enabled
+                if state.rdb_config.enabled {
+                    if let Err(e) = state.save_rdb().await {
+                        log::error!("Failed to save RDB on shutdown: {e}");
+                        return Err(e);
+                    }
+                    log::info!("Data saved successfully");
                 }
-            }
 
-            stream.shutdown().await.ok();
-            #[cfg(debug_assertions)]
-            log::debug!("Session closed: {}", session.id);
-            session.cleanup().await;
-            #[cfg(debug_assertions)]
-            log::debug!("Connection from {addr} closed");
-        });
+                log::info!("Shutting down gracefully");
+                return Ok(());
+            }
+        }
     }
 }

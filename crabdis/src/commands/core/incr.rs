@@ -41,6 +41,8 @@ impl CommandTrait for Incr {
         // store it as int at some point
         store.insert(key, Value::String(value.to_string().into()));
 
+        session.state.notify_change();
+
         session.respond(&Value::Integer(value), writer).await
     }
 }

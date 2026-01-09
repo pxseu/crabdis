@@ -52,6 +52,10 @@ impl CommandTrait for HSet {
             count += 1;
         }
 
+        if count > 0 {
+            session.state.notify_change();
+        }
+
         session.respond(&Value::Integer(count), writer).await
     }
 }
