@@ -56,7 +56,7 @@ pub const ZIPLIST_END: u8 = 0xFF;
 pub const ZIPLIST_BIGLEN: u8 = 0xFE;
 
 // Ziplist entry encoding (top 2 bits)
-pub const ZIPLIST_STR_6BIT: u8 = 0x00;  // 00xxxxxx - 6-bit length string
+pub const ZIPLIST_STR_6BIT: u8 = 0x00; // 00xxxxxx - 6-bit length string
 pub const ZIPLIST_STR_14BIT: u8 = 0x40; // 01xxxxxx - 14-bit length string
 pub const ZIPLIST_STR_32BIT: u8 = 0x80; // 10000000 - 32-bit length string
 
@@ -65,7 +65,7 @@ pub const ZIPLIST_INT_16: u8 = 0xC0; // 11000000 - int16
 pub const ZIPLIST_INT_32: u8 = 0xD0; // 11010000 - int32
 pub const ZIPLIST_INT_64: u8 = 0xE0; // 11100000 - int64
 pub const ZIPLIST_INT_24: u8 = 0xF0; // 11110000 - 24-bit signed int
-pub const ZIPLIST_INT_8: u8 = 0xFE;  // 11111110 - 8-bit signed int
+pub const ZIPLIST_INT_8: u8 = 0xFE; // 11111110 - 8-bit signed int
 // 1111xxxx (0xF1-0xFD) - 4-bit unsigned int (0-12, stored as 1-13)
 
 // Listpack encoding types
