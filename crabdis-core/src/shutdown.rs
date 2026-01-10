@@ -69,7 +69,11 @@ async fn wait_for_signal() -> Result<Signal> {
 
 #[cfg(windows)]
 async fn wait_for_signal() -> Result<Signal> {
-    tokio::signal::ctrl_c().await?;
+    use tokio::signal::windows;
 
-    Ok(Signal::Interrupt)
+    tokio::select! {
+        _ = windows::ctrl_c() => Ok(Signal::Interrupt),
+        _ = windows::ctrl_break() => Ok(Signal::Terminate),
+        _ = windows::ctrl_close() => Ok(Signal::Hangup),
+    }
 }
