@@ -71,9 +71,13 @@ async fn wait_for_signal() -> Result<Signal> {
 async fn wait_for_signal() -> Result<Signal> {
     use tokio::signal::windows;
 
+    let mut ctrlc = windows::ctrl_c()?;
+    let mut ctrlbreak = windows::ctrl_break()?;
+    let mut ctrlclose = windows::ctrl_close()?;
+
     tokio::select! {
-        _ = windows::ctrl_c() => Ok(Signal::Interrupt),
-        _ = windows::ctrl_break() => Ok(Signal::Terminate),
-        _ = windows::ctrl_close() => Ok(Signal::Hangup),
+        _ = ctrlc.recv() => Ok(Signal::Interrupt),
+        _ = ctrlbreak.recv() => Ok(Signal::Terminate),
+        _ = ctrlclose.recv() => Ok(Signal::Hangup),
     }
 }
