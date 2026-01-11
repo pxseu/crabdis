@@ -64,11 +64,11 @@ pub struct CLI {
 pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
     utils::logger::init(cfg!(debug_assertions) || cli.verbose);
 
+    utils::bootlog(&cli);
+
     let state = State::new(&cli).await;
 
     let listener = TcpListener::bind(SocketAddr::new(cli.address, cli.port)).await?;
-
-    utils::bootlog(&cli);
 
     log::info!(
         "Listening on {}",
@@ -79,15 +79,12 @@ pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
 
     loop {
         tokio::select! {
-            result = listener.accept() => {
-                let (stream, addr) = result.context("Failed to accept connection")?;
-                let state = state.clone();
+            // biased, since we want to prioritize shutdown signals and remove randomness overhead
+            biased;
 
-                tokio::spawn(handle_client(stream, state, addr));
-            }
             signal = shutdown_rx.recv() => {
                 let signal = signal.context("Failed to receive shutdown signal")?;
-                log::info!("Received {signal}, saving data...");
+                log::warn!("Received {signal}, saving data...");
 
                 // Perform final save if RDB is enabled
                 if state.rdb_config.enabled {
@@ -100,6 +97,13 @@ pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
 
                 log::info!("Shutting down gracefully");
                 return Ok(());
+            }
+
+            result = listener.accept() => {
+                let (stream, addr) = result.context("Failed to accept connection")?;
+                let state = state.clone();
+
+                tokio::spawn(handle_client(stream, state, addr));
             }
         }
     }

@@ -8,8 +8,7 @@ pub fn bootlog(cli: &CLI) {
     let version = env!("CARGO_PKG_VERSION");
     let bits = std::mem::size_of::<usize>() * 8;
     let pid = std::process::id();
-    let port = cli.port;
-    let threads = cli.threads;
+    let CLI { port, threads, .. } = cli;
 
     log::info!("{name} is starting");
     log::info!("version={version}, bits={bits}, pid={pid}, threads={threads}");

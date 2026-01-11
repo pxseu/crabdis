@@ -7,3 +7,4 @@ pub const ARRAY: u8 = b'*';
 pub const MAP: u8 = b'%';
 pub const SET: u8 = b'~';
 pub const PUSH: u8 = b'>';
+pub const NIL: u8 = b'_';

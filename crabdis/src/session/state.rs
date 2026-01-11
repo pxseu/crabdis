@@ -312,13 +312,8 @@ impl State {
             ];
 
             for session in sessions {
-                let version = session.proto();
-
-                log::debug!(
-                    "Sending to session: {} with protocol version {}",
-                    session.id,
-                    version
-                );
+                #[cfg(debug_assertions)]
+                log::debug!("Sending to session: {session:?}");
 
                 if let Err(e) = session.send(pubsub_value.clone()) {
                     log::error!("Failed to publish to session: {e}");

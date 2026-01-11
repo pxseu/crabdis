@@ -25,10 +25,7 @@ pub async fn handle_client(
     state.add_session(session.clone()).await;
 
     #[cfg(debug_assertions)]
-    log::debug!(
-        "Accepted connection from {addr} for session: {}",
-        session.id
-    );
+    log::debug!("Accepted connection from {addr} for session: {session:?}");
 
     if let Err(e) = handle_connection(&mut stream, session.clone(), rx).await {
         match e {
@@ -44,7 +41,7 @@ pub async fn handle_client(
     stream.shutdown().await.ok();
 
     #[cfg(debug_assertions)]
-    log::debug!("Session closed: {}", session.id);
+    log::debug!("Session closed: {session:?}");
 
     session.cleanup().await;
 
@@ -80,7 +77,7 @@ async fn handle_connection(
                         let mut args = Args::new(&args);
 
                         #[cfg(debug_assertions)]
-                        log::debug!("Received command: {args:?} from session: {:?}", session.id);
+                        log::debug!("Received command: {args:?} from session: {session:?}");
 
                         session
                             .state
@@ -90,7 +87,7 @@ async fn handle_connection(
                     }
                     None => {
                         #[cfg(debug_assertions)]
-                        log::debug!("Received empty request from session or stream closed: {:?}", session.id);
+                        log::debug!("Received empty request from session or stream closed: {session:?}");
                         return Ok(());
                     }
                     _ => {

@@ -140,7 +140,7 @@ impl Resp {
     {
         Box::pin(async move {
             match value {
-                Value::Nil => Ok(writer.write_all(b"$_\r\n").await?),
+                Value::Nil => Ok(writer.write_all(b"_\r\n").await?),
                 Value::Map(map) => {
                     writer.write_u8(self::symbols::MAP).await?;
                     self::size::serialize(writer, map.len()).await?;
@@ -343,6 +343,12 @@ impl Resp {
                         }
                         _ => unsafe { unreachable_unchecked() },
                     }))
+                }
+
+                self::symbols::NIL => {
+                    self::crlf::deserialize(reader).await?;
+
+                    Ok(Some(Value::Nil))
                 }
 
                 _ => Self::from2_impl(reader, Some(first_byte)).await,
