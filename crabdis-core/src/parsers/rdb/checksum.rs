@@ -107,7 +107,7 @@ impl<W> Crc64Writer<W> {
     }
 
     /// Returns the current CRC64 checksum of all data written so far.
-    #[must_use]
+    #[cfg(test)]
     pub const fn checksum(&self) -> u64 {
         self.crc
     }
@@ -244,5 +244,143 @@ mod tests {
     fn test_verify_failure() {
         let checksum = crc64(b"test");
         assert!(verify(checksum, checksum + 1).is_err());
+    }
+
+    #[tokio::test]
+    async fn test_crc64_writer() {
+        use tokio::io::AsyncWriteExt;
+
+        let data = b"hello world";
+        let expected = crc64(data);
+
+        let mut buf = Vec::new();
+        let mut writer = Crc64Writer::new(&mut buf);
+
+        writer.write_all(data).await.unwrap();
+        writer.flush().await.unwrap();
+
+        let checksum = writer.checksum();
+
+        assert_eq!(buf, data);
+        assert_eq!(checksum, expected);
+    }
+
+    #[tokio::test]
+    async fn test_crc64_writer_partial_writes() {
+        use tokio::io::AsyncWriteExt;
+
+        let data = b"hello world";
+        let expected = crc64(data);
+
+        let mut buf = Vec::new();
+        let mut writer = Crc64Writer::new(&mut buf);
+
+        // Write in chunks
+        writer.write_all(b"hello ").await.unwrap();
+        writer.write_all(b"world").await.unwrap();
+        writer.flush().await.unwrap();
+
+        let checksum = writer.checksum();
+
+        assert_eq!(buf, data);
+        assert_eq!(checksum, expected);
+    }
+
+    #[tokio::test]
+    async fn test_crc64_writer_empty() {
+        use tokio::io::AsyncWriteExt;
+
+        let mut buf = Vec::new();
+        let mut writer = Crc64Writer::new(&mut buf);
+
+        writer.flush().await.unwrap();
+
+        let checksum = writer.checksum();
+
+        assert_eq!(buf, b"");
+        assert_eq!(checksum, 0);
+    }
+
+    #[tokio::test]
+    async fn test_crc64_writer_into_inner() {
+        use tokio::io::AsyncWriteExt;
+
+        let data = b"test data";
+        let expected = crc64(data);
+
+        let mut buf = Vec::new();
+        let mut writer = Crc64Writer::new(&mut buf);
+
+        writer.write_all(data).await.unwrap();
+        writer.flush().await.unwrap();
+
+        let (inner, checksum) = writer.into_inner();
+
+        assert_eq!(inner, data);
+        assert_eq!(checksum, expected);
+    }
+
+    #[tokio::test]
+    async fn test_crc64_writer_known_value() {
+        use tokio::io::AsyncWriteExt;
+
+        // Test with "123456789" - known test vector for Redis CRC64
+        let data = b"123456789";
+
+        let mut buf = Vec::new();
+        let mut writer = Crc64Writer::new(&mut buf);
+
+        writer.write_all(data).await.unwrap();
+        writer.flush().await.unwrap();
+
+        // Redis CRC64 of "123456789" should be 0xe9c6d914c4b8d9ca
+        assert_eq!(writer.checksum(), 0xE9C6_D914_C4B8_D9CA);
+    }
+
+    #[tokio::test]
+    async fn test_crc64_writer_multiple_operations() {
+        use tokio::io::AsyncWriteExt;
+
+        let mut buf = Vec::new();
+        let mut writer = Crc64Writer::new(&mut buf);
+
+        // Write, flush, write again
+        writer.write_all(b"hello").await.unwrap();
+        writer.flush().await.unwrap();
+        writer.write_all(b" ").await.unwrap();
+        writer.flush().await.unwrap();
+        writer.write_all(b"world").await.unwrap();
+        writer.flush().await.unwrap();
+
+        let expected = crc64(b"hello world");
+        let checksum = writer.checksum();
+
+        assert_eq!(buf, b"hello world");
+        assert_eq!(checksum, expected);
+    }
+
+    #[tokio::test]
+    async fn test_crc64_reader_writer_consistency() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let data = b"consistency test data";
+
+        // Write with CRC
+        let mut write_buf = Vec::new();
+        let mut writer = Crc64Writer::new(&mut write_buf);
+        writer.write_all(data).await.unwrap();
+        writer.flush().await.unwrap();
+        let write_checksum = writer.checksum();
+
+        // Read with CRC
+        let cursor = Cursor::new(&write_buf);
+        let mut reader = Crc64Reader::new(cursor);
+        let mut read_buf = Vec::new();
+        reader.read_to_end(&mut read_buf).await.unwrap();
+        let read_checksum = reader.checksum();
+
+        // Checksums should match
+        assert_eq!(write_checksum, read_checksum);
+        assert_eq!(read_buf, data);
     }
 }
