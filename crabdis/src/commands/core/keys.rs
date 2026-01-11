@@ -31,8 +31,9 @@ impl CommandTrait for Keys {
 
         let mut keys = Vec::new();
 
-        for key in session.state.store.read().await.keys() {
-            if pattern.matches(key) {
+        let store = session.state.store.read().await;
+        for (key, value) in store.iter() {
+            if !value.expired() && pattern.matches(key) {
                 keys.push(Value::String(key.clone()));
             }
         }

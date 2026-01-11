@@ -6,6 +6,7 @@ pub mod store;
 
 use std::sync::Arc;
 
+use crabdis_core::error::Error as CoreError;
 use tokio::sync::RwLock;
 
 use crate::prelude::*;
@@ -77,6 +78,7 @@ impl CommandHandler {
             exp::SetEx,
             exp::PSetEx,
             exp::PTtl,
+            exp::Persist,
         );
 
         register_commands!(
@@ -124,7 +126,12 @@ impl CommandHandler {
         let command = command.to_uppercase();
 
         if let Some(command) = self.commands.read().await.get(&command) {
-            command.handle_command(writer, args, session).await
+            match command.handle_command(writer, args, session.clone()).await {
+                Err(Error::Core(CoreError::Store(store_err))) => {
+                    session.respond(&store_err.into(), writer).await
+                }
+                any => any,
+            }
         } else {
             #[cfg(debug_assertions)]
             log::debug!("Unknown command: {command} {args:?}");

@@ -25,7 +25,12 @@ impl CommandTrait for Get {
         };
 
         match session.state.store.read().await.get(key) {
-            Some(value) => session.respond(value, writer).await,
+            Some(value) if value.primitive() => session.respond(value, writer).await,
+            Some(_) => {
+                session
+                    .respond(&value_error!("Value is not a simple string"), writer)
+                    .await
+            }
             None => session.respond(&Value::Nil, writer).await,
         }
     }

@@ -32,23 +32,34 @@ impl CommandTrait for RenameNx {
                 .await;
         };
 
-        // check new
         let mut locked = session.state.store.write().await;
 
-        if locked.contains_key(&new_key) {
-            return session.respond(&Value::Nil, writer).await;
+        // Check if source key exists and is not expired
+        locked.get_unexpired(&key)?;
+
+        // Check if destination key exists and is not expired
+        if locked.get_unexpired(&new_key).is_ok() {
+            return session.respond(&Value::Integer(0), writer).await;
+        }
+        // If destination is expired or doesn't exist, we can overwrite it - clean up
+        // expire_keys
+        if locked.get(&new_key).is_some() {
+            session.state.expire_keys.write().await.remove(&new_key);
         }
 
-        let Some((_, old_data)) = locked.remove_entry(&key) else {
-            return session
-                .respond(&value_error!("Key to be reanmed not found"), writer)
-                .await;
-        };
+        let (_, old_data) = locked.remove_entry(&key).unwrap();
+
+        // Update expire_keys if the source key had a TTL
+        let mut expire_keys = session.state.expire_keys.write().await;
+        if expire_keys.remove(&key) {
+            expire_keys.insert(new_key.clone());
+        }
+        drop(expire_keys);
 
         locked.insert(new_key, old_data);
 
         session.state.notify_change();
 
-        session.respond(&Value::Ok, writer).await
+        session.respond(&Value::Integer(1), writer).await
     }
 }

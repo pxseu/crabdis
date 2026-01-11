@@ -25,27 +25,23 @@ impl CommandTrait for HDel {
         };
 
         let mut store = session.state.store.write().await;
+
+        // Get mutable access to the map
+        let map = store.get_entry_map_mut(&key)?;
+
         let mut count = 0;
-
-        let map = match store.get_mut(&key) {
-            Some(Value::Map(map)) => map,
-            Some(_) => {
-                return session
-                    .respond(&value_error!("Key is not a hashmap"), writer)
-                    .await;
-            }
-            // https://redis.io/docs/latest/commands/hdel/
-            None => return session.respond(&Value::Integer(0), writer).await,
-        };
-
         for field in args {
             if map.remove(field).is_some() {
                 count += 1;
             }
         }
 
-        if map.is_empty() {
+        // Check if map is now empty and should be removed
+        let should_remove = map.is_empty();
+
+        if should_remove {
             store.remove(&key);
+            session.state.expire_keys.write().await.remove(&key);
         }
 
         if count > 0 {

@@ -24,7 +24,7 @@ impl CommandTrait for HGet {
             return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
-        let Some(field) = args.next_string_owned() else {
+        let Some(field) = args.next_owned() else {
             return session
                 .respond(&value_error!("Invalid field"), writer)
                 .await;
@@ -32,17 +32,15 @@ impl CommandTrait for HGet {
 
         let store = session.state.store.read().await;
 
-        match store.get(key) {
-            Some(Value::Map(map)) => match map.get(&Value::String(field)) {
-                Some(value) => session.respond(value, writer).await,
-                None => session.respond(&Value::Nil, writer).await,
-            },
-            Some(_) => {
-                session
+        let value = match store.get_inner_unexpired(key)? {
+            Value::Map(map) => map.get(&field).cloned().unwrap_or(Value::Nil),
+            _ => {
+                return session
                     .respond(&value_error!("Key is not a hashmap"), writer)
-                    .await
+                    .await;
             }
-            None => session.respond(&Value::Nil, writer).await,
-        }
+        };
+
+        session.respond(&value, writer).await
     }
 }

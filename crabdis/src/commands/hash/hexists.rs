@@ -24,7 +24,7 @@ impl CommandTrait for HExists {
             return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
-        let Some(field) = args.next_string_owned() else {
+        let Some(field) = args.next_owned() else {
             return session
                 .respond(&value_error!("Invalid field"), writer)
                 .await;
@@ -32,21 +32,16 @@ impl CommandTrait for HExists {
 
         let store = session.state.store.read().await;
 
-        match store.get(key) {
-            Some(Value::Map(map)) => {
-                session
-                    .respond(
-                        &Value::Integer(i64::from(map.contains_key(&Value::String(field)))),
-                        writer,
-                    )
-                    .await
-            }
-            Some(_) => {
-                session
+        let count = match store.get_inner_unexpired(key) {
+            Ok(Value::Map(map)) => i64::from(map.contains_key(&field)),
+            Ok(_) => {
+                return session
                     .respond(&value_error!("Key is not a hashmap"), writer)
-                    .await
+                    .await;
             }
-            None => session.respond(&Value::Nil, writer).await,
-        }
+            Err(_) => 0,
+        };
+
+        session.respond(&Value::Integer(count), writer).await
     }
 }

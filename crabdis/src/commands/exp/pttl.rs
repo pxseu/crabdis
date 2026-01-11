@@ -26,18 +26,12 @@ impl CommandTrait for PTtl {
 
         let store = session.state.store.read().await;
 
-        let ttl = match store.get(key) {
-            Some(Value::Expire((_, ttl))) => {
-                let duration = ttl.duration_since(tokio::time::Instant::now()).as_millis() as i64;
-
-                if duration != 0 { duration } else { -2 }
+        let ttl = match store.get_unexpired(key) {
+            Ok(Value::Expire((_, ttl))) => {
+                ttl.duration_since(tokio::time::Instant::now()).as_millis() as i64
             }
-
-            // non-expire keys should return -1
-            Some(_) => -1,
-
-            // not found keys should return -2
-            None => -2,
+            Ok(_) => -1,  // non-expire keys should return -1
+            Err(_) => -2, // not found or expired keys should return -2
         };
 
         session.respond(&Value::Integer(ttl), writer).await

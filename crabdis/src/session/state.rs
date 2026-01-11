@@ -356,6 +356,9 @@ impl State {
                         && now > *expire_at
                     {
                         keys_to_remove.push(key);
+                    } else {
+                        // key is not expired, remove from expire_keys
+                        state.expire_keys.write().await.remove(&key);
                     }
                 }
                 drop(store);

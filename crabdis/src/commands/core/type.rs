@@ -29,19 +29,20 @@ impl CommandTrait for Type {
         log::debug!("TYPE key: {key}");
 
         let store = session.state.store.read().await;
-        let value = store.get(key);
 
-        let value_type = match value {
-            Some(Value::String(_) | Value::Integer(_)) => "string",
-            Some(Value::Multi(_)) => "list",
-            Some(Value::Set(_)) => "set",
-            Some(Value::Map(_)) => "hash",
-            None => "none",
-            _ => {
-                return session
-                    .respond(&value_error!("Invalid value type"), writer)
-                    .await;
-            }
+        let value_type = match store.get_inner_unexpired(key) {
+            Ok(value) => match value {
+                Value::String(_) | Value::Integer(_) => "string",
+                Value::Multi(_) => "list",
+                Value::Set(_) => "set",
+                Value::Map(_) => "hash",
+                _ => {
+                    return session
+                        .respond(&value_error!("Invalid value type"), writer)
+                        .await;
+                }
+            },
+            Err(_) => "none",
         };
 
         session

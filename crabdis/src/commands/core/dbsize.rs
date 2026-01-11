@@ -16,7 +16,7 @@ impl CommandTrait for DBSize {
     ) -> Result<()> {
         let key_count = {
             let store = session.state.store.read().await;
-            store.len()
+            store.values().filter(|v| !v.expired()).count()
         };
 
         session

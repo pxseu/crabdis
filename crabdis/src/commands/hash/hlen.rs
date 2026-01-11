@@ -26,18 +26,18 @@ impl CommandTrait for HLen {
 
         let store = session.state.store.read().await;
 
-        match store.get(key) {
-            Some(Value::Map(map)) => {
+        match store.get_inner_unexpired(key) {
+            Ok(Value::Map(map)) => {
                 session
                     .respond(&Value::Integer(map.len() as i64), writer)
                     .await
             }
-            Some(_) => {
+            Ok(_) => {
                 session
                     .respond(&value_error!("Key is not a hashmap"), writer)
                     .await
             }
-            None => session.respond(&Value::Integer(0), writer).await,
+            Err(_) => session.respond(&Value::Integer(0), writer).await,
         }
     }
 }

@@ -28,27 +28,20 @@ impl CommandTrait for HSet {
 
         let mut store = session.state.store.write().await;
 
+        // Check if value exists and is expired - if so, remove it first
+        if store.get(&key).is_some_and(Value::expired) {
+            store.remove(&key);
+            session.state.expire_keys.write().await.remove(&key);
+        }
+
         let mut count = 0;
 
+        // Get or create the map, then insert fields
+        let map = store.get_entry_map_mut(&key)?;
+
         while let Some(field) = args.next_owned() {
-            // SAFETY: we know that we have a value, so we can unwrap
-            let value = args.next_owned().unwrap();
-
-            let fields = store
-                .entry(key.clone())
-                .or_insert_with(|| Value::Map(HashMap::new()));
-
-            match fields {
-                Value::Map(fields) => {
-                    fields.insert(field, value);
-                }
-                _ => {
-                    return session
-                        .respond(&value_error!("Key is not a hashmap"), writer)
-                        .await;
-                }
-            }
-
+            let val = args.next_owned().unwrap();
+            map.insert(field, val);
             count += 1;
         }
 

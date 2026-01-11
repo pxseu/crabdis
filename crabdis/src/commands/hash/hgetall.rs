@@ -26,16 +26,14 @@ impl CommandTrait for HGetAll {
 
         let store = session.state.store.read().await;
 
-        match store.get(key) {
-            Some(value @ Value::Map(_)) => session.respond(value, writer).await,
+        let value = store.get_inner_unexpired(key)?;
 
-            Some(_) => {
-                session
-                    .respond(&value_error!("Key is not a hashmap"), writer)
-                    .await
-            }
-
-            None => session.respond(&Value::Nil, writer).await,
+        if !matches!(value, Value::Map(_)) {
+            return session
+                .respond(&value_error!("Key is not a hashmap"), writer)
+                .await;
         }
+
+        session.respond(value, writer).await
     }
 }

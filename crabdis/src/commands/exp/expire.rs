@@ -47,24 +47,11 @@ impl CommandTrait for Expire {
 
         let mut store = session.state.store.write().await;
 
-        let value = match store.get_mut(&key) {
-            Some(value) if value.expired() => {
-                return session
-                    .respond(&value_error!("Key is expired"), writer)
-                    .await;
-            }
-            Some(value) => value,
-            None => {
-                return session
-                    .respond(&value_error!("Key not found"), writer)
-                    .await;
-            }
-        };
+        let value = store.get_unexpired_mut(&key)?;
 
-        *value = Value::Expire((
-            value.inner().clone().into(),
+        value.set_expire(
             tokio::time::Instant::now() + tokio::time::Duration::from_secs(seconds as u64),
-        ));
+        );
         session.state.expire_keys.write().await.insert(key);
 
         session.state.notify_change();

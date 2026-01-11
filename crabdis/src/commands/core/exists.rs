@@ -25,14 +25,11 @@ impl CommandTrait for Exists {
         let mut count = 0;
         for key in args {
             match key {
-                Value::String(k) => match store.get(k) {
-                    // Expired keys are not counted
-                    Some(v) if v.expired() => {}
-                    Some(_) => {
+                Value::String(k) => {
+                    if store.get_unexpired(k).is_ok() {
                         count += 1;
                     }
-                    None => {}
-                },
+                }
 
                 _ => {
                     return session.respond(&value_error!("Invalid key"), writer).await;

@@ -25,15 +25,17 @@ impl CommandTrait for Decr {
         };
 
         let mut store = session.state.store.write().await;
-        let mut value = match store.get(&key).map(Value::inner) {
-            Some(Value::String(s)) => s.parse::<i64>().unwrap_or(0),
-            Some(Value::Integer(i)) => *i,
-            Some(_) => {
-                return session
-                    .respond(&value_error!("Invalid value"), writer)
-                    .await;
-            }
-            None => 0,
+        let mut value = match store.get_inner_unexpired(&key) {
+            Ok(v) => match v {
+                Value::String(s) => s.parse::<i64>().unwrap_or(0),
+                Value::Integer(i) => *i,
+                _ => {
+                    return session
+                        .respond(&value_error!("Invalid value"), writer)
+                        .await;
+                }
+            },
+            Err(_) => 0,
         };
 
         value -= 1;

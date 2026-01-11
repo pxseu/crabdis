@@ -81,9 +81,14 @@ impl CommandTrait for Scan {
         #[cfg(debug_assertions)]
         log::debug!("SCAN cursor: {cursor:?}, pattern: {pattern:?}, count: {count}");
 
-        for (idx, key) in store.keys().enumerate().skip(cursor_start) {
+        for (idx, (key, value)) in store.iter().enumerate().skip(cursor_start) {
             #[cfg(debug_assertions)]
             log::debug!("SCAN key: {key}");
+
+            // Skip expired keys (consistent with KEYS command)
+            if value.expired() {
+                continue;
+            }
 
             let matches = pattern.as_ref().is_none_or(|p| key.contains(p.as_ref()));
 

@@ -26,10 +26,9 @@ impl CommandTrait for MGet {
 
         for key in args {
             match key {
-                Value::String(k) => match store.get(k) {
-                    Some(value) => values.push(value.clone()),
-                    None => values.push(Value::Nil),
-                },
+                Value::String(k) => {
+                    values.push(store.get_inner_unexpired(k).cloned().unwrap_or(Value::Nil));
+                }
 
                 _ => {
                     return session.respond(&value_error!("Invalid key"), writer).await;

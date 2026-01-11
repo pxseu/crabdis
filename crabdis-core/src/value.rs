@@ -91,7 +91,7 @@ impl Value {
 
     pub fn set_expire(&mut self, expires_at: Instant) {
         match self {
-            Self::Expire((v, _)) => *v = v.clone(),
+            Self::Expire((_, e)) => *e = expires_at,
             _ => *self = Self::Expire((Arc::new(self.clone()), expires_at)),
         }
     }
@@ -116,6 +116,14 @@ impl Value {
     #[must_use]
     pub fn is_none(&self) -> bool {
         !self.is_some()
+    }
+
+    #[must_use]
+    pub fn primitive(&self) -> bool {
+        matches!(
+            self.inner(),
+            Self::Simple(_) | Self::Error(_) | Self::Integer(_) | Self::String(_)
+        )
     }
 }
 

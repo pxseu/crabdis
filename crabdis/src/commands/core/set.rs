@@ -142,12 +142,12 @@ impl CommandTrait for Set {
             session.respond(&Value::Ok, writer).await?;
         }
 
-        *prev_key = if let Some(expire_at) = expire_at {
+        *prev_key = value;
+
+        if let Some(expires_at) = expire_at {
             session.state.expire_keys.write().await.insert(key);
-            Value::Expire((value.into(), expire_at))
-        } else {
-            value
-        };
+            prev_key.set_expire(expires_at);
+        }
 
         // Notify state that data changed (for RDB auto-save)
         session.state.notify_change();
