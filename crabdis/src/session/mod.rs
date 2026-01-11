@@ -1,6 +1,6 @@
 use std::hint::unreachable_unchecked;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::atomic::AtomicU8;
 
 use tokio::sync::{RwLock, mpsc};
 

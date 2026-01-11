@@ -1,5 +1,6 @@
 pub use std::collections::HashMap;
 pub use std::sync::Arc;
+pub use std::sync::atomic::Ordering;
 
 pub use async_trait::async_trait;
 pub use crabdis_core::prelude::*;

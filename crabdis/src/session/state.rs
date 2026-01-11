@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::AtomicBool;
 
 use crabdis_core::parsers::rdb::Rdb;
 use tokio::sync::RwLock;
@@ -11,7 +11,7 @@ use crate::prelude::*;
 use crate::storage::ExpireKey;
 
 pub struct State {
-    pub loaded: bool,
+    pub loaded: AtomicBool,
     pub store: Store,
     pub handler: CommandHandler,
     pub expire_keys: ExpireKey,
@@ -67,8 +67,8 @@ impl State {
             rdb_enabled,
         );
 
-        let mut state = Self {
-            loaded: false,
+        let state = Self {
+            loaded: AtomicBool::new(false),
             store: Store::default(),
             handler: CommandHandler::default(),
             expire_keys: ExpireKey::default(),
@@ -81,14 +81,9 @@ impl State {
 
         state.handler.register().await;
 
-        // Load RDB if exists (still load even if persistence is disabled)
-        if let Err(e) = state.load_rdb().await {
-            log::warn!("Failed to load RDB: {e}");
-        }
-
-        state.loaded = true;
-
         let state = Arc::new(state);
+
+        Self::load_task(state.clone());
         Self::expire_keys_task(state.clone());
 
         // Only start auto-save task if RDB persistence is enabled
@@ -169,12 +164,13 @@ impl State {
         let file = tokio::fs::File::create(&temp_path).await?;
         let mut writer = tokio::io::BufWriter::new(file);
         Rdb::to(&mut writer, &db).await?;
-        writer.flush().await?;
+        writer.shutdown().await?;
 
         // Rename temp file to actual file (atomic on most systems)
         tokio::fs::rename(&temp_path, &path).await?;
 
         self.rdb_config.mark_saved();
+
         log::info!("RDB saved successfully ({} keys)", db.len());
 
         Ok(())
@@ -211,6 +207,20 @@ impl State {
         });
 
         Ok(())
+    }
+
+    /// Load task that attempts to load RDB on startup.
+    fn load_task(state: Arc<Self>) {
+        tokio::spawn(async move {
+            match state.load_rdb().await {
+                Ok(_) => {
+                    state.loaded.store(true, Ordering::Relaxed);
+                }
+                Err(e) => {
+                    log::error!("Failed to load RDB: {e}");
+                }
+            }
+        });
     }
 
     /// Auto-save task that checks save points periodically.

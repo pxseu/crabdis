@@ -28,7 +28,11 @@ impl CommandTrait for Info {
                     &Value::String(
                         format!(
                             "loading:{}\r\n",
-                            if session.state.loaded { "0" } else { "1" }
+                            if session.state.loaded.load(Ordering::Relaxed) {
+                                "0"
+                            } else {
+                                "1"
+                            }
                         )
                         .into(),
                     ),
