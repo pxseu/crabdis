@@ -533,7 +533,7 @@ mod tests {
         let value = Value::Nil;
         let mut buff = Vec::new();
         Resp::to3(&value, &mut buff).await.unwrap();
-        assert_eq!(buff, b"$_\r\n");
+        assert_eq!(buff, b"_\r\n");
     }
 
     #[tokio::test]
@@ -692,6 +692,13 @@ mod tests {
                 Value::String("channel".into())
             )),
         );
+    }
+
+    #[tokio::test]
+    async fn test_parse_nil_resp3() {
+        let mut reader = b"_\r\n".as_ref();
+        let value = Resp::from3(&mut reader).await.unwrap();
+        assert_eq!(value, Some(Value::Nil));
     }
 
     #[tokio::test]
