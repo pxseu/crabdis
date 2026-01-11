@@ -43,9 +43,7 @@ impl Resp {
         R: AsyncBufRead + Unpin + Send + 'a,
     {
         if !Self::can_read(reader).await? {
-            let fut: Pin<Box<dyn Future<Output = Result<Option<Value>>> + Send>> =
-                Box::pin(async move { Ok(None) });
-            return Ok(fut);
+            return Ok(Box::pin(async move { Ok(None) }));
         }
 
         Ok(match version {
@@ -336,6 +334,8 @@ impl Resp {
 
                             // force into_iter to free the values vector after the loop
                             for v in values {
+                                // this should be as free as possible, it's only moving Arc's or
+                                // integers, so 8 bytes max
                                 set.insert(v);
                             }
 
@@ -345,6 +345,7 @@ impl Resp {
                     }))
                 }
 
+                // special nil symbol in resp3
                 self::symbols::NIL => {
                     self::crlf::deserialize(reader).await?;
 
