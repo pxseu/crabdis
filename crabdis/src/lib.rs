@@ -84,7 +84,7 @@ pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
 
             signal = shutdown_rx.recv() => {
                 let signal = signal.context("Failed to receive shutdown signal")?;
-                log::warn!("Received {signal}, saving data...");
+                log::warn!("Received {signal}");
 
                 // Perform final save if RDB is enabled
                 if state.rdb_config.enabled {

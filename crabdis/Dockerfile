@@ -20,4 +20,4 @@ EXPOSE 6379
 LABEL org.opencontainers.image.source="https://github.com/pxseu/crabdis"
 
 ENTRYPOINT [ "/usr/local/bin/crabdis" ]
-
+CMD [ "--save", ""]
