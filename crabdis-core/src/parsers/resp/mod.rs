@@ -577,13 +577,14 @@ mod tests {
     async fn test_resp3_push() {
         let value = value_push!(
             Value::String("message".into()),
-            Value::String("channel".into())
+            Value::String("channel".into()),
+            Value::String("content".into())
         );
         let mut buff = Vec::new();
         Resp::to3(&value, &mut buff).await.unwrap();
 
         let resp = String::from_utf8(buff).unwrap();
-        assert!(resp.starts_with(">2\r\n")); // > indicates push in RESP3
+        assert!(resp.starts_with(">3\r\n")); // > indicates push in RESP3
     }
 
     #[tokio::test]
@@ -683,13 +684,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_push() {
-        let mut reader = b">2\r\n$7\r\nmessage\r\n$7\r\nchannel\r\n".as_ref();
+        let mut reader = b">3\r\n$7\r\nmessage\r\n$7\r\nchannel\r\n$7\r\ncontent\r\n".as_ref();
         let value = Resp::from3(&mut reader).await.unwrap();
         assert_eq!(
             value,
             Some(value_push!(
                 Value::String("message".into()),
-                Value::String("channel".into())
+                Value::String("channel".into()),
+                Value::String("content".into())
             )),
         );
     }
