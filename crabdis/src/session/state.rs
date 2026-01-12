@@ -208,10 +208,11 @@ impl State {
                 // Check expiration times with a single store read lock
                 let store = state.store.read().await;
                 for key in keys_to_check {
-                    if let Some(Value::Expire((_, expire_at))) = store.get(&key)
-                        && now > *expire_at
-                    {
-                        keys_to_remove.push(key);
+                    if let Some(Value::Expire((_, expire_at))) = store.get(&key) {
+                        if now >= *expire_at {
+                            // key is expired, mark for removal
+                            keys_to_remove.push(key.clone());
+                        }
                     } else {
                         // key is not expired, remove from expire_keys
                         state.expire_keys.write().await.remove(&key);
