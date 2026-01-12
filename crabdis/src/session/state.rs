@@ -179,6 +179,7 @@ impl State {
                 count += 1;
             }
         }
+
         Ok(count)
     }
 
