@@ -43,6 +43,11 @@ static COMMANDS: LazyLock<CommandMap> = LazyLock::new(|| {
     cmds
 });
 
+#[inline]
+pub fn initialize_commands() {
+    LazyLock::force(&COMMANDS);
+}
+
 /// Get a command by name (case-insensitive).
 #[inline]
 pub fn get_command(name: &str) -> Option<&'static (dyn CommandTrait + Send + Sync)> {

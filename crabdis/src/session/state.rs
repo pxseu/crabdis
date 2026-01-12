@@ -5,6 +5,7 @@ use std::sync::atomic::AtomicBool;
 use tokio::sync::RwLock;
 
 use crate::CLI;
+use crate::commands::initialize_commands;
 use crate::prelude::*;
 use crate::storage::{ExpireKey, rdb};
 
@@ -21,6 +22,9 @@ pub struct State {
 
 impl State {
     pub fn new(cli: &CLI) -> Arc<Self> {
+        // Ensure commands are initialized
+        initialize_commands();
+
         // Check if user explicitly disabled RDB persistence with --save ""
         let rdb_disabled = cli.save_points.iter().any(|s| s.trim().is_empty());
 
