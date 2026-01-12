@@ -27,17 +27,27 @@ use crate::handler::handle_client;
 use crate::session::state::State;
 use crate::storage::rdb;
 
+// This is really silly because Windows does support IPv6, but binding to "::",
+// doesn't default to dual-stack mode. Shame!
+#[cfg(unix)]
+const DEFAULT_ADDRESS: &str = "::";
+#[cfg(not(unix))]
+const DEFAULT_ADDRESS: &str = "127.0.0.1";
+
 #[derive(Parser, Clone)]
 pub struct CLI {
-    #[clap(short, long, default_value = "::")]
+    /// Address to bind to
+    #[clap(short, long, default_value = DEFAULT_ADDRESS)]
     pub address: IpAddr,
 
+    /// Port to listen on
     #[clap(short, long, default_value = "6379")]
     pub port: u16,
 
     #[clap(short, long, default_value = "1")]
     pub threads: usize,
 
+    /// Enable verbose logging
     #[clap(short, long, default_value = "false")]
     pub verbose: bool,
 
