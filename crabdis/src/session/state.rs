@@ -193,8 +193,6 @@ impl State {
                 #[cfg(debug_assertions)]
                 log::debug!("Running expire keys task");
 
-                let now = tokio::time::Instant::now();
-
                 // Collect keys to check while holding expire_keys lock briefly
                 let keys_to_check: Vec<_> =
                     state.expire_keys.read().await.iter().cloned().collect();
@@ -203,6 +201,7 @@ impl State {
                     continue;
                 }
 
+                let now = tokio::time::Instant::now();
                 let mut keys_to_remove = Vec::new();
 
                 // Check expiration times with a single store read lock
