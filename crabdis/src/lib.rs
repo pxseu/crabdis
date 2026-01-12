@@ -25,6 +25,7 @@ use tokio::net::TcpListener;
 use self::prelude::*;
 use crate::handler::handle_client;
 use crate::session::state::State;
+use crate::storage::rdb;
 
 #[derive(Parser, Clone)]
 pub struct CLI {
@@ -66,7 +67,7 @@ pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
 
     utils::bootlog(&cli);
 
-    let state = State::new(&cli).await;
+    let state = State::new(&cli);
 
     let listener = TcpListener::bind(SocketAddr::new(cli.address, cli.port)).await?;
 
@@ -88,7 +89,7 @@ pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
 
                 // Perform final save if RDB is enabled
                 if state.rdb_config.enabled {
-                    if let Err(e) = state.save_rdb().await {
+                    if let Err(e) = rdb::save_rdb(&state).await {
                         log::error!("Failed to save RDB on shutdown: {e}");
                         return Err(e);
                     }

@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::session::state::State;
+use crate::storage::rdb;
 
 pub struct BgSave;
 
@@ -15,7 +15,7 @@ impl CommandTrait for BgSave {
         _args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
-        match State::bgsave_rdb(session.state.clone()) {
+        match rdb::bgsave_rdb(session.state.clone()) {
             Ok(()) => {
                 session
                     .respond(&Value::Simple("Background saving started".into()), writer)

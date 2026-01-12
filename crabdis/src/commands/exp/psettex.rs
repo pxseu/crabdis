@@ -1,3 +1,4 @@
+use crate::commands::get_command;
 use crate::prelude::*;
 
 pub struct PSetEx;
@@ -28,9 +29,7 @@ impl CommandTrait for PSetEx {
         let set_args = vec![key, value, Value::String("PX".into()), milliseconds];
         let mut set_args = Args::new(&set_args);
 
-        let commands = session.state.handler.commands.read().await;
-        let set_cmd = commands.get("SET").unwrap();
-
+        let set_cmd = get_command("SET").unwrap();
         set_cmd
             .handle_command(writer, &mut set_args, session.clone())
             .await

@@ -1,3 +1,4 @@
+use crate::commands::all_commands;
 use crate::prelude::*;
 
 pub struct Command;
@@ -16,10 +17,9 @@ impl CommandTrait for Command {
     ) -> Result<()> {
         if args.is_empty() {
             // Return command info as a map
-            let commands = session.state.handler.commands.read().await;
             let mut map = HashMap::new();
 
-            for (name, _) in commands.iter() {
+            for (name, _) in all_commands() {
                 let cmd_info = vec![
                     Value::String(name.clone().into()),       // name
                     Value::Integer(-1),                       // arity (negative means variable)
@@ -34,8 +34,6 @@ impl CommandTrait for Command {
                 );
             }
 
-            drop(commands);
-
             return session.respond(&Value::Map(map), writer).await;
         }
 
@@ -43,10 +41,9 @@ impl CommandTrait for Command {
             Some(subcommand) => {
                 match subcommand.to_uppercase().as_str() {
                     "DOCS" => {
-                        let commands = session.state.handler.commands.read().await;
                         let mut map = HashMap::new();
 
-                        for (name, _) in commands.iter() {
+                        for (name, _) in all_commands() {
                             let cmd_info = vec![
                                 Value::String("Simple command".into()),   // summary
                                 Value::String("O(1)".into()),             // complexity
@@ -58,8 +55,6 @@ impl CommandTrait for Command {
                                 Value::Multi(cmd_info.into()),
                             );
                         }
-
-                        drop(commands);
 
                         session.respond(&Value::Map(map), writer).await
                     }

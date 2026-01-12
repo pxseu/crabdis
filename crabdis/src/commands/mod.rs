@@ -4,10 +4,9 @@ pub mod hash;
 pub mod pubsub;
 pub mod store;
 
-use std::sync::Arc;
+use std::sync::LazyLock;
 
 use crabdis_core::error::Error as CoreError;
-use tokio::sync::RwLock;
 
 use crate::prelude::*;
 
@@ -23,122 +22,69 @@ pub trait CommandTrait {
     ) -> Result<()>;
 }
 
-macro_rules! register_commands {
-    ($handler:expr, $($command:expr),+ $(,)?) => {
-        $(
-            $handler.register_command($command).await;
-        )+
+pub type CommandMap = HashMap<String, Box<dyn CommandTrait + Send + Sync>>;
+
+pub fn register_command<C>(cmds: &mut CommandMap, command: C)
+where
+    C: CommandTrait + Send + Sync + 'static,
+{
+    cmds.insert(command.name().to_uppercase(), Box::new(command));
+}
+
+static COMMANDS: LazyLock<CommandMap> = LazyLock::new(|| {
+    let mut cmds = HashMap::new();
+
+    core::register(&mut cmds);
+    store::register(&mut cmds);
+    exp::register(&mut cmds);
+    hash::register(&mut cmds);
+    pubsub::register(&mut cmds);
+
+    cmds
+});
+
+/// Get a command by name (case-insensitive).
+#[inline]
+pub fn get_command(name: &str) -> Option<&'static (dyn CommandTrait + Send + Sync)> {
+    COMMANDS.get(&name.to_uppercase()).map(Box::as_ref)
+}
+
+/// Iterate over all registered commands.
+#[inline]
+pub fn all_commands()
+-> impl Iterator<Item = (&'static String, &'static (dyn CommandTrait + Send + Sync))> {
+    COMMANDS.iter().map(|(k, v)| (k, v.as_ref()))
+}
+
+/// Handle a command by name (case-insensitive).
+#[inline]
+pub async fn handle_command(
+    writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
+    args: &mut Args<'_>,
+    session: SessionRef,
+) -> Result<()> {
+    let Some(command) = args.next_string() else {
+        #[cfg(debug_assertions)]
+        log::debug!("Invalid command: {args:?}");
+
+        return session
+            .respond(&value_error!("Invalid command"), writer)
+            .await;
     };
-}
 
-#[derive(Clone, Default)]
-pub struct CommandHandler {
-    commands: Arc<RwLock<HashMap<String, Box<dyn CommandTrait + Send + Sync>>>>,
-}
-
-impl CommandHandler {
-    pub async fn register(&self) {
-        register_commands!(
-            self,
-            core::Client,
-            core::Command,
-            core::DBSize,
-            core::Get,
-            core::Set,
-            core::Del,
-            core::MGet,
-            core::Ping,
-            core::MSet,
-            core::Keys,
-            core::Hello,
-            core::Exists,
-            core::FlushDB,
-            core::Info,
-            core::Incr,
-            core::Decr,
-            core::Scan,
-            core::Type,
-            core::Select,
-            core::RenameNx,
-            core::Quit,
-        );
-
-        register_commands!(
-            self,
-            store::Save,
-            store::BgSave,
-            store::LastSave,
-            store::Debug,
-        );
-
-        register_commands!(
-            self,
-            exp::Expire,
-            exp::Ttl,
-            exp::SetEx,
-            exp::PSetEx,
-            exp::PTtl,
-            exp::Persist,
-        );
-
-        register_commands!(
-            self,
-            hash::HSet,
-            hash::HGetAll,
-            hash::HGet,
-            hash::HDel,
-            hash::HExists,
-            hash::HLen,
-        );
-
-        register_commands!(
-            self,
-            pubsub::Publish,
-            pubsub::Subscribe,
-            pubsub::Unsubscribe,
-        );
-    }
-
-    async fn register_command<C>(&self, command: C)
-    where
-        C: CommandTrait + Send + Sync + 'static,
-    {
-        self.commands
-            .write()
-            .await
-            .insert(command.name().to_uppercase(), Box::new(command));
-    }
-
-    pub async fn handle_command(
-        &self,
-        writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
-        args: &mut Args<'_>,
-        session: SessionRef,
-    ) -> Result<()> {
-        let Some(command) = args.next_string() else {
-            #[cfg(debug_assertions)]
-            log::debug!("Invalid command: {args:?}");
-
-            return session
-                .respond(&value_error!("Invalid command"), writer)
-                .await;
-        };
-        let command = command.to_uppercase();
-
-        if let Some(command) = self.commands.read().await.get(&command) {
-            match command.handle_command(writer, args, session.clone()).await {
-                Err(Error::Core(CoreError::Store(store_err))) => {
-                    session.respond(&store_err.into(), writer).await
-                }
-                any => any,
+    if let Some(cmd) = get_command(command) {
+        match cmd.handle_command(writer, args, session.clone()).await {
+            Err(Error::Core(CoreError::Store(store_err))) => {
+                session.respond(&store_err.into(), writer).await
             }
-        } else {
-            #[cfg(debug_assertions)]
-            log::debug!("Unknown command: {command} {args:?}");
-
-            session
-                .respond(&value_error!("Unknown command: {command}"), writer)
-                .await
+            any => any,
         }
+    } else {
+        #[cfg(debug_assertions)]
+        log::debug!("Unknown command: {command} {args:?}");
+
+        session
+            .respond(&value_error!("ERR Unknown command: {command}"), writer)
+            .await
     }
 }

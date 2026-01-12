@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::storage::rdb;
 
 pub struct Debug;
 
@@ -24,7 +25,7 @@ impl CommandTrait for Debug {
         };
 
         match subcommand.to_uppercase().as_str() {
-            "RELOAD" => match session.state.load_rdb().await {
+            "RELOAD" => match rdb::load_rdb(&session.state).await {
                 Ok(count) => {
                     session
                         .respond(

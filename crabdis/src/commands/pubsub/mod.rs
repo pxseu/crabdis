@@ -2,6 +2,10 @@ pub mod publish;
 pub mod subscribe;
 pub mod unsubscribe;
 
-pub use publish::Publish;
-pub use subscribe::Subscribe;
-pub use unsubscribe::Unsubscribe;
+use super::{CommandMap, register_command};
+
+pub fn register(cmds: &mut CommandMap) {
+    register_command(cmds, publish::Publish);
+    register_command(cmds, subscribe::Subscribe);
+    register_command(cmds, unsubscribe::Unsubscribe);
+}

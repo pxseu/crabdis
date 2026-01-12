@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::storage::rdb;
 
 pub struct Save;
 
@@ -14,7 +15,7 @@ impl CommandTrait for Save {
         _args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
-        match session.state.save_rdb().await {
+        match rdb::save_rdb(&session.state).await {
             Ok(()) => session.respond(&Value::Ok, writer).await,
             Err(e) => session.respond(&value_error!("ERR {e}"), writer).await,
         }
