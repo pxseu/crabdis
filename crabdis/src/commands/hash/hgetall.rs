@@ -8,6 +8,18 @@ impl CommandTrait for HGetAll {
         "HGETALL"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 3,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Returns all fields and values of the hash stored at key",
+            complexity: "O(N) where N is the number of fields in the hash",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

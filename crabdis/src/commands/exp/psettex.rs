@@ -9,6 +9,18 @@ impl CommandTrait for PSetEx {
         "PSETEX"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 4,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Set the value and expiration in milliseconds of a key",
+            complexity: "O(1)",
+            since: "2.6.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

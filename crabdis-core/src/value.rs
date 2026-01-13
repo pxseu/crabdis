@@ -114,12 +114,46 @@ impl Value {
     }
 
     #[must_use]
+    pub fn inner_mut(&mut self) -> Option<&mut Self> {
+        match self {
+            Self::Expire((v, _)) => Arc::get_mut(v),
+            _ => Some(self),
+        }
+    }
+
+    #[must_use]
+    pub const fn expire_at(&self) -> Option<Instant> {
+        match self {
+            Self::Expire((_, expires_at)) => Some(*expires_at),
+            _ => None,
+        }
+    }
+
+    #[must_use]
+    pub fn as_i64(&self) -> Option<i64> {
+        match self.inner() {
+            Self::Integer(i) => Some(*i),
+            Self::String(s) => s.parse::<i64>().ok(),
+            _ => None,
+        }
+    }
+
+    #[must_use]
+    pub fn as_string(&self) -> Option<Arc<str>> {
+        match self.inner() {
+            Self::String(s) => Some(s.clone()),
+            Self::Integer(i) => Some(i.to_string().into()),
+            _ => None,
+        }
+    }
+
+    #[must_use]
     pub fn is_none(&self) -> bool {
         !self.is_some()
     }
 
     #[must_use]
-    pub fn primitive(&self) -> bool {
+    pub fn is_primitive(&self) -> bool {
         matches!(
             self.inner(),
             Self::Simple(_) | Self::Error(_) | Self::Integer(_) | Self::String(_)

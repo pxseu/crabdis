@@ -9,6 +9,18 @@ impl CommandTrait for Command {
         "COMMAND"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: -1,
+            first_key: 0,
+            last_key: 0,
+            step: 0,
+            summary: "Returns details about Redis commands",
+            complexity: "O(N) where N is the number of commands",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
@@ -19,14 +31,15 @@ impl CommandTrait for Command {
             // Return command info as a map
             let mut map = HashMap::new();
 
-            for (name, _) in all_commands() {
+            for (name, t) in all_commands() {
+                let info = t.info();
                 let cmd_info = vec![
-                    Value::String(name.clone().into()),       // name
-                    Value::Integer(-1),                       // arity (negative means variable)
-                    Value::Multi(vec![Value::Nil; 0].into()), // flags
-                    Value::Integer(0),                        // first key
-                    Value::Integer(0),                        // last key
-                    Value::Integer(0),                        // step
+                    Value::String(name.as_str().into()),
+                    Value::Integer(info.arity),
+                    Value::Multi(Vec::new().into()),
+                    Value::Integer(info.first_key),
+                    Value::Integer(info.last_key),
+                    Value::Integer(info.step),
                 ];
                 map.insert(
                     Value::String(name.clone().into()),
@@ -38,33 +51,33 @@ impl CommandTrait for Command {
         }
 
         match args.next_string() {
-            Some(subcommand) => {
-                match subcommand.to_uppercase().as_str() {
-                    "DOCS" => {
-                        let mut map = HashMap::new();
+            Some(subcommand) => match subcommand.to_uppercase().as_str() {
+                "DOCS" => {
+                    let mut map = HashMap::new();
 
-                        for (name, _) in all_commands() {
-                            let cmd_info = vec![
-                                Value::String("Simple command".into()),   // summary
-                                Value::String("O(1)".into()),             // complexity
-                                Value::String("1.0.0".into()),            // since
-                                Value::Multi(vec![Value::Nil; 0].into()), // arguments
-                            ];
-                            map.insert(
-                                Value::String(name.clone().into()),
-                                Value::Multi(cmd_info.into()),
-                            );
-                        }
+                    for (name, t) in all_commands() {
+                        let info = t.info();
 
-                        session.respond(&Value::Map(map), writer).await
+                        let cmd_info = vec![
+                            Value::String(info.summary.into()),
+                            Value::String(info.complexity.into()),
+                            Value::String(info.since.into()),
+                            Value::Multi(Vec::new().into()),
+                        ];
+                        map.insert(
+                            Value::String(name.clone().into()),
+                            Value::Multi(cmd_info.into()),
+                        );
                     }
-                    _ => {
-                        session
-                            .respond(&value_error!("Unknown subcommand"), writer)
-                            .await
-                    }
+
+                    session.respond(&Value::Map(map), writer).await
                 }
-            }
+                _ => {
+                    session
+                        .respond(&value_error!("Unknown subcommand"), writer)
+                        .await
+                }
+            },
             _ => {
                 session
                     .respond(&value_error!("Invalid subcommand"), writer)

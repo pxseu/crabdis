@@ -10,9 +10,21 @@ use crabdis_core::error::Error as CoreError;
 
 use crate::prelude::*;
 
+pub struct CommandInfo {
+    pub arity: i64,
+    pub first_key: i64,
+    pub last_key: i64,
+    pub step: i64,
+    pub summary: &'static str,
+    pub complexity: &'static str,
+    pub since: &'static str,
+}
+
 #[async_trait]
 pub trait CommandTrait {
     fn name(&self) -> &'static str;
+
+    fn info(&self) -> CommandInfo;
 
     async fn handle_command(
         &self,

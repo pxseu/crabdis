@@ -8,6 +8,18 @@ impl CommandTrait for Publish {
         "PUBLISH"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 3,
+            first_key: 0,
+            last_key: 0,
+            step: 0,
+            summary: "Posts a message to a channel",
+            complexity: "O(N+M) where N is the number of clients subscribed to the channel and M is the number of clients subscribed to patterns that match the channel.",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

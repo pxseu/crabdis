@@ -8,6 +8,18 @@ impl CommandTrait for LastSave {
         "LASTSAVE"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 1,
+            first_key: 0,
+            last_key: 0,
+            step: 0,
+            summary: "Returns the UNIX time stamp of the last successful save to disk",
+            complexity: "O(1)",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

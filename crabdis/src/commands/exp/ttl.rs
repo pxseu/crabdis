@@ -8,6 +8,18 @@ impl CommandTrait for Ttl {
         "TTL"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 2,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Get the time to live for a key in seconds",
+            complexity: "O(1)",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

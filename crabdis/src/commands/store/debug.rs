@@ -9,6 +9,18 @@ impl CommandTrait for Debug {
         "DEBUG"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: -2,
+            first_key: 0,
+            last_key: 0,
+            step: 0,
+            summary: "Debugging commands",
+            complexity: "Varies",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

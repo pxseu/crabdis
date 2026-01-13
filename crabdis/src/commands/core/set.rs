@@ -19,11 +19,22 @@ struct Arguments {
     pub keepttl: bool,
 }
 
-#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl CommandTrait for Set {
     fn name(&self) -> &'static str {
         "SET"
+    }
+
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: -3,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Set the string value of a key",
+            complexity: "O(1)",
+            since: "1.0.0",
+        }
     }
 
     async fn handle_command(

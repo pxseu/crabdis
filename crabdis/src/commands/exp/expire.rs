@@ -1,3 +1,9 @@
+use std::hint::unreachable_unchecked;
+
+use crabdis_core::error::Error as CoreError;
+use crabdis_core::store::error::StoreError;
+use tokio::time::{Duration, Instant};
+
 use crate::prelude::*;
 
 pub struct Expire;
@@ -6,6 +12,18 @@ pub struct Expire;
 impl CommandTrait for Expire {
     fn name(&self) -> &'static str {
         "EXPIRE"
+    }
+
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: -3,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Set a key's time to live in seconds",
+            complexity: "O(1)",
+            since: "1.0.0",
+        }
     }
 
     async fn handle_command(
@@ -39,23 +57,33 @@ impl CommandTrait for Expire {
             }
         };
 
-        if seconds < 0 {
+        if seconds <= 0 {
             return session
                 .respond(&value_error!("Invalid seconds"), writer)
                 .await;
         }
 
         let mut store = session.state.store.write().await;
+        let mut expire_keys = session.state.expire_keys.write().await;
 
-        let value = store.get_unexpired_mut(&key)?;
+        let value = match store.get_unexpired_mut(&key) {
+            Err(CoreError::Store(e)) => {
+                if matches!(e, StoreError::Expired) {
+                    store.remove(&key);
+                    expire_keys.remove(&key);
+                }
 
-        value.set_expire(
-            tokio::time::Instant::now() + tokio::time::Duration::from_secs(seconds as u64),
-        );
-        session.state.expire_keys.write().await.insert(key);
+                return session.respond(&Value::Integer(0), writer).await;
+            }
+            Err(_) => unsafe { unreachable_unchecked() },
+            Ok(v) => v,
+        };
+
+        value.set_expire(Instant::now() + Duration::from_secs(seconds as u64));
+        expire_keys.insert(key);
 
         session.state.notify_change();
 
-        session.respond(&Value::Ok, writer).await
+        session.respond(&Value::Integer(1), writer).await
     }
 }

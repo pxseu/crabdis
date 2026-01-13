@@ -8,6 +8,18 @@ impl CommandTrait for HDel {
         "HDEL"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: -3,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Deletes one or more hash fields",
+            complexity: "O(N) where N is the number of fields to be removed",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

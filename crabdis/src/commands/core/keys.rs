@@ -10,6 +10,18 @@ impl CommandTrait for Keys {
         "KEYS"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 2,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Returns all keys matching pattern",
+            complexity: "O(N) where N is the number of keys in the database",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

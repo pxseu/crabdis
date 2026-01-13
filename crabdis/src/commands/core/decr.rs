@@ -8,6 +8,18 @@ impl CommandTrait for Decr {
         "DECR"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 2,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Decrements the number stored at key by one",
+            complexity: "O(1)",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

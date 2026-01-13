@@ -1,3 +1,5 @@
+use glob::Pattern;
+
 use crate::prelude::*;
 
 pub struct Scan;
@@ -8,6 +10,18 @@ impl CommandTrait for Scan {
         "SCAN"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: -1,
+            first_key: 0,
+            last_key: 0,
+            step: 0,
+            summary: "Incrementally iterate the keys space",
+            complexity: "O(N) where N is the number of elements returned",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
@@ -15,7 +29,7 @@ impl CommandTrait for Scan {
         session: SessionRef,
     ) -> Result<()> {
         let mut cursor = Option::<usize>::None;
-        let mut pattern = Option::<Arc<str>>::None;
+        let mut pattern = Option::<Pattern>::None;
         let mut count = 10;
 
         while let Some(arg) = args.next() {
@@ -23,7 +37,7 @@ impl CommandTrait for Scan {
                 Value::String(s) => {
                     if s.to_uppercase() == "MATCH" {
                         if let Some(Value::String(p)) = args.next() {
-                            pattern = Some(p.clone());
+                            pattern = Some(Pattern::new(p.as_ref())?);
                         } else {
                             return session
                                 .respond(&value_error!("Invalid pattern"), writer)
@@ -90,7 +104,7 @@ impl CommandTrait for Scan {
                 continue;
             }
 
-            let matches = pattern.as_ref().is_none_or(|p| key.contains(p.as_ref()));
+            let matches = pattern.as_ref().is_none_or(|p| p.matches(key));
 
             if matches {
                 results.push(Value::String(key.clone()));

@@ -8,6 +8,18 @@ impl CommandTrait for Incr {
         "INCR"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 2,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Increments the integer value of a key by one",
+            complexity: "O(1)",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
@@ -31,7 +43,10 @@ impl CommandTrait for Incr {
                 Value::Integer(i) => *i,
                 _ => {
                     return session
-                        .respond(&value_error!("Invalid value"), writer)
+                        .respond(
+                            &value_error!("ERR value is not an integer or out of range"),
+                            writer,
+                        )
                         .await;
                 }
             },

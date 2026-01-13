@@ -8,6 +8,18 @@ impl CommandTrait for MSet {
         "MSET"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: -3,
+            first_key: 1,
+            last_key: -1,
+            step: 2,
+            summary: "Sets multiple keys to multiple values",
+            complexity: "O(N) where N is the number of keys being set",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

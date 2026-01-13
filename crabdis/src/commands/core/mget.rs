@@ -8,6 +8,18 @@ impl CommandTrait for MGet {
         "MGET"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: -2,
+            first_key: 1,
+            last_key: -1,
+            step: 1,
+            summary: "Gets the values of all the given keys",
+            complexity: "O(N) where N is the number of keys to retrieve",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

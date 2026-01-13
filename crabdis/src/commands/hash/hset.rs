@@ -8,6 +8,18 @@ impl CommandTrait for HSet {
         "HSET"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: -4,
+            first_key: 1,
+            last_key: 1,
+            step: 0,
+            summary: "Sets N fields to their respective values in the hash stored at key",
+            complexity: "O(N) where N is the number of fields being set",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
@@ -41,8 +53,9 @@ impl CommandTrait for HSet {
 
         while let Some(field) = args.next_owned() {
             let val = args.next_owned().unwrap();
-            map.insert(field, val);
-            count += 1;
+            if map.insert(field, val).is_none() {
+                count += 1;
+            }
         }
 
         if count > 0 {

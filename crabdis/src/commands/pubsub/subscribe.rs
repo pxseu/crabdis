@@ -8,6 +8,18 @@ impl CommandTrait for Subscribe {
         "SUBSCRIBE"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 1,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Subscribe to N channels",
+            complexity: "O(N) where N is the number of channels to subscribe to",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

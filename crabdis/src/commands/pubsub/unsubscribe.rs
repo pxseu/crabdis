@@ -8,6 +8,18 @@ impl CommandTrait for Unsubscribe {
         "UNSUBSCRIBE"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 1,
+            first_key: 0,
+            last_key: 0,
+            step: 0,
+            summary: "Unsubscribe from N channels, or from all of them if none is given",
+            complexity: "O(N) where N is the number of channels to unsubscribe from",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

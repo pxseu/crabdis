@@ -8,6 +8,18 @@ impl CommandTrait for Get {
         "GET"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 2,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Gets the value of a key",
+            complexity: "O(1)",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
@@ -24,14 +36,19 @@ impl CommandTrait for Get {
             return session.respond(&value_error!("Invalid key"), writer).await;
         };
 
-        match session.state.store.read().await.get(key) {
-            Some(value) if value.primitive() => session.respond(value, writer).await,
-            Some(_) => {
-                session
-                    .respond(&value_error!("Value is not a simple string"), writer)
-                    .await
-            }
-            None => session.respond(&Value::Nil, writer).await,
+        let store = session.state.store.read().await;
+
+        let value = store.get_inner_unexpired(key)?;
+
+        if value.is_primitive() {
+            return session.respond(value, writer).await;
         }
+
+        session
+            .respond(
+                &value_error!("WRONGTYPE Operation against a key holding the wrong kind of value"),
+                writer,
+            )
+            .await
     }
 }

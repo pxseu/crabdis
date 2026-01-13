@@ -8,6 +8,18 @@ impl CommandTrait for Type {
         "TYPE"
     }
 
+    fn info(&self) -> CommandInfo {
+        CommandInfo {
+            arity: 2,
+            first_key: 0,
+            last_key: 0,
+            step: 0,
+            summary: "Returns the data type of the value stored at key",
+            complexity: "O(1) for every call",
+            since: "1.0.0",
+        }
+    }
+
     async fn handle_command(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
