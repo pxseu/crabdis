@@ -17,7 +17,7 @@ impl CommandTrait for Debug {
             step: 0,
             summary: "Debugging commands",
             complexity: "Varies",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

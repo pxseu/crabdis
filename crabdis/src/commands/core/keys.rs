@@ -13,12 +13,12 @@ impl CommandTrait for Keys {
     fn info(&self) -> CommandInfo {
         CommandInfo {
             arity: 2,
-            first_key: 1,
-            last_key: 1,
-            step: 1,
+            first_key: 0,
+            last_key: 0,
+            step: 0,
             summary: "Returns all keys matching pattern",
             complexity: "O(N) where N is the number of keys in the database",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

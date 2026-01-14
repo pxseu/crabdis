@@ -10,13 +10,13 @@ impl CommandTrait for Select {
 
     fn info(&self) -> CommandInfo {
         CommandInfo {
-            arity: -2,
+            arity: 2,
             first_key: 0,
             last_key: 0,
             step: 0,
             summary: "Select the Redis logical database having the specified zero-based numeric index",
-            complexity: "O(1) for each element returned",
-            since: "1.0.0",
+            complexity: "O(1)",
+            since: "0.1.34",
         }
     }
 

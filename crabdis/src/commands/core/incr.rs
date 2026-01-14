@@ -16,7 +16,7 @@ impl CommandTrait for Incr {
             step: 1,
             summary: "Increments the integer value of a key by one",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

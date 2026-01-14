@@ -16,7 +16,7 @@ impl CommandTrait for MGet {
             step: 1,
             summary: "Gets the values of all the given keys",
             complexity: "O(N) where N is the number of keys to retrieve",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

@@ -16,7 +16,7 @@ impl CommandTrait for Decr {
             step: 1,
             summary: "Decrements the number stored at key by one",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

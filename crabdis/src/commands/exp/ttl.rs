@@ -16,7 +16,7 @@ impl CommandTrait for Ttl {
             step: 1,
             summary: "Get the time to live for a key in seconds",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

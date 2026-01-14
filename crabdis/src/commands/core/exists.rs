@@ -16,7 +16,7 @@ impl CommandTrait for Exists {
             step: 1,
             summary: "Returns the number of keys existing among the given keys",
             complexity: "O(N) where N is the number of keys to check",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

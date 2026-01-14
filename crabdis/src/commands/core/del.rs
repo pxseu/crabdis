@@ -16,7 +16,7 @@ impl CommandTrait for Del {
             step: 1,
             summary: "Removes the specified keys",
             complexity: "O(N) where N is the number of keys to be removed",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

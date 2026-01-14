@@ -17,7 +17,7 @@ impl CommandTrait for PSetEx {
             step: 1,
             summary: "Set the value and expiration in milliseconds of a key",
             complexity: "O(1)",
-            since: "2.6.0",
+            since: "0.1.34",
         }
     }
 

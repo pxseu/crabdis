@@ -16,7 +16,7 @@ impl CommandTrait for LastSave {
             step: 0,
             summary: "Returns the UNIX time stamp of the last successful save to disk",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

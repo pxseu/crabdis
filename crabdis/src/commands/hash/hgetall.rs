@@ -10,13 +10,13 @@ impl CommandTrait for HGetAll {
 
     fn info(&self) -> CommandInfo {
         CommandInfo {
-            arity: 3,
+            arity: 2,
             first_key: 1,
             last_key: 1,
             step: 1,
             summary: "Returns all fields and values of the hash stored at key",
             complexity: "O(N) where N is the number of fields in the hash",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

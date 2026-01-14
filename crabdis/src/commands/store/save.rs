@@ -17,7 +17,7 @@ impl CommandTrait for Save {
             step: 0,
             summary: "Saves the dataset to disk",
             complexity: "O(N) where N is the number of keys in the database",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

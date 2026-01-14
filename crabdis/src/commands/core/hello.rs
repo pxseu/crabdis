@@ -10,13 +10,13 @@ impl CommandTrait for Hello {
 
     fn info(&self) -> CommandInfo {
         CommandInfo {
-            arity: 1,
+            arity: -1,
             first_key: 0,
             last_key: 0,
             step: 0,
-            summary: "Returns a greeting message",
+            summary: "Handshake with the Redis server",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

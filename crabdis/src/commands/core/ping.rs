@@ -16,7 +16,7 @@ impl CommandTrait for Ping {
             step: 0,
             summary: "Ping the server",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

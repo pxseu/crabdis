@@ -10,13 +10,13 @@ impl CommandTrait for RenameNx {
 
     fn info(&self) -> CommandInfo {
         CommandInfo {
-            arity: -1,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
+            arity: 3,
+            first_key: 1,
+            last_key: 2,
+            step: 1,
             summary: "Renames a key only if the new key does not exist",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

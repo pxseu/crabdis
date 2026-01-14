@@ -16,7 +16,7 @@ impl CommandTrait for MSet {
             step: 2,
             summary: "Sets multiple keys to multiple values",
             complexity: "O(N) where N is the number of keys being set",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

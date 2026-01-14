@@ -33,7 +33,7 @@ impl CommandTrait for Set {
             step: 1,
             summary: "Set the string value of a key",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

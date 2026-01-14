@@ -16,7 +16,7 @@ impl CommandTrait for Publish {
             step: 0,
             summary: "Posts a message to a channel",
             complexity: "O(N+M) where N is the number of clients subscribed to the channel and M is the number of clients subscribed to patterns that match the channel.",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

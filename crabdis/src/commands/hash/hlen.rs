@@ -16,7 +16,7 @@ impl CommandTrait for HLen {
             step: 1,
             summary: "Returns the number of fields in a hash",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

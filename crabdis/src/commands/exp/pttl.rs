@@ -10,13 +10,13 @@ impl CommandTrait for PTtl {
 
     fn info(&self) -> CommandInfo {
         CommandInfo {
-            arity: 4,
+            arity: 2,
             first_key: 1,
             last_key: 1,
             step: 1,
             summary: "Get the remaining time to live of a key in milliseconds",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

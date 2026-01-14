@@ -16,7 +16,7 @@ impl CommandTrait for Quit {
             step: 0,
             summary: "Close the connection",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

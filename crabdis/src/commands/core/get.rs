@@ -16,7 +16,7 @@ impl CommandTrait for Get {
             step: 1,
             summary: "Gets the value of a key",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

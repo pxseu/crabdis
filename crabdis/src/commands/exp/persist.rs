@@ -10,13 +10,13 @@ impl CommandTrait for Persist {
 
     fn info(&self) -> CommandInfo {
         CommandInfo {
-            arity: -1,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Persits the given key in the database",
+            arity: 2,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
+            summary: "Remove the expiration from a key",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

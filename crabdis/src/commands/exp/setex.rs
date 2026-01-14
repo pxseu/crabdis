@@ -17,7 +17,7 @@ impl CommandTrait for SetEx {
             step: 1,
             summary: "Set the value and expiration of a key in seconds",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

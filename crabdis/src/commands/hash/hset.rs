@@ -16,7 +16,7 @@ impl CommandTrait for HSet {
             step: 0,
             summary: "Sets N fields to their respective values in the hash stored at key",
             complexity: "O(N) where N is the number of fields being set",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

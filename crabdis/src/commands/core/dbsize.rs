@@ -16,7 +16,7 @@ impl CommandTrait for DBSize {
             step: 0,
             summary: "Returns the number of keys in the selected database",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

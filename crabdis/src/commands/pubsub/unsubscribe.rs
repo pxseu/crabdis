@@ -10,13 +10,13 @@ impl CommandTrait for Unsubscribe {
 
     fn info(&self) -> CommandInfo {
         CommandInfo {
-            arity: 1,
+            arity: -1,
             first_key: 0,
             last_key: 0,
             step: 0,
-            summary: "Unsubscribe from N channels, or from all of them if none is given",
+            summary: "Unsubscribes from one or more channels",
             complexity: "O(N) where N is the number of channels to unsubscribe from",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

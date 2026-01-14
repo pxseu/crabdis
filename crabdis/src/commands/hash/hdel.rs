@@ -16,7 +16,7 @@ impl CommandTrait for HDel {
             step: 1,
             summary: "Deletes one or more hash fields",
             complexity: "O(N) where N is the number of fields to be removed",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

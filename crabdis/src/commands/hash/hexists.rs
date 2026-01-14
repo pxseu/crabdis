@@ -10,13 +10,13 @@ impl CommandTrait for HExists {
 
     fn info(&self) -> CommandInfo {
         CommandInfo {
-            arity: -3,
+            arity: 3,
             first_key: 1,
             last_key: 1,
             step: 1,
-            summary: "Check if a field exists in a hash",
+            summary: "Determines whether a field exists in a hash",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

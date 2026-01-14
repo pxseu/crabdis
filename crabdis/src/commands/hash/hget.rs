@@ -16,7 +16,7 @@ impl CommandTrait for HGet {
             step: 1,
             summary: "Get the value of a hash field",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 

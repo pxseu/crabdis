@@ -11,12 +11,12 @@ impl CommandTrait for Type {
     fn info(&self) -> CommandInfo {
         CommandInfo {
             arity: 2,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
+            first_key: 1,
+            last_key: 1,
+            step: 1,
             summary: "Returns the data type of the value stored at key",
-            complexity: "O(1) for every call",
-            since: "1.0.0",
+            complexity: "O(1)",
+            since: "0.1.34",
         }
     }
 

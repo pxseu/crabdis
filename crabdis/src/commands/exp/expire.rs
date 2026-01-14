@@ -22,7 +22,7 @@ impl CommandTrait for Expire {
             step: 1,
             summary: "Set a key's time to live in seconds",
             complexity: "O(1)",
-            since: "1.0.0",
+            since: "0.1.34",
         }
     }
 
