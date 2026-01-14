@@ -98,4 +98,4 @@ For client compatibility, prefer discovering capabilities via `COMMAND`/`COMMAND
 
 ## License
 
-MIT License, see `LICENSE`.
+MIT License, see [`LICENSE`](./LICENSE).
