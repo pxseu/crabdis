@@ -1,57 +1,101 @@
 # crabdis
 
-> It's like Redis but a bit rusty...
+> It’s like Redis but a bit rusty.
 
-# What?
-
-This is a simple in-memory key-value store written in Rust. It's somewhat compatible with Redis via the [RESP](https://redis.io/docs/reference/protocol-spec/) protocol, but it's not a drop-in replacement. A lot of commands are missing and stuff might not work as expected.
+`crabdis` is a small, in-memory key-value store written in Rust that speaks the Redis protocol (RESP).
 
 > [!NOTE]
-> While it's technically possible to run `crabdis` in production, it's not recommended, use at your own risk!
+> This project is experimental. Use in production only if you’re comfortable with sharp edges.
 
-# Why?
+## What’s implemented
 
-I like tinkering with stuff I use and Redis is a great tool. It was started when the License fiasco happened and I wanted to write my own Redis-compatible server in Rust. This project works with notable clients like [ioredis](https://github.com/luin/ioredis) and [Bun](https://bun.com/docs/runtime/redis).
+- RESP2 by default, with optional RESP3 via `HELLO 3`
+- Core key/value operations (strings + integers)
+- Hashes
+- Key expiry (EXPIRE/TTL/etc.)
+- Pub/Sub (RESP2 arrays / RESP3 push)
+- RDB persistence (load on boot + `SAVE`/`BGSAVE` + periodic auto-save)
 
-> [!IMPORTANT]
-> Bun support is only available since version `0.1.25` of `crabdis` due to incorrect RESP3 support in earlier versions. As always, use the latest version of `crabdis` and `bun` to get the best experience.
+Known to work with clients like `redis-cli`, `ioredis`, and Bun’s Redis client, but compatibility is not guaranteed.
 
-# Installation
+## Install
 
-You can find binaries on the [releases page](https://github.com/pxseu/crabdis/releases). Or you can build it yourself with `cargo build --release`.
+- **Releases**: download prebuilt binaries from `https://github.com/pxseu/crabdis/releases`
+- **Cargo**: `cargo install crabdis`
+- **Docker**: `pxseu/crabdis` on Docker Hub
 
-If you want to install it with cargo, you can do so with `cargo install crabdis`.
+## Quickstart
 
-There is also a Docker image available on [Docker Hub](https://hub.docker.com/r/pxseu/crabdis).
-
-# Usage
-
-By default, `crabdis` will listen on all addresses on port 6379. This is the same as running `crabdis --address :: --port 6379`. This has been chosen because [Railway](https://docs.railway.com/guides/private-networking#listen-on-ipv6)'s internal networking used to be IPv6 only.
+Run locally:
 
 ```sh
 crabdis
 ```
 
-# TODO / Missing Features
+Connect with `redis-cli`:
 
-- [x] Basic RESP protocol implementation
-- [x] GET, SET, DEL, EXISTS, KEYS, FLUSHDB
-- [x] COMMAND / COMMAND DOCS (so ioredis works)
-- [x] SET arguments (EX, PX, NX, XX) + SETEX, PSETEX
-- [x] Hash Command family (HGETALL, HSET)
-- [x] Pub/Sub support (PUBLISH, SUBSCRIBE, UNSUBSCRIBE)
-- [x] Additional commands (INCR, MGET, MSET, TYPE, SCAN, SELECT, RENAMENX, INFO, HELLO)
-- [x] Persistence
-- [ ] List commands
-- [ ] Set commands
-- [ ] Sorted Set commands
+```sh
+redis-cli -p 6379 ping
+```
 
-# Benchmarks
+### Docker
 
-Below are micro-benchmarks for core Value operations and RESP serialization/deserialization (run with `cargo bench`).
+The Docker image disables persistence by default (it runs with `--save ""`).
 
-It's pretty fast actually.
+```sh
+docker run --rm -p 6379:6379 pxseu/crabdis:latest
+```
 
-# License
+To enable persistence, mount a volume and pass `--dir` and one or more `--save` points:
 
-This project is licensed under the [MIT License](LICENSE).
+```sh
+docker run --rm -p 6379:6379 \
+  -v crabdis_data:/data \
+  pxseu/crabdis:latest \
+  --dir /data --save "60 1"
+```
+
+(See `docker-compose.yml` for an example setup.)
+
+## Configuration
+
+Run `crabdis --help` for the full list. Common flags:
+
+- `--address` / `--port`: bind address and port (Unix defaults to `::`, Windows defaults to `127.0.0.1`)
+- `--threads`: Tokio worker threads
+- `--verbose`: enable verbose logging
+- `--dir` / `--dbfilename`: RDB location (defaults to `./dump.rdb`)
+- `--save "SECONDS CHANGES"`: auto-save points; pass `--save ""` to disable RDB persistence
+  - If you don’t specify any `--save` points, Crabdis uses defaults: `3600 1`, `300 100`, `60 10000`
+
+## Supported commands
+
+Crabdis supports a (growing) subset of Redis commands. Highlights:
+
+- **Core**: `GET`, `SET` (incl. `EX`/`PX`/`NX`/`XX`), `DEL`, `EXISTS`, `KEYS`, `SCAN`, `TYPE`, `DBSIZE`, `FLUSHDB`, `SELECT`, `RENAMENX`
+- **Multi-key**: `MGET`, `MSET`
+- **Counters**: `INCR`, `DECR`
+- **Expiry**: `EXPIRE`, `TTL`, `PTTL`, `PERSIST`, `SETEX`, `PSETEX`
+- **Hashes**: `HSET`, `HGET`, `HGETALL`, `HDEL`, `HEXISTS`, `HLEN`
+- **Pub/Sub**: `PUBLISH`, `SUBSCRIBE`, `UNSUBSCRIBE`
+- **Server/Protocol**: `PING`, `QUIT`, `INFO`, `HELLO`, `COMMAND` / `COMMAND DOCS`, `CLIENT`
+- **Persistence**: `SAVE`, `BGSAVE`, `LASTSAVE`
+
+For client compatibility, prefer discovering capabilities via `COMMAND`/`COMMAND DOCS` rather than assuming Redis parity.
+
+## Not implemented (yet)
+
+- Lists, Sets, Sorted Sets
+- Replication, clustering, ACLs
+- Lua scripting, transactions, modules
+
+## Development
+
+- Build: `cargo build --release`
+- Run: `cargo run -p crabdis`
+- Test: `cargo test`
+- Bench (core values + RESP): `cargo bench -p crabdis-core`
+
+## License
+
+MIT License, see `LICENSE`.
