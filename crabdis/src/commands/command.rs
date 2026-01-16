@@ -32,7 +32,7 @@ pub trait CommandTrait {
 }
 
 pub struct CommandRegistry {
-    commands: HashMap<Arc<str>, Box<dyn CommandTrait + Send + Sync>>,
+    commands: HashMap<String, Box<dyn CommandTrait + Send + Sync>>,
 }
 
 impl CommandRegistry {
@@ -44,14 +44,14 @@ impl CommandRegistry {
 
     pub fn register<S: CommandTrait + Send + Sync + 'static>(&mut self, command: S) {
         self.commands
-            .insert(command.name().into(), Box::new(command));
+            .insert(command.name().to_uppercase(), Box::new(command));
     }
 
-    pub fn get(&self, command: &Arc<str>) -> Option<&(dyn CommandTrait + Send + Sync)> {
+    pub fn get(&self, command: &str) -> Option<&(dyn CommandTrait + Send + Sync)> {
         self.commands.get(command).map(Box::as_ref)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&Arc<str>, &(dyn CommandTrait + Send + Sync))> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &(dyn CommandTrait + Send + Sync))> {
         self.commands.iter().map(|(k, v)| (k, v.as_ref()))
     }
 
@@ -70,7 +70,7 @@ impl CommandRegistry {
                 .await;
         };
 
-        let upper: Arc<str> = command.to_uppercase().into();
+        let upper = command.to_uppercase();
 
         if let Some(cmd) = self.get(&upper) {
             match cmd.handle(writer, args, session.clone()).await {

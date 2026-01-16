@@ -41,7 +41,7 @@ impl CommandTrait for SetEx {
         let set_args = vec![key, value, Value::String("EX".into()), seconds];
         let mut set_args = Args::new(&set_args);
 
-        let set_cmd = COMMANDS.get(&"SET".into()).unwrap();
+        let set_cmd = COMMANDS.get("SET").unwrap();
         set_cmd.handle(writer, &mut set_args, session.clone()).await
     }
 }

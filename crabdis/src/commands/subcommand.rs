@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fmt::Write;
-use std::sync::Arc;
 
 use crate::prelude::*;
 
@@ -31,7 +30,7 @@ pub trait SubcommandTrait {
 /// Registry of subcommands for a parent command.
 pub struct SubcommandRegistry {
     parent: &'static str,
-    commands: HashMap<Arc<str>, Box<dyn SubcommandTrait + Send + Sync>>,
+    commands: HashMap<String, Box<dyn SubcommandTrait + Send + Sync>>,
     default: Option<Box<dyn SubcommandTrait + Send + Sync>>,
 }
 
@@ -46,7 +45,7 @@ impl SubcommandRegistry {
 
     pub fn register<S: SubcommandTrait + Send + Sync + 'static>(&mut self, sub: S) {
         self.commands
-            .insert(sub.name().to_uppercase().into(), Box::new(sub));
+            .insert(sub.name().to_uppercase(), Box::new(sub));
     }
 
     pub fn with_default<S: SubcommandTrait + Send + Sync + 'static>(mut self, handler: S) -> Self {
@@ -54,11 +53,11 @@ impl SubcommandRegistry {
         self
     }
 
-    pub fn get(&self, name: &Arc<str>) -> Option<&(dyn SubcommandTrait + Send + Sync)> {
+    pub fn get(&self, name: &str) -> Option<&(dyn SubcommandTrait + Send + Sync)> {
         self.commands.get(name).map(Box::as_ref)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&Arc<str>, &(dyn SubcommandTrait + Send + Sync))> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &(dyn SubcommandTrait + Send + Sync))> {
         self.commands.iter().map(|(k, v)| (k, v.as_ref()))
     }
 
@@ -101,7 +100,7 @@ impl SubcommandRegistry {
                 .await;
         };
 
-        let sub_name: Arc<str> = sub_name.to_uppercase().into();
+        let sub_name = sub_name.to_uppercase();
 
         // Look up the subcommand
         if let Some(subcmd) = self.get(&sub_name) {
