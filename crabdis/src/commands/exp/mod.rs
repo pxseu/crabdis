@@ -5,13 +5,13 @@ mod pttl;
 mod setex;
 mod ttl;
 
-use super::{CommandMap, register_command};
+use crate::prelude::*;
 
-pub fn register(cmds: &mut CommandMap) {
-    register_command(cmds, expire::Expire);
-    register_command(cmds, ttl::Ttl);
-    register_command(cmds, setex::SetEx);
-    register_command(cmds, psettex::PSetEx);
-    register_command(cmds, pttl::PTtl);
-    register_command(cmds, persist::Persist);
+pub fn register(cmds: &mut CommandRegistry) {
+    cmds.register(expire::Expire);
+    cmds.register(ttl::Ttl);
+    cmds.register(setex::SetEx);
+    cmds.register(psettex::PSetEx);
+    cmds.register(pttl::PTtl);
+    cmds.register(persist::Persist);
 }

@@ -20,7 +20,7 @@ impl CommandTrait for Decr {
         }
     }
 
-    async fn handle_command(
+    async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,

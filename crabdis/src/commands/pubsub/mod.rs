@@ -1,11 +1,11 @@
-pub mod publish;
-pub mod subscribe;
-pub mod unsubscribe;
+mod publish;
+mod subscribe;
+mod unsubscribe;
 
-use super::{CommandMap, register_command};
+use crate::prelude::*;
 
-pub fn register(cmds: &mut CommandMap) {
-    register_command(cmds, publish::Publish);
-    register_command(cmds, subscribe::Subscribe);
-    register_command(cmds, unsubscribe::Unsubscribe);
+pub fn register(cmds: &mut CommandRegistry) {
+    cmds.register(publish::Publish);
+    cmds.register(subscribe::Subscribe);
+    cmds.register(unsubscribe::Unsubscribe);
 }

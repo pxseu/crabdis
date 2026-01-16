@@ -5,7 +5,7 @@ use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
-use crate::commands::handle_command;
+use crate::commands::COMMANDS;
 use crate::prelude::*;
 use crate::session::Session;
 
@@ -80,7 +80,7 @@ async fn handle_connection(
                         #[cfg(debug_assertions)]
                         log::debug!("Received command: {args:?} from session: {session:?}");
 
-                        handle_command(&mut writer, &mut args, session.clone()).await?;
+                        COMMANDS.handle(&mut writer, &mut args, session.clone()).await?;
                     }
                     None => {
                         #[cfg(debug_assertions)]

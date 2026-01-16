@@ -21,7 +21,7 @@ impl CommandTrait for BgSave {
         }
     }
 
-    async fn handle_command(
+    async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         _args: &mut Args<'_>,

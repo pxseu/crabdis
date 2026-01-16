@@ -1,20 +1,20 @@
 use crate::prelude::*;
 
-pub struct FlushDB;
+pub struct SetName;
 
 #[async_trait]
-impl CommandTrait for FlushDB {
+impl SubcommandTrait for SetName {
     fn name(&self) -> &'static str {
-        "FLUSHDB"
+        "SETNAME"
     }
 
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -1,
+    fn info(&self) -> SubcommandInfo {
+        SubcommandInfo {
+            arity: 3,
             first_key: 0,
             last_key: 0,
             step: 0,
-            summary: "Removes all keys from the current database",
+            summary: "Sets the connection name.",
             complexity: "O(1)",
             since: "0.1.34",
         }
@@ -26,17 +26,16 @@ impl CommandTrait for FlushDB {
         args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
-        if args.len() > 1 {
+        let Some(name) = args.next_string_owned() else {
             return session
-                .respond(&value_error!("Invalid number of arguments"), writer)
+                .respond(
+                    &value_error!("ERR wrong number of arguments for 'CLIENT SETNAME' command"),
+                    writer,
+                )
                 .await;
-        }
+        };
 
-        session.state.store.write().await.clear();
-        session.state.expire_keys.write().await.clear();
-
-        session.state.notify_change();
-
+        session.set_name(name).await;
         session.respond(&Value::Ok, writer).await
     }
 }

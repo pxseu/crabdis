@@ -1,21 +1,21 @@
 use crate::prelude::*;
 use crate::storage::rdb;
 
-pub struct Save;
+pub struct Reload;
 
 #[async_trait]
-impl CommandTrait for Save {
+impl SubcommandTrait for Reload {
     fn name(&self) -> &'static str {
-        "SAVE"
+        "RELOAD"
     }
 
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 1,
+    fn info(&self) -> SubcommandInfo {
+        SubcommandInfo {
+            arity: 2,
             first_key: 0,
             last_key: 0,
             step: 0,
-            summary: "Saves the dataset to disk",
+            summary: "Reloads the RDB file.",
             complexity: "O(N) where N is the number of keys in the database",
             since: "0.1.34",
         }
@@ -27,8 +27,15 @@ impl CommandTrait for Save {
         _args: &mut Args<'_>,
         session: SessionRef,
     ) -> Result<()> {
-        match rdb::save_rdb(&session.state).await {
-            Ok(()) => session.respond(&Value::Ok, writer).await,
+        match rdb::load_rdb(&session.state).await {
+            Ok(count) => {
+                session
+                    .respond(
+                        &Value::Simple(format!("OK, loaded {count} keys").into()),
+                        writer,
+                    )
+                    .await
+            }
             Err(e) => session.respond(&value_error!("ERR {e}"), writer).await,
         }
     }

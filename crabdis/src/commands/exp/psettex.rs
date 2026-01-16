@@ -1,4 +1,4 @@
-use crate::commands::get_command;
+use crate::commands::COMMANDS;
 use crate::prelude::*;
 
 pub struct PSetEx;
@@ -21,7 +21,7 @@ impl CommandTrait for PSetEx {
         }
     }
 
-    async fn handle_command(
+    async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
@@ -41,9 +41,7 @@ impl CommandTrait for PSetEx {
         let set_args = vec![key, value, Value::String("PX".into()), milliseconds];
         let mut set_args = Args::new(&set_args);
 
-        let set_cmd = get_command("SET").unwrap();
-        set_cmd
-            .handle_command(writer, &mut set_args, session.clone())
-            .await
+        let set_cmd = COMMANDS.get(&"SET".into()).unwrap();
+        set_cmd.handle(writer, &mut set_args, session.clone()).await
     }
 }

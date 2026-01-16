@@ -1,17 +1,17 @@
-pub mod hdel;
-pub mod hexists;
-pub mod hget;
-pub mod hgetall;
-pub mod hlen;
-pub mod hset;
+mod hdel;
+mod hexists;
+mod hget;
+mod hgetall;
+mod hlen;
+mod hset;
 
-use super::{CommandMap, register_command};
+use crate::prelude::*;
 
-pub fn register(cmds: &mut CommandMap) {
-    register_command(cmds, hset::HSet);
-    register_command(cmds, hgetall::HGetAll);
-    register_command(cmds, hget::HGet);
-    register_command(cmds, hdel::HDel);
-    register_command(cmds, hexists::HExists);
-    register_command(cmds, hlen::HLen);
+pub fn register(cmds: &mut CommandRegistry) {
+    cmds.register(hset::HSet);
+    cmds.register(hgetall::HGetAll);
+    cmds.register(hget::HGet);
+    cmds.register(hdel::HDel);
+    cmds.register(hexists::HExists);
+    cmds.register(hlen::HLen);
 }
