@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use std::fmt::Write;
 
 use crate::prelude::*;
+use crate::session::Session;
 
 pub struct SubcommandInfo {
     pub arity: i64,
@@ -23,7 +23,7 @@ pub trait SubcommandTrait {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()>;
 }
 
@@ -53,8 +53,10 @@ impl SubcommandRegistry {
         self
     }
 
+    /// Get a subcommand by name (case-insensitive, zero-allocation lookup).
+    #[inline]
     pub fn get(&self, name: &str) -> Option<&(dyn SubcommandTrait + Send + Sync)> {
-        self.commands.get(name).map(Box::as_ref)
+        self.commands.get(&name.to_uppercase()).map(Box::as_ref)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&String, &(dyn SubcommandTrait + Send + Sync))> {
@@ -65,12 +67,10 @@ impl SubcommandRegistry {
     pub fn help_text(&self) -> String {
         let mut help = String::new();
 
-        for name in self.commands.keys() {
-            if let Some(subcmd) = self.get(name) {
-                let info = subcmd.info();
-                writeln!(help, "{} {}", self.parent, subcmd.name()).unwrap();
-                writeln!(help, "    {}", info.summary).unwrap();
-            }
+        for (name, subcmd) in self.iter() {
+            let info = subcmd.info();
+            writeln!(help, "{} {}", self.parent, name.as_str()).unwrap();
+            writeln!(help, "    {}", info.summary).unwrap();
         }
 
         help
@@ -80,7 +80,7 @@ impl SubcommandRegistry {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         // Check if there's a subcommand argument
         let Some(sub_name) = args.next_string() else {
@@ -100,10 +100,7 @@ impl SubcommandRegistry {
                 .await;
         };
 
-        let sub_name = sub_name.to_uppercase();
-
-        // Look up the subcommand
-        if let Some(subcmd) = self.get(&sub_name) {
+        if let Some(subcmd) = self.get(sub_name) {
             return subcmd.handle(writer, args, session).await;
         }
 
@@ -111,8 +108,7 @@ impl SubcommandRegistry {
         session
             .respond(
                 &value_error!(
-                    "ERR unknown subcommand '{}'. Try {} HELP.",
-                    sub_name,
+                    "ERR unknown subcommand '{sub_name}'. Try {} HELP.",
                     self.parent
                 ),
                 writer,

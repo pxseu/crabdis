@@ -24,7 +24,7 @@ impl CommandTrait for HSet {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         // HSET key field value [field value ...]
         // so the number of arguments should be at least 3 and odd

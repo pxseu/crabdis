@@ -1,5 +1,3 @@
-use crabdis_core::error::Error as CoreError;
-
 use crate::prelude::*;
 
 pub struct CommandInfo {
@@ -27,7 +25,7 @@ pub trait CommandTrait {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()>;
 }
 
@@ -47,8 +45,10 @@ impl CommandRegistry {
             .insert(command.name().to_uppercase(), Box::new(command));
     }
 
+    /// Get a command by name (case-insensitive, zero-allocation lookup).
+    #[inline]
     pub fn get(&self, command: &str) -> Option<&(dyn CommandTrait + Send + Sync)> {
-        self.commands.get(command).map(Box::as_ref)
+        self.commands.get(&command.to_uppercase()).map(Box::as_ref)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&String, &(dyn CommandTrait + Send + Sync))> {
@@ -59,7 +59,7 @@ impl CommandRegistry {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         let Some(command) = args.next_string() else {
             #[cfg(debug_assertions)]
@@ -70,10 +70,8 @@ impl CommandRegistry {
                 .await;
         };
 
-        let upper = command.to_uppercase();
-
-        if let Some(cmd) = self.get(&upper) {
-            match cmd.handle(writer, args, session.clone()).await {
+        if let Some(cmd) = self.get(command) {
+            match cmd.handle(writer, args, session).await {
                 Err(Error::Core(CoreError::Store(store_err))) => {
                     session.respond(&store_err.into(), writer).await
                 }

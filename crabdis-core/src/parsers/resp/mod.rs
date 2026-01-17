@@ -37,7 +37,7 @@ impl Resp {
     /// reader fails to fill the buffer.
     pub async fn try_parse<'a, R>(
         reader: &'a mut R,
-        version: u8,
+        proto: u8,
     ) -> Result<Pin<Box<dyn Future<Output = Result<Option<Value>>> + Send + 'a>>>
     where
         R: AsyncBufRead + Unpin + Send + 'a,
@@ -46,11 +46,27 @@ impl Resp {
             return Ok(Box::pin(async move { Ok(None) }));
         }
 
-        Ok(match version {
+        Ok(match proto {
             2 => Self::from2(reader),
             3 => Self::from3(reader),
-            _ => unreachable!("Invalid protocol version"),
+            _ => unsafe { unreachable_unchecked() },
         })
+    }
+
+    /// Routes to the correct serializer based on the current proto version.
+    pub fn write<'b, T>(
+        value: &'b Value,
+        writer: &'b mut T,
+        proto: u8,
+    ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'b>>
+    where
+        T: AsyncWrite + Unpin + Send + 'b + ?Sized,
+    {
+        match proto {
+            2 => Self::to2(value, writer),
+            3 => Self::to3(value, writer),
+            _ => unsafe { unreachable_unchecked() },
+        }
     }
 
     pub fn to2<'b, T>(
@@ -62,8 +78,8 @@ impl Resp {
     {
         Box::pin(async move {
             match value {
-                Value::Ok => Self::to2(&Value::Simple("OK".into()), writer).await,
-                Value::Pong => Self::to2(&Value::Simple("PONG".into()), writer).await,
+                Value::Ok => Ok(writer.write_all(b"+OK\r\n").await?),
+                Value::Pong => Ok(writer.write_all(b"+PONG\r\n").await?),
                 Value::Nil => Ok(writer.write_all(b"$-1\r\n").await?),
                 Value::Simple(s) => {
                     writer.write_u8(self::symbols::SIMPLE).await?;

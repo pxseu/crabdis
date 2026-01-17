@@ -24,7 +24,7 @@ impl CommandTrait for MSet {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         if args.len() < 2 || !args.len().is_multiple_of(2) {
             return session

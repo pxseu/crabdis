@@ -6,6 +6,8 @@ use crate::prelude::*;
 /// Returns command info as a map.
 pub struct Default;
 
+static EMPTY_ARC_SLICE: LazyLock<Arc<[Value]>> = LazyLock::new(|| Arc::from([]));
+
 #[async_trait]
 impl SubcommandTrait for Default {
     fn name(&self) -> &'static str {
@@ -28,7 +30,7 @@ impl SubcommandTrait for Default {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         _args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         let mut map = HashMap::new();
 
@@ -37,15 +39,15 @@ impl SubcommandTrait for Default {
 
             // Build basic command info array
             let mut cmd_info = vec![
-                Value::String(name.clone().into()),
+                Value::String(name.as_str().into()),
                 Value::Integer(info.arity),
-                Value::Multi(Vec::new().into()), // flags
+                Value::Multi(EMPTY_ARC_SLICE.clone()), // flags
                 Value::Integer(info.first_key),
                 Value::Integer(info.last_key),
                 Value::Integer(info.step),
-                Value::Multi(Vec::new().into()), // ACL categories
-                Value::Multi(Vec::new().into()), // tips
-                Value::Multi(Vec::new().into()), // key specs
+                Value::Multi(EMPTY_ARC_SLICE.clone()), // ACL categories
+                Value::Multi(EMPTY_ARC_SLICE.clone()), // tips
+                Value::Multi(EMPTY_ARC_SLICE.clone()), // key specs
             ];
 
             // Element 10: subcommands
@@ -56,9 +58,9 @@ impl SubcommandTrait for Default {
                         let sub_info = sub.info();
                         Value::Multi(
                             vec![
-                                Value::String(sub_name.clone().into()),
+                                Value::String(sub_name.as_str().into()),
                                 Value::Integer(sub_info.arity),
-                                Value::Multi(Vec::new().into()), // flags
+                                Value::Multi(EMPTY_ARC_SLICE.clone()), // flags
                                 Value::Integer(sub_info.first_key),
                                 Value::Integer(sub_info.last_key),
                                 Value::Integer(sub_info.step),
@@ -69,11 +71,11 @@ impl SubcommandTrait for Default {
                     .collect();
                 cmd_info.push(Value::Multi(sub_array.into()));
             } else {
-                cmd_info.push(Value::Multi(Vec::new().into()));
+                cmd_info.push(Value::Multi(EMPTY_ARC_SLICE.clone()));
             }
 
             map.insert(
-                Value::String(name.clone().into()),
+                Value::String(name.as_str().into()),
                 Value::Multi(cmd_info.into()),
             );
         }

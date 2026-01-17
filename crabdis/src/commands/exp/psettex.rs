@@ -25,7 +25,7 @@ impl CommandTrait for PSetEx {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         if args.len() != 3 {
             return session
@@ -42,6 +42,6 @@ impl CommandTrait for PSetEx {
         let mut set_args = Args::new(&set_args);
 
         let set_cmd = COMMANDS.get("SET").unwrap();
-        set_cmd.handle(writer, &mut set_args, session.clone()).await
+        set_cmd.handle(writer, &mut set_args, session).await
     }
 }

@@ -24,7 +24,7 @@ impl SubcommandTrait for SetName {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         let Some(name) = args.next_string_owned() else {
             return session

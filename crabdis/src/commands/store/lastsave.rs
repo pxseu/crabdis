@@ -24,7 +24,7 @@ impl CommandTrait for LastSave {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         _args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         let last_save = session
             .state

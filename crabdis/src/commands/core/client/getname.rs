@@ -24,7 +24,7 @@ impl SubcommandTrait for GetName {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         _args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         session.respond(&session.name().await.into(), writer).await
     }

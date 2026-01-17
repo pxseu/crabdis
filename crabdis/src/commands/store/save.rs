@@ -25,7 +25,7 @@ impl CommandTrait for Save {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         _args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         match rdb::save_rdb(&session.state).await {
             Ok(()) => session.respond(&Value::Ok, writer).await,

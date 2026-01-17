@@ -2,7 +2,6 @@ pub mod error;
 
 use std::collections::hash_map::Entry;
 use std::hint::unreachable_unchecked;
-use std::sync::Arc;
 
 use crate::prelude::*;
 

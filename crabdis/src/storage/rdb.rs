@@ -3,11 +3,7 @@
 //! This module contains all RDB-related functions for loading and saving
 //! the database to disk.
 
-use std::collections::HashMap;
-use std::sync::Arc;
-
 use crabdis_core::parsers::rdb::Rdb;
-use tokio::io::AsyncWriteExt;
 
 use crate::prelude::*;
 use crate::session::state::State;

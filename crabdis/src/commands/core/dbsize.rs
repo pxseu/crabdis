@@ -24,7 +24,7 @@ impl CommandTrait for DBSize {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         _args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         let key_count = {
             let store = session.state.store.read().await;

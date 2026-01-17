@@ -38,7 +38,7 @@ impl CommandTrait for Debug {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         SUBCOMMANDS.handle(writer, args, session).await
     }

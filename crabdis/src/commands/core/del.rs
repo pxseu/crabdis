@@ -24,7 +24,7 @@ impl CommandTrait for Del {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         if args.is_empty() {
             return session

@@ -25,7 +25,7 @@ impl SubcommandTrait for Reload {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         _args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         match rdb::load_rdb(&session.state).await {
             Ok(count) => {

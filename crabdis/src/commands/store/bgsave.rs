@@ -25,7 +25,7 @@ impl CommandTrait for BgSave {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         _args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         match rdb::bgsave_rdb(session.state.clone()) {
             Ok(()) => {

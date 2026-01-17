@@ -26,7 +26,7 @@ impl CommandTrait for Scan {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         let mut cursor = Option::<usize>::None;
         let mut pattern = Option::<Pattern>::None;

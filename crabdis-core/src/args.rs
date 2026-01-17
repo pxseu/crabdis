@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::value::Value;
 
 /// Zero-copy argument parser that iterates over a slice of Values.
 /// Avoids cloning the entire args vector for each request / response.

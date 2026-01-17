@@ -1,7 +1,3 @@
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
-
 use tokio::sync::RwLock;
 
 use crate::CLI;
@@ -135,21 +131,28 @@ impl State {
         subs.retain(|_, sessions| !sessions.is_empty());
     }
 
-    pub async fn subscribe(&self, channel: &str, session: SessionRef) {
-        let mut sessions = self.subscriptions.write().await;
-        let sessions = sessions.entry(channel.into()).or_default();
+    pub async fn subscribe(&self, channel: &str, session_id: u64) {
+        // Get the SessionRef from stored sessions
+        let sessions_map = self.sessions.read().await;
+        let Some(session) = sessions_map.get(&session_id).cloned() else {
+            return;
+        };
+        drop(sessions_map);
+
+        let mut subscriptions = self.subscriptions.write().await;
+        let channel_sessions = subscriptions.entry(channel.into()).or_default();
 
         // Check if session is already subscribed
-        if !sessions.iter().any(|s| s.id == session.id) {
-            sessions.push(session);
+        if !channel_sessions.iter().any(|s| s.id == session_id) {
+            channel_sessions.push(session);
         }
     }
 
-    pub async fn unsubscribe(&self, channel: &str, session: &SessionRef) {
+    pub async fn unsubscribe(&self, channel: &str, session_id: u64) {
         let mut subs = self.subscriptions.write().await;
 
         if let Some(sessions) = subs.get_mut(channel) {
-            sessions.retain(|s| s.id != session.id);
+            sessions.retain(|s| s.id != session_id);
             if sessions.is_empty() {
                 subs.remove(channel);
             }

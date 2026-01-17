@@ -25,7 +25,7 @@ impl SubcommandTrait for Help {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         _args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         let help_text = SUBCOMMANDS.help_text();
         session

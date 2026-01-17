@@ -24,7 +24,7 @@ impl SubcommandTrait for List {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         _args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         let mut list = String::new();
 

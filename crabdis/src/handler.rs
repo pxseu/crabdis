@@ -1,7 +1,7 @@
 use std::io::ErrorKind;
 use std::net::SocketAddr;
 
-use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
+use tokio::io::{BufReader, BufWriter};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
@@ -80,7 +80,7 @@ async fn handle_connection(
                         #[cfg(debug_assertions)]
                         log::debug!("Received command: {args:?} from session: {session:?}");
 
-                        COMMANDS.handle(&mut writer, &mut args, session.clone()).await?;
+                        COMMANDS.handle(&mut writer, &mut args, &session).await?;
                     }
                     None => {
                         #[cfg(debug_assertions)]

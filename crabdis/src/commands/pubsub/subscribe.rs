@@ -24,7 +24,7 @@ impl CommandTrait for Subscribe {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         if args.is_empty() {
             return session
@@ -36,7 +36,7 @@ impl CommandTrait for Subscribe {
         for arg in args {
             match arg {
                 Value::String(channel) => {
-                    session.state.subscribe(channel, session.clone()).await;
+                    session.state.subscribe(channel, session.id).await;
                     channels.push(channel.clone());
                 }
                 _ => {

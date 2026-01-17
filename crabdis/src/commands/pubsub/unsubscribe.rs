@@ -24,7 +24,7 @@ impl CommandTrait for Unsubscribe {
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
-        session: SessionRef,
+        session: &Session,
     ) -> Result<()> {
         // If no channels specified, unsubscribe from all
         let channels = if args.is_empty() {
@@ -47,7 +47,7 @@ impl CommandTrait for Unsubscribe {
 
         // Unsubscribe from each channel
         for channel in &channels {
-            session.state.unsubscribe(channel, &session).await;
+            session.state.unsubscribe(channel, session.id).await;
         }
 
         // Send unsubscription confirmation for each channel

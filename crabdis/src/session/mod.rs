@@ -1,7 +1,3 @@
-use std::hint::unreachable_unchecked;
-use std::sync::Arc;
-use std::sync::atomic::AtomicU8;
-
 use tokio::sync::{RwLock, mpsc};
 
 use crate::prelude::*;
@@ -56,11 +52,9 @@ impl Session {
         #[cfg(debug_assertions)]
         log::debug!("Writing response to client: {response:?}");
 
-        match self.proto() {
-            2 => Resp::to2(response, writer).await.map_err(Error::from),
-            3 => Resp::to3(response, writer).await.map_err(Error::from),
-            _ => unsafe { unreachable_unchecked() },
-        }
+        Resp::write(response, writer, self.proto()).await?;
+
+        Ok(())
     }
 
     pub fn send(&self, value: Value) -> Result<()> {
