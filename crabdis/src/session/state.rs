@@ -1,5 +1,6 @@
 use tokio::sync::RwLock;
 
+use super::auth::{Auth, AuthRef};
 use crate::CLI;
 use crate::commands::COMMANDS;
 use crate::prelude::*;
@@ -12,6 +13,7 @@ pub struct State {
     pub rdb_config: RdbConfig,
     pub subscriptions: RwLock<HashMap<Arc<str>, Vec<SessionRef>>>,
     pub sessions: RwLock<HashMap<u64, SessionRef>>,
+    pub auth: AuthRef,
     next_session_id: RwLock<u64>,
     available_ids: RwLock<HashSet<u64>>, // For recycling IDs
 }
@@ -73,6 +75,7 @@ impl State {
             sessions: RwLock::new(HashMap::new()),
             next_session_id: RwLock::new(1),
             available_ids: RwLock::new(HashSet::new()),
+            auth: Auth::new(cli.password.as_deref()),
         };
 
         let state = Arc::new(state);

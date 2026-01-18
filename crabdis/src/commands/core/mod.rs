@@ -1,3 +1,4 @@
+mod auth;
 mod client;
 mod command;
 mod dbsize;
@@ -44,4 +45,5 @@ pub fn register(cmds: &mut CommandRegistry) {
     cmds.register(quit::Quit);
     cmds.register(set::Set);
     cmds.register(r#type::Type);
+    cmds.register(auth::Auth);
 }

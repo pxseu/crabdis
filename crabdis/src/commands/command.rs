@@ -21,6 +21,10 @@ pub trait CommandTrait {
         None
     }
 
+    fn requires_auth(&self) -> bool {
+        true
+    }
+
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
@@ -71,6 +75,12 @@ impl CommandRegistry {
         };
 
         if let Some(cmd) = self.get(command) {
+            if cmd.requires_auth() && !session.is_authenticated() {
+                return session
+                    .respond(&value_error!("NOAUTH Authentication required."), writer)
+                    .await;
+            }
+
             match cmd.handle(writer, args, session).await {
                 Err(Error::Core(CoreError::Store(store_err))) => {
                     session.respond(&store_err.into(), writer).await

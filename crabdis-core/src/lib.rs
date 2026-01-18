@@ -3,6 +3,7 @@
 #![allow(clippy::multiple_crate_versions)]
 
 pub mod args;
+pub mod eq;
 pub mod error;
 pub mod parsers;
 pub mod prelude;

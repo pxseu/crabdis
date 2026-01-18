@@ -2,6 +2,7 @@ use tokio::sync::{RwLock, mpsc};
 
 use crate::prelude::*;
 
+pub mod auth;
 pub mod state;
 
 pub struct Session {
@@ -9,6 +10,7 @@ pub struct Session {
     // private since are rwlocked and accessed via methods
     name: RwLock<Option<Arc<str>>>,
     proto_version: AtomicU8,
+    authenticated: AtomicBool,
     pub state: state::StateRef,
     pub tx: mpsc::UnboundedSender<Value>,
 }
@@ -27,6 +29,7 @@ impl std::fmt::Debug for Session {
 impl Session {
     pub fn new(id: u64, state: StateRef, tx: mpsc::UnboundedSender<Value>) -> Arc<Self> {
         Arc::new(Self {
+            authenticated: AtomicBool::new(!state.auth.has_auth()),
             id,
             state,
             name: RwLock::new(None),
@@ -42,6 +45,14 @@ impl Session {
 
     pub fn set_proto(&self, proto: u8) {
         self.proto_version.store(proto, Ordering::Relaxed);
+    }
+
+    pub fn is_authenticated(&self) -> bool {
+        self.authenticated.load(Ordering::Relaxed)
+    }
+
+    pub fn set_authenticated(&self, authenticated: bool) {
+        self.authenticated.store(authenticated, Ordering::Relaxed);
     }
 
     pub async fn respond(

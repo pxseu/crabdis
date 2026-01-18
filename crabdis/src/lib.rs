@@ -64,6 +64,10 @@ pub struct CLI {
     /// to disable RDB persistence.
     #[clap(long = "save", value_name = "SECONDS CHANGES")]
     pub save_points: Vec<String>,
+
+    /// Password for authentication
+    #[clap(long = "require-pass")]
+    pub password: Option<String>,
 }
 
 /// Runs the Crabdis server with the given CLI configuration.

@@ -8,6 +8,10 @@ impl CommandTrait for Hello {
         "HELLO"
     }
 
+    fn requires_auth(&self) -> bool {
+        false
+    }
+
     fn info(&self) -> CommandInfo {
         CommandInfo {
             arity: -1,
