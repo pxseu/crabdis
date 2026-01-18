@@ -1,9 +1,9 @@
 pub mod command;
-pub mod core;
-pub mod exp;
-pub mod hash;
-pub mod pubsub;
-pub mod store;
+mod core;
+mod exp;
+mod hash;
+mod pubsub;
+mod store;
 pub mod subcommand;
 
 pub use command::{CommandInfo, CommandRegistry, CommandTrait};
