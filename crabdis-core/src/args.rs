@@ -2,15 +2,15 @@ use crate::prelude::*;
 
 /// Zero-copy argument parser that iterates over a slice of Values.
 /// Avoids cloning the entire args vector for each request / response.
-pub struct Args<'a> {
-    slice: &'a [Value],
+pub struct Args<'slice> {
+    slice: &'slice [Value],
     pos: usize,
 }
 
-impl<'a> Args<'a> {
+impl<'slice> Args<'slice> {
     #[inline]
     #[must_use]
-    pub const fn new(slice: &'a [Value]) -> Self {
+    pub const fn new(slice: &'slice [Value]) -> Self {
         Self { slice, pos: 0 }
     }
 
@@ -21,7 +21,7 @@ impl<'a> Args<'a> {
 
     /// Returns the next argument if it's a String, otherwise None.
     #[inline]
-    pub fn next_string(&mut self) -> Option<&'a Arc<str>> {
+    pub fn next_string(&mut self) -> Option<&'slice Arc<str>> {
         match self.peek()? {
             Value::String(s) => {
                 // advance the position
@@ -56,14 +56,14 @@ impl<'a> Args<'a> {
     }
 
     #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = &'a Value> {
+    pub fn iter(&self) -> impl Iterator<Item = &'slice Value> {
         self.into_iter()
     }
 
     /// Peeks at the next argument without consuming it.
     #[inline]
     #[must_use]
-    pub fn peek(&self) -> Option<&'a Value> {
+    pub fn peek(&self) -> Option<&'slice Value> {
         self.slice.get(self.pos)
     }
 }
@@ -74,8 +74,8 @@ impl std::fmt::Debug for Args<'_> {
     }
 }
 
-impl<'a> Iterator for Args<'a> {
-    type Item = &'a Value;
+impl<'slice> Iterator for Args<'slice> {
+    type Item = &'slice Value;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -91,9 +91,9 @@ impl<'a> Iterator for Args<'a> {
     }
 }
 
-impl<'a> IntoIterator for &Args<'a> {
-    type IntoIter = std::slice::Iter<'a, Value>;
-    type Item = &'a Value;
+impl<'slice> IntoIterator for &Args<'slice> {
+    type IntoIter = std::slice::Iter<'slice, Value>;
+    type Item = &'slice Value;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
