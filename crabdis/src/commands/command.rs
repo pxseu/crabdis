@@ -41,12 +41,18 @@ pub struct CommandRegistry {
 
 impl CommandRegistry {
     pub fn new() -> Self {
+        #[cfg(debug_assertions)]
+        log::debug!("Building global handler");
+
         Self {
             commands: AsciiMap::new(),
         }
     }
 
     pub fn register<S: CommandTrait + Send + Sync + 'static>(&mut self, command: S) {
+        // Force init of subcommands
+        let _ = command.subcommands();
+
         self.commands
             .insert(command.name().to_uppercase(), Box::new(command));
     }

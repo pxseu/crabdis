@@ -38,6 +38,9 @@ pub struct SubcommandRegistry {
 
 impl SubcommandRegistry {
     pub fn new(parent: &'static str) -> Self {
+        #[cfg(debug_assertions)]
+        log::debug!("Building subcommands for: {parent}");
+
         Self {
             parent,
             commands: AsciiMap::new(),

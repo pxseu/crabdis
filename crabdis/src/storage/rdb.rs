@@ -98,13 +98,14 @@ async fn save_rdb_inner(state: &State) -> Result<()> {
 
     log::info!("Saving RDB to {}", path.display());
 
-    // Convert store to HashMap<Value, Value>
-    let store = state.store.read().await;
-    let db: HashMap<Value, Value> = store
-        .iter()
-        .map(|(k, v)| (Value::String(k.clone()), v.clone()))
+    // Clone the store snapshot while holding the lock briefly.
+    let snapshot = state.store.read().await.clone();
+
+    // Convert Arc<str> keys to Value::String outside the lock
+    let db: HashMap<Value, Value> = snapshot
+        .into_iter()
+        .map(|(k, v)| (Value::String(k), v))
         .collect();
-    drop(store);
 
     // Write to temp file
     let file = tokio::fs::File::create(&temp_path).await?;
