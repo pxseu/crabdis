@@ -30,7 +30,7 @@ pub async fn handle_client(
 
     if let Err(e) = handle_connection(&mut stream, session.clone(), rx).await {
         match e {
-            Error::Io(e)
+            Error::Io(e) | Error::Core(CoreError::Io(e))
                 if matches!(
                     e.kind(),
                     ErrorKind::ConnectionAborted | ErrorKind::ConnectionReset
