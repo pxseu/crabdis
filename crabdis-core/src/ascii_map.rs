@@ -6,8 +6,8 @@ use std::hash::{Hash, Hasher};
 /// equality.
 ///
 /// This is designed for zero-allocation lookups: when you have a
-/// `HashMap<AsciiKey<String>, V>`, you can look up with `AsciiKey<&str>`
-/// without allocating a new `String`.
+/// `HashMap<AsciiKey<String>, V>`, you can look up with `&AsciiKey<str>`
+/// (for example via `AsciiKey::new("get")`) without allocating a new `String`.
 ///
 /// # Example
 ///
@@ -17,16 +17,29 @@ use std::hash::{Hash, Hasher};
 /// use crabdis_core::ascii_map::AsciiKey;
 ///
 /// let mut map: HashMap<AsciiKey<String>, i32> = HashMap::new();
-/// map.insert(AsciiKey("GET".to_string()), 1);
+/// map.insert(AsciiKey("GET".to_owned()), 1);
 ///
 /// // Zero-allocation lookup with &str
-/// assert_eq!(map.get(&AsciiKey("get")), Some(&1));
-/// assert_eq!(map.get(&AsciiKey("GET")), Some(&1));
-/// assert_eq!(map.get(&AsciiKey("Get")), Some(&1));
+/// assert_eq!(map.get(AsciiKey::new("get")), Some(&1));
+/// assert_eq!(map.get(AsciiKey::new("GET")), Some(&1));
+/// assert_eq!(map.get(AsciiKey::new("Get")), Some(&1));
 /// ```
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct AsciiKey<T: ?Sized>(pub T);
+
+impl AsciiKey<str> {
+    /// Creates a borrowed `AsciiKey` from a `&str` without allocating.
+    #[inline]
+    #[must_use]
+    pub fn new(key: &str) -> &Self {
+        // SAFETY: AsciiKey is #[repr(transparent)] so AsciiKey<str> has the same
+        // layout as `str` when referenced. We convert &str to &AsciiKey<str> by
+        // casting the underlying pointer. The returned reference is tied to the
+        // input's lifetime, so it remains valid for as long as `key` does.
+        unsafe { &*(std::ptr::from_ref::<str>(key) as *const AsciiKey<str>) }
+    }
+}
 
 impl<T: AsRef<str> + ?Sized> Hash for AsciiKey<T> {
     #[inline]
@@ -98,10 +111,7 @@ impl<V> AsciiMap<V> {
     #[inline]
     #[must_use]
     pub fn get(&self, key: &str) -> Option<&V> {
-        // The magic sauce
-        let key_ref: &AsciiKey<str> =
-            unsafe { &*(std::ptr::from_ref::<str>(key) as *const AsciiKey<str>) };
-        self.inner.get(key_ref)
+        self.inner.get(AsciiKey::new(key))
     }
 
     /// Returns an iterator over the key-value pairs.
