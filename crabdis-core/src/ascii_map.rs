@@ -37,7 +37,7 @@ impl AsciiKey<str> {
         // layout as `str` when referenced. We convert &str to &AsciiKey<str> by
         // casting the underlying pointer. The returned reference is tied to the
         // input's lifetime, so it remains valid for as long as `key` does.
-        unsafe { &*(std::ptr::from_ref::<str>(key) as *const Self) }
+        unsafe { &*(std::ptr::from_ref(key) as *const Self) }
     }
 }
 

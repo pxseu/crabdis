@@ -2,6 +2,22 @@ use crate::prelude::*;
 
 /// Zero-copy argument parser that iterates over a slice of Values.
 /// Avoids cloning the entire args vector for each request / response.
+///
+/// ```
+/// use crabdis_core::args::Args;
+/// use crabdis_core::value::Value;
+///
+/// let array = vec![Value::String("example".into()), Value::Integer(67)];
+///
+/// let mut args = Args::new(&array);
+///
+/// assert_eq!(args.len(), 2);
+/// assert_eq!(args.next(), Some(&Value::String("example".into())));
+/// assert_eq!(args.next(), Some(&Value::Integer(67)));
+/// assert_eq!(args.next(), None);
+/// assert!(args.is_empty());
+/// assert_eq!(array.len(), 2);
+/// ```
 pub struct Args<'slice> {
     slice: &'slice [Value],
     pos: usize,
