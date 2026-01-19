@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - "**"
+      - "!v*"
+    paths:
+      - crabdis/**
+      - crabdis-core/**
+      - Cargo.{toml,lock}}
+      - .github/workflows/**
+      - .rustfmt.toml
 
 permissions:
   contents: read
