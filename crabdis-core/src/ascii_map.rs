@@ -32,7 +32,7 @@ impl<T: AsRef<str> + ?Sized> Hash for AsciiKey<T> {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
         for byte in self.0.as_ref().bytes() {
-            state.write_u8(byte.to_ascii_lowercase());
+            state.write_u8(byte.to_ascii_uppercase());
         }
         // Hash the length to distinguish "a" from "aa" etc.
         state.write_usize(self.0.as_ref().len());
