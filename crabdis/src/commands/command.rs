@@ -1,3 +1,5 @@
+use crabdis_core::ascii_map::AsciiMap;
+
 use crate::prelude::*;
 
 pub struct CommandInfo {
@@ -33,32 +35,44 @@ pub trait CommandTrait {
     ) -> Result<()>;
 }
 
+struct CommandEntry {
+    command: Box<dyn CommandTrait + Send + Sync>,
+    requires_auth: bool,
+}
+
 pub struct CommandRegistry {
-    commands: HashMap<String, Box<dyn CommandTrait + Send + Sync>>,
+    commands: AsciiMap<CommandEntry>,
 }
 
 impl CommandRegistry {
     pub fn new() -> Self {
         Self {
-            commands: HashMap::new(),
+            commands: AsciiMap::new(),
         }
     }
 
     pub fn register<S: CommandTrait + Send + Sync + 'static>(&mut self, command: S) {
-        self.commands
-            .insert(command.name().to_uppercase(), Box::new(command));
+        let requires_auth = command.requires_auth();
+        self.commands.insert(
+            command.name().to_uppercase(),
+            CommandEntry {
+                command: Box::new(command),
+                requires_auth,
+            },
+        );
     }
 
     /// Get a command by name (case-insensitive, zero-allocation lookup).
     #[inline]
     pub fn get(&self, command: &str) -> Option<&(dyn CommandTrait + Send + Sync)> {
-        self.commands.get(&command.to_uppercase()).map(Box::as_ref)
+        self.commands.get(command).map(|e| e.command.as_ref())
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &(dyn CommandTrait + Send + Sync))> {
-        self.commands.iter().map(|(k, v)| (k, v.as_ref()))
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &(dyn CommandTrait + Send + Sync))> {
+        self.commands.iter().map(|(k, v)| (k, v.command.as_ref()))
     }
 
+    #[inline]
     pub async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
@@ -74,14 +88,15 @@ impl CommandRegistry {
                 .await;
         };
 
-        if let Some(cmd) = self.get(command) {
-            if cmd.requires_auth() && !session.is_authenticated() {
+        if let Some(entry) = self.commands.get(command) {
+            // Use cached requires_auth to avoid vtable lookup
+            if entry.requires_auth && !session.is_authenticated() {
                 return session
                     .respond(&value_error!("NOAUTH Authentication required."), writer)
                     .await;
             }
 
-            match cmd.handle(writer, args, session).await {
+            match entry.command.handle(writer, args, session).await {
                 Err(Error::Core(CoreError::Store(store_err))) => {
                     session.respond(&store_err.into(), writer).await
                 }

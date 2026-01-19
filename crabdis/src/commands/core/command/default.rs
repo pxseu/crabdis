@@ -39,7 +39,7 @@ impl SubcommandTrait for Default {
 
             // Build basic command info array
             let mut cmd_info = vec![
-                Value::String(name.as_str().into()),
+                Value::String(name.into()),
                 Value::Integer(info.arity),
                 Value::Multi(EMPTY_ARC_SLICE.clone()), // flags
                 Value::Integer(info.first_key),
@@ -58,7 +58,7 @@ impl SubcommandTrait for Default {
                         let sub_info = sub.info();
                         Value::Multi(
                             vec![
-                                Value::String(sub_name.as_str().into()),
+                                Value::String(sub_name.into()),
                                 Value::Integer(sub_info.arity),
                                 Value::Multi(EMPTY_ARC_SLICE.clone()), // flags
                                 Value::Integer(sub_info.first_key),
@@ -74,10 +74,7 @@ impl SubcommandTrait for Default {
                 cmd_info.push(Value::Multi(EMPTY_ARC_SLICE.clone()));
             }
 
-            map.insert(
-                Value::String(name.as_str().into()),
-                Value::Multi(cmd_info.into()),
-            );
+            map.insert(Value::String(name.into()), Value::Multi(cmd_info.into()));
         }
 
         session.respond(&Value::Map(map), writer).await

@@ -39,6 +39,7 @@ impl Session {
         })
     }
 
+    #[inline]
     pub fn proto(&self) -> u8 {
         self.proto_version.load(Ordering::Relaxed)
     }
@@ -47,6 +48,7 @@ impl Session {
         self.proto_version.store(proto, Ordering::Relaxed);
     }
 
+    #[inline]
     pub fn is_authenticated(&self) -> bool {
         self.authenticated.load(Ordering::Relaxed)
     }

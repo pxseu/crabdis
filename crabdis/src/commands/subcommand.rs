@@ -1,5 +1,7 @@
 use std::fmt::Write;
 
+use crabdis_core::ascii_map::AsciiMap;
+
 use crate::prelude::*;
 use crate::session::Session;
 
@@ -30,7 +32,7 @@ pub trait SubcommandTrait {
 /// Registry of subcommands for a parent command.
 pub struct SubcommandRegistry {
     parent: &'static str,
-    commands: HashMap<String, Box<dyn SubcommandTrait + Send + Sync>>,
+    commands: AsciiMap<Box<dyn SubcommandTrait + Send + Sync>>,
     default: Option<Box<dyn SubcommandTrait + Send + Sync>>,
 }
 
@@ -38,7 +40,7 @@ impl SubcommandRegistry {
     pub fn new(parent: &'static str) -> Self {
         Self {
             parent,
-            commands: HashMap::new(),
+            commands: AsciiMap::new(),
             default: None,
         }
     }
@@ -56,10 +58,10 @@ impl SubcommandRegistry {
     /// Get a subcommand by name (case-insensitive, zero-allocation lookup).
     #[inline]
     pub fn get(&self, name: &str) -> Option<&(dyn SubcommandTrait + Send + Sync)> {
-        self.commands.get(&name.to_uppercase()).map(Box::as_ref)
+        self.commands.get(name).map(Box::as_ref)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &(dyn SubcommandTrait + Send + Sync))> {
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &(dyn SubcommandTrait + Send + Sync))> {
         self.commands.iter().map(|(k, v)| (k, v.as_ref()))
     }
 
@@ -69,7 +71,7 @@ impl SubcommandRegistry {
 
         for (name, subcmd) in self.iter() {
             let info = subcmd.info();
-            writeln!(help, "{} {}", self.parent, name.as_str()).unwrap();
+            writeln!(help, "{} {}", self.parent, name).unwrap();
             writeln!(help, "    {}", info.summary).unwrap();
         }
 

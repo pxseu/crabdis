@@ -23,6 +23,7 @@ impl Resp {
     /// Returns the original `Ok(true)` value if the reader is not empty, or
     /// `Ok(false)` if the reader is empty. Returns an [`Error::Io`] if the
     /// reader fails to fill the buffer.
+    #[inline]
     async fn can_read<R>(reader: &mut R) -> Result<bool>
     where
         R: AsyncBufRead + Unpin,
@@ -35,6 +36,7 @@ impl Resp {
     /// Returns the original `Ok(Some(Value))` value if successful, or
     /// `Ok(None)` if the reader is empty. Returns an [`Error::Io`] if the
     /// reader fails to fill the buffer.
+    #[inline]
     pub async fn try_parse<'a, R>(
         reader: &'a mut R,
         proto: u8,
@@ -54,6 +56,7 @@ impl Resp {
     }
 
     /// Routes to the correct serializer based on the current proto version.
+    #[inline]
     pub fn write<'b, T>(
         value: &'b Value,
         writer: &'b mut T,

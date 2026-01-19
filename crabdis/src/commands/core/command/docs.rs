@@ -64,12 +64,12 @@ impl SubcommandTrait for Docs {
                         Value::String("since".into()),
                         Value::String(sub_info.since.into()),
                     );
-                    sub_docs.insert(Value::String(sub_name.as_str().into()), Value::Map(sub_doc));
+                    sub_docs.insert(Value::String(sub_name.into()), Value::Map(sub_doc));
                 }
                 cmd_doc.insert(Value::String("subcommands".into()), Value::Map(sub_docs));
             }
 
-            map.insert(Value::String(name.as_str().into()), Value::Map(cmd_doc));
+            map.insert(Value::String(name.into()), Value::Map(cmd_doc));
         }
 
         session.respond(&Value::Map(map), writer).await
