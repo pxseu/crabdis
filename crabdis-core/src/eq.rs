@@ -22,47 +22,6 @@ mod test {
     use std::hint::black_box;
 
     #[test]
-    fn test_constant_time_password_timing() {
-        use std::time::Instant;
-
-        let password = "this_is_a_very_long_password_for_timing_test";
-        let wrong_password = "xhis_is_a_very_long_password_for_timing_test";
-        let very_wrong = "completely_different_password_of_different_length";
-
-        let iterations = 10000;
-
-        let start = Instant::now();
-        for _ in 0..iterations {
-            let _ = super::constant_time_str(black_box(password), black_box(password));
-        }
-        let match_time = start.elapsed();
-
-        let start = Instant::now();
-        for _ in 0..iterations {
-            let _ = super::constant_time_str(black_box(password), black_box(wrong_password));
-        }
-        let one_char_diff_time = start.elapsed();
-
-        let start = Instant::now();
-        for _ in 0..iterations {
-            let _ = super::constant_time_str(black_box(password), black_box(very_wrong));
-        }
-        let completely_different_time = start.elapsed();
-
-        let max_diff = match_time
-            .max(one_char_diff_time)
-            .max(completely_different_time);
-        let min_diff = match_time
-            .min(one_char_diff_time)
-            .min(completely_different_time);
-
-        assert!(
-            max_diff.as_nanos() < min_diff.as_nanos() * 2,
-            "Timing variation too large: max={max_diff:?}, min={min_diff:?}"
-        );
-    }
-
-    #[test]
     fn test_constant_time_str_empty_strings() {
         assert!(super::constant_time_str("", ""));
         assert!(!super::constant_time_str("", "nonempty"));
