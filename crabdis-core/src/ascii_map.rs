@@ -32,12 +32,12 @@ impl AsciiKey<str> {
     /// Creates a borrowed `AsciiKey` from a `&str` without allocating.
     #[inline]
     #[must_use]
-    pub fn new(key: &str) -> &Self {
+    pub const fn new(key: &str) -> &Self {
         // SAFETY: AsciiKey is #[repr(transparent)] so AsciiKey<str> has the same
         // layout as `str` when referenced. We convert &str to &AsciiKey<str> by
         // casting the underlying pointer. The returned reference is tied to the
         // input's lifetime, so it remains valid for as long as `key` does.
-        unsafe { &*(std::ptr::from_ref::<str>(key) as *const AsciiKey<str>) }
+        unsafe { &*(std::ptr::from_ref::<str>(key) as *const Self) }
     }
 }
 
