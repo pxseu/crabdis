@@ -7,12 +7,11 @@ pub fn constant_time_str(expected: &str, provided: &str) -> bool {
     let provided = provided.as_bytes();
 
     let mut diff = expected.len() ^ provided.len();
-    let mut i = 0;
-    while i < ITER_LENGTH {
+
+    for i in 0..ITER_LENGTH {
         let expected_byte = expected.get(i).copied().unwrap_or(0);
         let provided_byte = provided.get(i).copied().unwrap_or(0);
         diff |= (expected_byte ^ provided_byte) as usize;
-        i += 1;
     }
 
     diff == 0
