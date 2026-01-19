@@ -66,14 +66,7 @@ impl<T: AsRef<str> + ?Sized> Eq for AsciiKey<T> {}
 impl Borrow<AsciiKey<str>> for AsciiKey<String> {
     #[inline]
     fn borrow(&self) -> &AsciiKey<str> {
-        // SAFETY: AsciiKey is #[repr(transparent)] so AsciiKey<String> and
-        // AsciiKey<str> have the same memory layout when accessed through
-        // references. We're converting &AsciiKey<String> to &AsciiKey<str> by
-        // borrowing the inner String as &str. This is safe because:
-        // 1. AsciiKey<T> is repr(transparent), meaning it has the same layout as T
-        // 2. String can be borrowed as &str
-        // 3. The lifetime of the returned reference is tied to self
-        unsafe { &*(std::ptr::from_ref::<str>(self.0.as_str()) as *const AsciiKey<str>) }
+        AsciiKey::new(self.0.as_str())
     }
 }
 
