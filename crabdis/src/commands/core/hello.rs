@@ -30,16 +30,14 @@ impl CommandTrait for Hello {
         args: &mut Args<'_>,
         session: &Session,
     ) -> Result<()> {
-        if args.len() > 1 {
-            return session
-                .respond(&value_error!("Invalid number of arguments"), writer)
-                .await;
-        }
-
+        // Parse optional protover
         if let Some(version) = args.next_string() {
             if version.as_ref() != "2" && version.as_ref() != "3" {
                 return session
-                    .respond(&value_error!("Invalid version"), writer)
+                    .respond(
+                        &value_error!("NOPROTO unsupported protocol version"),
+                        writer,
+                    )
                     .await;
             }
 
@@ -47,6 +45,65 @@ impl CommandTrait for Hello {
             let version = version.as_bytes()[0] - b'0';
 
             session.set_proto(version);
+
+            // Parse optional arguments: AUTH username password, SETNAME clientname
+            while let Some(option) = args.next_string() {
+                let option_upper = option.to_ascii_uppercase();
+                match option_upper.as_str() {
+                    "AUTH" => {
+                        let first = args.next_string();
+                        let second = args.next_string();
+
+                        let (Some(username), Some(password)) = (first, second) else {
+                            return session
+                                .respond(
+                                    &value_error!(
+                                        "ERR wrong number of arguments for 'AUTH' in HELLO"
+                                    ),
+                                    writer,
+                                )
+                                .await;
+                        };
+
+                        if session.state.auth.login(username, password).is_err() {
+                            return session
+                                .respond(
+                                    &value_error!("WRONGPASS invalid username-password pair"),
+                                    writer,
+                                )
+                                .await;
+                        }
+
+                        session.set_authenticated(true);
+                    }
+                    "SETNAME" => {
+                        let Some(name) = args.next_string_owned() else {
+                            return session
+                                .respond(
+                                    &value_error!(
+                                        "ERR wrong number of arguments for 'SETNAME' in HELLO"
+                                    ),
+                                    writer,
+                                )
+                                .await;
+                        };
+
+                        session.set_name(name).await;
+                    }
+                    _ => {
+                        return session
+                            .respond(&value_error!("ERR unknown option '{option_upper}'"), writer)
+                            .await;
+                    }
+                }
+            }
+        }
+
+        // Check if authentication is required but not provided
+        if session.state.auth.has_auth() && !session.is_authenticated() {
+            return session
+                .respond(&value_error!("NOAUTH HELLO must be called with the client already authenticated, otherwise the HELLO <proto> AUTH <user> <pass> option can be used to authenticate the client and select the RESP protocol version at the same time"), writer)
+                .await;
         }
 
         let response = Value::Map(HashMap::from([

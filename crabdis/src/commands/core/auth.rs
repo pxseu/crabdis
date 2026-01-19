@@ -8,6 +8,10 @@ impl CommandTrait for Auth {
         "AUTH"
     }
 
+    fn requires_auth(&self) -> bool {
+        false
+    }
+
     fn info(&self) -> CommandInfo {
         CommandInfo {
             arity: -1,
@@ -28,7 +32,7 @@ impl CommandTrait for Auth {
     ) -> Result<()> {
         if !(1..=2).contains(&args.len()) {
             return session
-                .respond(&value_error!("ARG Invalid number of arguments"), writer)
+                .respond(&value_error!("ERR Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -37,14 +41,17 @@ impl CommandTrait for Auth {
             (Some(u), Some(p)) => (u, p),
             _ => {
                 return session
-                    .respond(&value_error!("ARG Invalid number of arguments"), writer)
+                    .respond(&value_error!("ERR Invalid number of arguments"), writer)
                     .await;
             }
         };
 
         if session.state.auth.login(username, password).is_err() {
             return session
-                .respond(&value_error!("AUTH Invalid username or password"), writer)
+                .respond(
+                    &value_error!("WRONGPASS invalid username-password pair"),
+                    writer,
+                )
                 .await;
         }
 

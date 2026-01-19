@@ -35,13 +35,8 @@ pub trait CommandTrait {
     ) -> Result<()>;
 }
 
-struct CommandEntry {
-    command: Box<dyn CommandTrait + Send + Sync>,
-    requires_auth: bool,
-}
-
 pub struct CommandRegistry {
-    commands: AsciiMap<CommandEntry>,
+    commands: AsciiMap<Box<dyn CommandTrait + Send + Sync>>,
 }
 
 impl CommandRegistry {
@@ -52,24 +47,18 @@ impl CommandRegistry {
     }
 
     pub fn register<S: CommandTrait + Send + Sync + 'static>(&mut self, command: S) {
-        let requires_auth = command.requires_auth();
-        self.commands.insert(
-            command.name().to_uppercase(),
-            CommandEntry {
-                command: Box::new(command),
-                requires_auth,
-            },
-        );
+        self.commands
+            .insert(command.name().to_uppercase(), Box::new(command));
     }
 
     /// Get a command by name (case-insensitive, zero-allocation lookup).
     #[inline]
     pub fn get(&self, command: &str) -> Option<&(dyn CommandTrait + Send + Sync)> {
-        self.commands.get(command).map(|e| e.command.as_ref())
+        self.commands.get(command).map(Box::as_ref)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&str, &(dyn CommandTrait + Send + Sync))> {
-        self.commands.iter().map(|(k, v)| (k, v.command.as_ref()))
+        self.commands.iter().map(|(k, v)| (k, v.as_ref()))
     }
 
     #[inline]
@@ -88,15 +77,14 @@ impl CommandRegistry {
                 .await;
         };
 
-        if let Some(entry) = self.commands.get(command) {
-            // Use cached requires_auth to avoid vtable lookup
-            if entry.requires_auth && !session.is_authenticated() {
+        if let Some(command) = self.commands.get(command) {
+            if command.requires_auth() && !session.is_authenticated() {
                 return session
                     .respond(&value_error!("NOAUTH Authentication required."), writer)
                     .await;
             }
 
-            match entry.command.handle(writer, args, session).await {
+            match command.handle(writer, args, session).await {
                 Err(Error::Core(CoreError::Store(store_err))) => {
                     session.respond(&store_err.into(), writer).await
                 }

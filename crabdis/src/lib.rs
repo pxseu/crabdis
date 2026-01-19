@@ -66,7 +66,7 @@ pub struct CLI {
     pub save_points: Vec<String>,
 
     /// Password for authentication
-    #[clap(long = "require-pass")]
+    #[clap(long = "requirepass")]
     pub password: Option<String>,
 }
 

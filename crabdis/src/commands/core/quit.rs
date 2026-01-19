@@ -8,6 +8,10 @@ impl CommandTrait for Quit {
         "QUIT"
     }
 
+    fn requires_auth(&self) -> bool {
+        false
+    }
+
     fn info(&self) -> CommandInfo {
         CommandInfo {
             arity: -1,
