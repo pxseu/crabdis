@@ -78,7 +78,7 @@ Crabdis supports a (growing) subset of Redis commands. Highlights:
 - **Expiry**: `EXPIRE`, `TTL`, `PTTL`, `PERSIST`, `SETEX`, `PSETEX`
 - **Hashes**: `HSET`, `HGET`, `HGETALL`, `HDEL`, `HEXISTS`, `HLEN`
 - **Pub/Sub**: `PUBLISH`, `SUBSCRIBE`, `UNSUBSCRIBE`
-- **Server/Protocol**: `PING`, `QUIT`, `INFO`, `HELLO`, `COMMAND` / `COMMAND DOCS`, `CLIENT`
+- **Server/Protocol**: `PING`, `QUIT`, `INFO`, `HELLO`, `COMMAND` / `COMMAND DOCS`, `CLIENT`, `CONFIG`
 - **Persistence**: `SAVE`, `BGSAVE`, `LASTSAVE`
 
 For client compatibility, prefer discovering capabilities via `COMMAND`/`COMMAND DOCS` rather than assuming Redis parity.

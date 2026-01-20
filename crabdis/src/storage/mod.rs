@@ -36,13 +36,13 @@ impl SavePoint {
 #[derive(Debug)]
 pub struct RdbConfig {
     /// Whether RDB persistence is enabled.
-    pub enabled: bool,
+    pub enabled: AtomicBool,
     /// Directory for RDB file.
-    pub dir: PathBuf,
+    pub dir: RwLock<PathBuf>,
     /// RDB filename.
-    pub dbfilename: String,
+    pub dbfilename: RwLock<String>,
     /// Save points for auto-save.
-    pub save_points: Vec<SavePoint>,
+    pub save_points: RwLock<Vec<SavePoint>>,
     /// Number of changes since last save.
     pub changes_since_save: AtomicU64,
     /// Last save timestamp.
@@ -61,10 +61,10 @@ impl RdbConfig {
         enabled: bool,
     ) -> Self {
         Self {
-            enabled,
-            dir,
-            dbfilename,
-            save_points,
+            enabled: AtomicBool::new(enabled),
+            dir: RwLock::new(dir),
+            dbfilename: RwLock::new(dbfilename),
+            save_points: RwLock::new(save_points),
             changes_since_save: AtomicU64::new(0),
             last_save_time: AtomicU64::new(
                 std::time::SystemTime::now()
@@ -76,18 +76,35 @@ impl RdbConfig {
         }
     }
 
-    /// Returns the full path to the RDB file.
+    #[inline]
     #[must_use]
-    pub fn rdb_path(&self) -> PathBuf {
-        self.dir.join(&self.dbfilename)
+    pub fn is_enabled(&self) -> bool {
+        self.enabled.load(Ordering::Relaxed)
     }
 
-    /// Increments the change counter.
+    #[inline]
+    pub fn set_enabled(&self, enabled: bool) {
+        self.enabled.store(enabled, Ordering::Relaxed);
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn is_bgsave_in_progress(&self) -> bool {
+        self.bgsave_in_progress.load(Ordering::Relaxed) != 0
+    }
+
+    #[must_use]
+    pub async fn rdb_path(&self) -> PathBuf {
+        let dir = self.dir.read().await.clone();
+        let dbfilename = self.dbfilename.read().await.clone();
+        dir.join(dbfilename)
+    }
+
+    #[inline]
     pub fn increment_changes(&self) {
         self.changes_since_save.fetch_add(1, Ordering::Relaxed);
     }
 
-    /// Resets the change counter and updates last save time.
     pub fn mark_saved(&self) {
         self.changes_since_save.store(0, Ordering::Relaxed);
         self.last_save_time.store(
@@ -101,9 +118,9 @@ impl RdbConfig {
 
     /// Checks if any save point conditions are met.
     #[must_use]
-    pub fn should_save(&self) -> bool {
+    pub async fn should_save(&self) -> bool {
         // Never auto-save if disabled
-        if !self.enabled {
+        if !self.is_enabled() {
             return false;
         }
 
@@ -119,7 +136,8 @@ impl RdbConfig {
             .unwrap_or(0);
         let elapsed = now.saturating_sub(last_save);
 
-        for sp in &self.save_points {
+        let save_points = self.save_points.read().await;
+        for sp in save_points.iter() {
             if elapsed >= sp.seconds && changes >= sp.changes {
                 return true;
             }

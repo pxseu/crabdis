@@ -102,7 +102,7 @@ pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
                 log::warn!("Received {signal}");
 
                 // Perform final save if RDB is enabled
-                if state.rdb_config.enabled {
+                if state.rdb_config.is_enabled() {
                     if let Err(e) = rdb::save_rdb(&state).await {
                         log::error!("Failed to save RDB on shutdown: {e}");
                         return Err(e);

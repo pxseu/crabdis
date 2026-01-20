@@ -11,6 +11,7 @@ pub struct State {
     pub store: Store,
     pub expire_keys: ExpireKey,
     pub rdb_config: RdbConfig,
+    pub auto_save_started: AtomicBool,
     pub subscriptions: RwLock<HashMap<Arc<str>, Vec<SessionRef>>>,
     pub sessions: RwLock<HashMap<u64, SessionRef>>,
     pub auth: AuthRef,
@@ -71,6 +72,7 @@ impl State {
             store: Store::default(),
             expire_keys: ExpireKey::default(),
             rdb_config,
+            auto_save_started: AtomicBool::new(false),
             subscriptions: RwLock::new(HashMap::new()),
             sessions: RwLock::new(HashMap::new()),
             next_session_id: RwLock::new(1),
@@ -86,6 +88,7 @@ impl State {
         // Only start auto-save task if RDB persistence is enabled
         if rdb_enabled {
             rdb::spawn_auto_save_task(state.clone());
+            state.auto_save_started.store(true, Ordering::Relaxed);
         }
 
         state

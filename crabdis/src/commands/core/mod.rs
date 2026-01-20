@@ -1,6 +1,7 @@
 mod auth;
 mod client;
 mod command;
+mod config;
 mod dbsize;
 mod decr;
 mod del;
@@ -30,6 +31,7 @@ pub fn register(cmds: &mut CommandRegistry) {
     cmds.register(select::Select);
     cmds.register(client::Client);
     cmds.register(command::Command);
+    cmds.register(config::Config);
     cmds.register(dbsize::DBSize);
     cmds.register(decr::Decr);
     cmds.register(del::Del);

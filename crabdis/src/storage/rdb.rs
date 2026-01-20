@@ -10,7 +10,7 @@ use crate::session::state::State;
 
 /// Loads data from RDB file if it exists.
 pub async fn load_rdb(state: &State) -> Result<usize> {
-    let path = state.rdb_config.rdb_path();
+    let path = state.rdb_config.rdb_path().await;
 
     if !path.exists() {
         log::info!(
@@ -91,7 +91,7 @@ pub async fn save_rdb(state: &State) -> Result<()> {
 
 /// Inner implementation of `save_rdb` (actual save logic).
 async fn save_rdb_inner(state: &State) -> Result<()> {
-    let path = state.rdb_config.rdb_path();
+    let path = state.rdb_config.rdb_path().await;
 
     // Create temp file
     let temp_path = path.with_extension("rdb.tmp");
@@ -180,11 +180,11 @@ pub fn spawn_auto_save_task(state: Arc<State>) {
             interval.tick().await;
 
             // Skip if bgsave already in progress
-            if state.rdb_config.bgsave_in_progress.load(Ordering::Relaxed) != 0 {
+            if state.rdb_config.is_bgsave_in_progress() {
                 continue;
             }
 
-            if state.rdb_config.should_save() {
+            if state.rdb_config.should_save().await {
                 log::debug!("Auto-save triggered");
                 if let Err(e) = bgsave_rdb(state.clone()) {
                     log::error!("Auto-save failed to start: {e}");
