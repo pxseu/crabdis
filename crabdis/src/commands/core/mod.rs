@@ -25,10 +25,7 @@ mod r#type;
 use crate::prelude::*;
 
 pub fn register(cmds: &mut CommandRegistry) {
-    cmds.register(get::Get);
-    cmds.register(renamenx::RenameNx);
-    cmds.register(scan::Scan);
-    cmds.register(select::Select);
+    cmds.register(auth::Auth);
     cmds.register(client::Client);
     cmds.register(command::Command);
     cmds.register(config::Config);
@@ -37,6 +34,7 @@ pub fn register(cmds: &mut CommandRegistry) {
     cmds.register(del::Del);
     cmds.register(exists::Exists);
     cmds.register(flushdb::FlushDB);
+    cmds.register(get::Get);
     cmds.register(hello::Hello);
     cmds.register(incr::Incr);
     cmds.register(info::Info);
@@ -45,7 +43,9 @@ pub fn register(cmds: &mut CommandRegistry) {
     cmds.register(mset::MSet);
     cmds.register(ping::Ping);
     cmds.register(quit::Quit);
+    cmds.register(renamenx::RenameNx);
+    cmds.register(scan::Scan);
+    cmds.register(select::Select);
     cmds.register(set::Set);
     cmds.register(r#type::Type);
-    cmds.register(auth::Auth);
 }

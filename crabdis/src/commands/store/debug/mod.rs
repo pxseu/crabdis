@@ -5,8 +5,8 @@ use crate::prelude::*;
 
 pub static SUBCOMMANDS: LazyLock<SubcommandRegistry> = LazyLock::new(|| {
     let mut commands = SubcommandRegistry::new("DEBUG");
-    commands.register(reload::Reload);
     commands.register(help::Help);
+    commands.register(reload::Reload);
     commands
 });
 

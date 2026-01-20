@@ -9,9 +9,9 @@ use crate::prelude::*;
 
 pub fn register(cmds: &mut CommandRegistry) {
     cmds.register(expire::Expire);
-    cmds.register(ttl::Ttl);
-    cmds.register(setex::SetEx);
+    cmds.register(persist::Persist);
     cmds.register(psettex::PSetEx);
     cmds.register(pttl::PTtl);
-    cmds.register(persist::Persist);
+    cmds.register(setex::SetEx);
+    cmds.register(ttl::Ttl);
 }
