@@ -9,6 +9,15 @@ pub type AuthRef = Arc<Auth>;
 
 impl Auth {
     pub fn new(password: Option<&str>) -> AuthRef {
+        log::info!(
+            "Authentication status: {}",
+            if password.is_some() {
+                "enabled"
+            } else {
+                "disabled"
+            }
+        );
+
         Arc::new(Self {
             password: password.map(Arc::from),
         })
