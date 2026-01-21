@@ -8,10 +8,10 @@ pub fn constant_time_str(expected: &str, provided: &str) -> bool {
 
     let mut diff = expected.len() ^ provided.len();
 
-    for i in 0..ITER_LENGTH {
-        let expected_byte = expected.get(i).copied().unwrap_or(0);
-        let provided_byte = provided.get(i).copied().unwrap_or(0);
-        diff |= (expected_byte ^ provided_byte) as usize;
+    for i in 0..=ITER_LENGTH {
+        let expected_byte = expected.get(i).map_or(0, |v| *v) as usize;
+        let provided_byte = provided.get(i).map_or(0, |v| *v) as usize;
+        diff |= expected_byte ^ provided_byte;
     }
 
     diff == 0

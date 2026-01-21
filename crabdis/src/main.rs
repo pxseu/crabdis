@@ -4,16 +4,8 @@ use crabdis::CLI;
 fn main() -> crabdis::error::Result<()> {
     let cli = CLI::parse();
 
-    if cli.threads == 0 {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "Thread count must be greater than 0",
-        )
-        .into());
-    }
-
     tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(cli.threads)
+        .worker_threads(cli.threads.get())
         .enable_io()
         .enable_time()
         .build()?

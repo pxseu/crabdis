@@ -32,10 +32,15 @@ impl CommandTrait for FlushDB {
                 .await;
         }
 
-        session.state.store.write().await.clear();
-        session.state.expire_keys.write().await.clear();
+        let mut store = session.state.store.write().await;
+        store.clear();
+        store.shrink_to(100);
+        drop(store);
 
-        session.state.notify_change();
+        let mut expire_keys = session.state.expire_keys.write().await;
+        expire_keys.clear();
+        expire_keys.shrink_to(100);
+        drop(expire_keys);
 
         session.respond(&Value::Ok, writer).await
     }

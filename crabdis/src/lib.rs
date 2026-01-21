@@ -16,6 +16,7 @@ mod storage;
 mod utils;
 
 use std::net::{IpAddr, SocketAddr};
+use std::num::{NonZeroU16, NonZeroUsize};
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -32,7 +33,7 @@ use crate::storage::rdb;
 #[cfg(unix)]
 const DEFAULT_ADDRESS: &str = "::";
 #[cfg(not(unix))]
-const DEFAULT_ADDRESS: &str = "127.0.0.1";
+const DEFAULT_ADDRESS: &str = "0.0.0.0";
 
 #[derive(Parser, Clone)]
 pub struct CLI {
@@ -42,10 +43,10 @@ pub struct CLI {
 
     /// Port to listen on
     #[clap(short, long, default_value = "6379")]
-    pub port: u16,
+    pub port: NonZeroU16,
 
     #[clap(short, long, default_value = "1")]
-    pub threads: usize,
+    pub threads: NonZeroUsize,
 
     /// Enable verbose logging
     #[clap(short, long, default_value = "false")]
@@ -83,7 +84,7 @@ pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
 
     let state = State::new(&cli);
 
-    let listener = TcpListener::bind(SocketAddr::new(cli.address, cli.port)).await?;
+    let listener = TcpListener::bind(SocketAddr::new(cli.address, cli.port.get())).await?;
 
     log::info!(
         "Listening on {}",
