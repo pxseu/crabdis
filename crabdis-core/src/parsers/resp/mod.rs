@@ -778,7 +778,7 @@ mod tests {
 
         let not_expired = Value::Expire((
             Arc::new(Value::String("test".into())),
-            Instant::now() + Duration::from_secs(60),
+            Instant::now() + Duration::from_mins(1),
         ));
 
         assert!(!not_expired.expired());
@@ -811,7 +811,7 @@ mod tests {
         let inner = Value::String("test".into());
         let expired = Value::Expire((
             Arc::new(inner.clone()),
-            Instant::now() + Duration::from_secs(60),
+            Instant::now() + Duration::from_mins(1),
         ));
 
         assert_eq!(expired.inner(), &inner);

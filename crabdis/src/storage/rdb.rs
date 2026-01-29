@@ -62,8 +62,7 @@ pub async fn save_rdb(state: &State) -> Result<()> {
     // Try to acquire the save lock (compare-and-swap from 0 to timestamp)
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(1); // Use 1 as minimum to distinguish from "not in progress"
+        .map_or(1, |d| d.as_secs()); // Use 1 as minimum to distinguish from "not in progress"
 
     if state
         .rdb_config
@@ -128,8 +127,7 @@ pub fn bgsave_rdb(state: Arc<State>) -> Result<()> {
     // Try to acquire the save lock (compare-and-swap from 0 to timestamp)
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(1); // Use 1 as minimum to distinguish from "not in progress"
+        .map_or(1, |d| d.as_secs()); // Use 1 as minimum to distinguish from "not in progress"
 
     if state
         .rdb_config

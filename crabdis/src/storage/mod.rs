@@ -69,8 +69,7 @@ impl RdbConfig {
             last_save_time: AtomicU64::new(
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_secs())
-                    .unwrap_or(0),
+                    .map_or(0, |d| d.as_secs()),
             ),
             bgsave_in_progress: AtomicU64::new(0),
         }
@@ -110,8 +109,7 @@ impl RdbConfig {
         self.last_save_time.store(
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0),
+                .map_or(0, |d| d.as_secs()),
             Ordering::Relaxed,
         );
     }
@@ -132,8 +130,7 @@ impl RdbConfig {
         let last_save = self.last_save_time.load(Ordering::Relaxed);
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(0);
+            .map_or(0, |d| d.as_secs());
         let elapsed = now.saturating_sub(last_save);
 
         let save_points = self.save_points.read().await;
