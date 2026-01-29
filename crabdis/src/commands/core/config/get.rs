@@ -2,26 +2,20 @@ use glob::Pattern;
 
 use crate::prelude::*;
 
+#[derive(Subcommand)]
+#[command(
+    arity = 3,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Gets the value of configuration parameters.",
+    complexity = "O(N) where N is the number of configuration entries",
+    since = "0.1.36"
+)]
 pub struct Get;
 
 #[async_trait]
-impl SubcommandTrait for Get {
-    fn name(&self) -> &'static str {
-        "GET"
-    }
-
-    fn info(&self) -> SubcommandInfo {
-        SubcommandInfo {
-            arity: 3,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Gets the value of configuration parameters.",
-            complexity: "O(N) where N is the number of configuration entries",
-            since: "0.1.36",
-        }
-    }
-
+impl Handler for Get {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

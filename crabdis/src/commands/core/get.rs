@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = 2,
+    first_key = 1,
+    last_key = 1,
+    step = 1,
+    summary = "Gets the value of a key",
+    complexity = "O(1)",
+    since = "0.1.34"
+)]
 pub struct Get;
 
 #[async_trait]
-impl CommandTrait for Get {
-    fn name(&self) -> &'static str {
-        "GET"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 2,
-            first_key: 1,
-            last_key: 1,
-            step: 1,
-            summary: "Gets the value of a key",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Get {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

@@ -9,23 +9,7 @@ pub struct Default;
 static EMPTY_ARC_SLICE: LazyLock<Arc<[Value]>> = LazyLock::new(|| Arc::from([]));
 
 #[async_trait]
-impl SubcommandTrait for Default {
-    fn name(&self) -> &'static str {
-        ""
-    }
-
-    fn info(&self) -> SubcommandInfo {
-        SubcommandInfo {
-            arity: 1,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Returns details about all Redis commands.",
-            complexity: "O(N) where N is the number of commands",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Default {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

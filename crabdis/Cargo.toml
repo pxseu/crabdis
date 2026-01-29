@@ -12,6 +12,7 @@ homepage.workspace = true
 
 [dependencies]
 crabdis-core.workspace = true
+crabdis-macros.workspace = true
 log = "0.4"
 fern = "0.7"
 clap = { version = "4.5", features = ["derive"] }

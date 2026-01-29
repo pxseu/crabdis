@@ -1,26 +1,15 @@
 use std::fmt::Write;
 
-use crabdis_core::ascii_map::AsciiMap;
-
 use crate::prelude::*;
-use crate::session::Session;
 
-pub struct SubcommandInfo {
-    pub arity: i64,
-    pub first_key: i64,
-    pub last_key: i64,
-    pub step: i64,
-    pub summary: &'static str,
-    pub complexity: &'static str,
-    pub since: &'static str,
-}
-
-#[async_trait]
+#[async_trait::async_trait]
 pub trait SubcommandTrait {
     fn name(&self) -> &'static str;
 
-    fn info(&self) -> SubcommandInfo;
+    fn info(&self) -> CommandInfo;
 
+    /// # Errors
+    /// - You tell me
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
@@ -33,14 +22,12 @@ pub trait SubcommandTrait {
 pub struct SubcommandRegistry {
     parent: &'static str,
     commands: AsciiMap<Box<dyn SubcommandTrait + Send + Sync>>,
-    default: Option<Box<dyn SubcommandTrait + Send + Sync>>,
+    default: Option<Box<dyn Handler + Send + Sync>>,
 }
 
 impl SubcommandRegistry {
+    #[must_use]
     pub fn new(parent: &'static str) -> Self {
-        #[cfg(debug_assertions)]
-        log::debug!("Building subcommands for: {parent}");
-
         Self {
             parent,
             commands: AsciiMap::new(),
@@ -53,9 +40,14 @@ impl SubcommandRegistry {
             .insert(sub.name().to_uppercase(), Box::new(sub));
     }
 
-    pub fn with_default<S: SubcommandTrait + Send + Sync + 'static>(mut self, handler: S) -> Self {
-        self.default = Some(Box::new(handler));
-        self
+    pub fn register_default<S: Handler + Send + Sync + 'static>(&mut self, sub: S) {
+        assert!(
+            self.default.is_none(),
+            "Default subcommand already registered for {}",
+            self.parent
+        );
+
+        self.default = Some(Box::new(sub));
     }
 
     /// Get a subcommand by name (case-insensitive, zero-allocation lookup).
@@ -69,6 +61,7 @@ impl SubcommandRegistry {
     }
 
     /// Generate help text listing all subcommands.
+    #[must_use]
     pub fn help_text(&self) -> String {
         let mut help = String::new();
 
@@ -81,6 +74,9 @@ impl SubcommandRegistry {
         help
     }
 
+    /// # Errors
+    /// - You tell me
+    #[inline]
     pub async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
@@ -90,7 +86,7 @@ impl SubcommandRegistry {
         // Check if there's a subcommand argument
         let Some(sub_name) = args.next_string() else {
             // No subcommand provided
-            if let Some(default) = &self.default {
+            if let Some(default) = self.default.as_ref() {
                 return default.handle(writer, args, session).await;
             }
 

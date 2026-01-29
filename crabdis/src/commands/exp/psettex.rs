@@ -1,26 +1,20 @@
 use crate::commands::COMMANDS;
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = 4,
+    first_key = 1,
+    last_key = 1,
+    step = 1,
+    summary = "Set the value and expiration in milliseconds of a key",
+    complexity = "O(1)",
+    since = "0.1.34"
+)]
 pub struct PSetEx;
 
 #[async_trait]
-impl CommandTrait for PSetEx {
-    fn name(&self) -> &'static str {
-        "PSETEX"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 4,
-            first_key: 1,
-            last_key: 1,
-            step: 1,
-            summary: "Set the value and expiration in milliseconds of a key",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for PSetEx {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

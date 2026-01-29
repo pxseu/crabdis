@@ -1,29 +1,20 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+	noauth,
+	arity = -1,
+	first_key = 0,
+	last_key = 0,
+	step = 0,
+	summary = "Authenticate to the server",
+	complexity = "O(1)",
+	since = "0.1.36",
+)]
 pub struct Auth;
 
 #[async_trait]
-impl CommandTrait for Auth {
-    fn name(&self) -> &'static str {
-        "AUTH"
-    }
-
-    fn requires_auth(&self) -> bool {
-        false
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -1,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Authenticate to the server",
-            complexity: "O(1)",
-            since: "0.1.36",
-        }
-    }
-
+impl Handler for Auth {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

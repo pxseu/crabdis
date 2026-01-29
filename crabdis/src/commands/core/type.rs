@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = 2,
+    first_key = 1,
+    last_key = 1,
+    step = 1,
+    summary = "Returns the data type of the value stored at key",
+    complexity = "O(1)",
+    since = "0.1.34"
+)]
 pub struct Type;
 
 #[async_trait]
-impl CommandTrait for Type {
-    fn name(&self) -> &'static str {
-        "TYPE"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 2,
-            first_key: 1,
-            last_key: 1,
-            step: 1,
-            summary: "Returns the data type of the value stored at key",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Type {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

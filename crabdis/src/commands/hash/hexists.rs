@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = 3,
+    first_key = 1,
+    last_key = 1,
+    step = 1,
+    summary = "Determines whether a field exists in a hash",
+    complexity = "O(1)",
+    since = "0.1.34"
+)]
 pub struct HExists;
 
 #[async_trait]
-impl CommandTrait for HExists {
-    fn name(&self) -> &'static str {
-        "HEXISTS"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 3,
-            first_key: 1,
-            last_key: 1,
-            step: 1,
-            summary: "Determines whether a field exists in a hash",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for HExists {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

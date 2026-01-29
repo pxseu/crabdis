@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = -1,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Removes all keys from the current database",
+    complexity = "O(1)",
+    since = "0.1.34",
+)]
 pub struct FlushDB;
 
 #[async_trait]
-impl CommandTrait for FlushDB {
-    fn name(&self) -> &'static str {
-        "FLUSHDB"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -1,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Removes all keys from the current database",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for FlushDB {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

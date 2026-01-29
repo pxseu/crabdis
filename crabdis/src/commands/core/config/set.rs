@@ -3,26 +3,20 @@ use std::path::PathBuf;
 use crate::prelude::*;
 use crate::storage::rdb;
 
+#[derive(Subcommand)]
+#[command(
+    arity = -4,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Sets configuration parameters.",
+    complexity = "O(N) where N is the number of parameters to set",
+    since = "0.1.36",
+)]
 pub struct Set;
 
 #[async_trait]
-impl SubcommandTrait for Set {
-    fn name(&self) -> &'static str {
-        "SET"
-    }
-
-    fn info(&self) -> SubcommandInfo {
-        SubcommandInfo {
-            arity: -4,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Sets configuration parameters.",
-            complexity: "O(N) where N is the number of parameters to set",
-            since: "0.1.36",
-        }
-    }
-
+impl Handler for Set {
     #[allow(clippy::too_many_lines)]
     async fn handle(
         &self,

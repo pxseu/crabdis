@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = 2,
+    first_key = 1,
+    last_key = 1,
+    step = 1,
+    summary = "Remove the expiration from a key",
+    complexity = "O(1)",
+    since = "0.1.34"
+)]
 pub struct Persist;
 
 #[async_trait]
-impl CommandTrait for Persist {
-    fn name(&self) -> &'static str {
-        "PERSIST"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 2,
-            first_key: 1,
-            last_key: 1,
-            step: 1,
-            summary: "Remove the expiration from a key",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Persist {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

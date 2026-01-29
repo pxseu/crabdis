@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = -3,
+    first_key = 1,
+    last_key = 1,
+    step = 1,
+    summary = "Deletes one or more hash fields",
+    complexity = "O(N) where N is the number of fields to be removed",
+    since = "0.1.34",
+)]
 pub struct HDel;
 
 #[async_trait]
-impl CommandTrait for HDel {
-    fn name(&self) -> &'static str {
-        "HDEL"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -3,
-            first_key: 1,
-            last_key: 1,
-            step: 1,
-            summary: "Deletes one or more hash fields",
-            complexity: "O(N) where N is the number of fields to be removed",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for HDel {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

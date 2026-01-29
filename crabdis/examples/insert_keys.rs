@@ -8,7 +8,15 @@ use tokio::net::TcpStream;
 async fn main() -> Result<()> {
     let thread = tokio::spawn(async move {
         if let Err(e) = crabdis::run(
-            crabdis::CLI::parse_from(["crabdis", "--address", "127.0.0.1", "--port", "6379"]),
+            crabdis::CLI::parse_from([
+                "crabdis",
+                "--address",
+                "127.0.0.1",
+                "--port",
+                "6379",
+                "--save",
+                "\"\"",
+            ]),
             crabdis_core::shutdown::listen(),
         )
         .await
@@ -19,7 +27,7 @@ async fn main() -> Result<()> {
         }
     });
 
-    let mut stream = TcpStream::connect("localhost:6379").await?;
+    let mut stream = TcpStream::connect("127.0.0.1:6379").await?;
     let (mut reader, mut writer) = stream.split();
     let mut reader = BufReader::new(&mut reader);
     let mut writer = BufWriter::new(&mut writer);

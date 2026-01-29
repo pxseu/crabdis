@@ -5,36 +5,28 @@ mod help;
 use crate::prelude::*;
 
 pub static SUBCOMMANDS: LazyLock<SubcommandRegistry> = LazyLock::new(|| {
-    let mut commands = SubcommandRegistry::new("COMMAND").with_default(default::Default);
+    let mut commands = SubcommandRegistry::new("COMMAND");
+    commands.register_default(default::Default);
     commands.register(docs::Docs);
     commands.register(help::Help);
     commands
 });
 
+#[derive(Command)]
+#[command(
+    arity = 1,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Returns details about all Redis commands.",
+    complexity = "O(N) where N is the number of commands",
+    since = "0.1.34",
+    subcommands = SUBCOMMANDS,
+)]
 pub struct Command;
 
 #[async_trait]
-impl CommandTrait for Command {
-    fn name(&self) -> &'static str {
-        "COMMAND"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -1,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "A container for command introspection commands.",
-            complexity: "Depends on subcommand.",
-            since: "2.8.13",
-        }
-    }
-
-    fn subcommands(&self) -> Option<&'static SubcommandRegistry> {
-        Some(&SUBCOMMANDS)
-    }
-
+impl Handler for Command {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

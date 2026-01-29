@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = -1,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Unsubscribes from one or more channels",
+    complexity = "O(N) where N is the number of channels to unsubscribe from",
+    since = "0.1.34",
+)]
 pub struct Unsubscribe;
 
 #[async_trait]
-impl CommandTrait for Unsubscribe {
-    fn name(&self) -> &'static str {
-        "UNSUBSCRIBE"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -1,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Unsubscribes from one or more channels",
-            complexity: "O(N) where N is the number of channels to unsubscribe from",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Unsubscribe {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

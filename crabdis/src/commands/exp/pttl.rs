@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = 2,
+    first_key = 1,
+    last_key = 1,
+    step = 1,
+    summary = "Get the remaining time to live of a key in milliseconds",
+    complexity = "O(1)",
+    since = "0.1.34"
+)]
 pub struct PTtl;
 
 #[async_trait]
-impl CommandTrait for PTtl {
-    fn name(&self) -> &'static str {
-        "PTTL"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 2,
-            first_key: 1,
-            last_key: 1,
-            step: 1,
-            summary: "Get the remaining time to live of a key in milliseconds",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for PTtl {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

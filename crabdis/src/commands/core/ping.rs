@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = -1,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Ping the server",
+    complexity = "O(1)",
+    since = "0.1.34",
+)]
 pub struct Ping;
 
 #[async_trait]
-impl CommandTrait for Ping {
-    fn name(&self) -> &'static str {
-        "PING"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -1,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Ping the server",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Ping {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

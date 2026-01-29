@@ -1,26 +1,20 @@
 use crate::commands::COMMANDS;
 use crate::prelude::*;
 
+#[derive(Subcommand)]
+#[command(
+    arity = -2,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Returns documentary information about commands.",
+    complexity = "O(N) where N is the number of commands to look up",
+    since = "0.1.34",
+)]
 pub struct Docs;
 
 #[async_trait]
-impl SubcommandTrait for Docs {
-    fn name(&self) -> &'static str {
-        "DOCS"
-    }
-
-    fn info(&self) -> SubcommandInfo {
-        SubcommandInfo {
-            arity: -2,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Returns documentary information about commands.",
-            complexity: "O(N) where N is the number of commands to look up",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Docs {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

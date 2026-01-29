@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = 2,
+    first_key = 1,
+    last_key = 1,
+    step = 1,
+    summary = "Returns all fields and values of the hash stored at key",
+    complexity = "O(N) where N is the number of fields in the hash",
+    since = "0.1.34"
+)]
 pub struct HGetAll;
 
 #[async_trait]
-impl CommandTrait for HGetAll {
-    fn name(&self) -> &'static str {
-        "HGETALL"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 2,
-            first_key: 1,
-            last_key: 1,
-            step: 1,
-            summary: "Returns all fields and values of the hash stored at key",
-            complexity: "O(N) where N is the number of fields in the hash",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for HGetAll {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

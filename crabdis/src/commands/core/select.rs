@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = 2,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Select the Redis logical database having the specified zero-based numeric index",
+    complexity = "O(1)",
+    since = "0.1.34"
+)]
 pub struct Select;
 
 #[async_trait]
-impl CommandTrait for Select {
-    fn name(&self) -> &'static str {
-        "SELECT"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 2,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Select the Redis logical database having the specified zero-based numeric index",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Select {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

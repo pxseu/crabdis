@@ -1,29 +1,20 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    noauth,
+    arity = -1,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Handshake with the Redis server",
+    complexity = "O(1)",
+    since = "0.1.34",
+)]
 pub struct Hello;
 
 #[async_trait]
-impl CommandTrait for Hello {
-    fn name(&self) -> &'static str {
-        "HELLO"
-    }
-
-    fn requires_auth(&self) -> bool {
-        false
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -1,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Handshake with the Redis server",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Hello {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

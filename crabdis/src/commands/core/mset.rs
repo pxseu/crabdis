@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = -3,
+    first_key = 1,
+    last_key = -1,
+    step = 2,
+    summary = "Sets multiple keys to multiple values",
+    complexity = "O(N) where N is the number of keys being set",
+    since = "0.1.34",
+)]
 pub struct MSet;
 
 #[async_trait]
-impl CommandTrait for MSet {
-    fn name(&self) -> &'static str {
-        "MSET"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -3,
-            first_key: 1,
-            last_key: -1,
-            step: 2,
-            summary: "Sets multiple keys to multiple values",
-            complexity: "O(N) where N is the number of keys being set",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for MSet {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

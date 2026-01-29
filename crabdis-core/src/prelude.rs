@@ -6,6 +6,7 @@ pub(crate) use tokio::io::{
 };
 
 pub use super::args::Args;
+pub use super::ascii_map::{AsciiKey, AsciiMap};
 pub(crate) use super::error::Result;
 pub use super::parsers::resp::Resp;
 pub use super::store::StoreTraits;

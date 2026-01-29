@@ -12,30 +12,21 @@ pub static SUBCOMMANDS: LazyLock<SubcommandRegistry> = LazyLock::new(|| {
     commands
 });
 
+#[derive(Command)]
+#[command(
+    arity = -2,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "A container for server configuration commands.",
+    complexity = "Depends on subcommand.",
+    since = "0.1.36",
+    subcommands = SUBCOMMANDS,
+)]
 pub struct Config;
 
 #[async_trait]
-impl CommandTrait for Config {
-    fn name(&self) -> &'static str {
-        "CONFIG"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -2,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "A container for server configuration commands.",
-            complexity: "Depends on subcommand.",
-            since: "0.1.36",
-        }
-    }
-
-    fn subcommands(&self) -> Option<&'static SubcommandRegistry> {
-        Some(&SUBCOMMANDS)
-    }
-
+impl Handler for Config {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

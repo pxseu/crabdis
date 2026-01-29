@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = -4,
+    first_key = 1,
+    last_key = 1,
+    step = 0,
+    summary = "Sets N fields to their respective values in the hash stored at key",
+    complexity = "O(N) where N is the number of fields being set",
+    since = "0.1.34",
+)]
 pub struct HSet;
 
 #[async_trait]
-impl CommandTrait for HSet {
-    fn name(&self) -> &'static str {
-        "HSET"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -4,
-            first_key: 1,
-            last_key: 1,
-            step: 0,
-            summary: "Sets N fields to their respective values in the hash stored at key",
-            complexity: "O(N) where N is the number of fields being set",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for HSet {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

@@ -1,13 +1,8 @@
-pub mod command;
 mod core;
 mod exp;
 mod hash;
 mod pubsub;
 mod store;
-pub mod subcommand;
-
-pub use command::{CommandInfo, CommandRegistry, CommandTrait};
-pub use subcommand::{SubcommandInfo, SubcommandRegistry, SubcommandTrait};
 
 use crate::prelude::*;
 

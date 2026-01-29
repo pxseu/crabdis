@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = 3,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Posts a message to a channel",
+    complexity = "O(N+M) where N is the number of clients subscribed to the channel and M is the number of clients subscribed to patterns that match the channel.",
+    since = "0.1.34"
+)]
 pub struct Publish;
 
 #[async_trait]
-impl CommandTrait for Publish {
-    fn name(&self) -> &'static str {
-        "PUBLISH"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 3,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Posts a message to a channel",
-            complexity: "O(N+M) where N is the number of clients subscribed to the channel and M is the number of clients subscribed to patterns that match the channel.",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Publish {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

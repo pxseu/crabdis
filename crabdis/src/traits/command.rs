@@ -1,18 +1,7 @@
-use crabdis_core::ascii_map::AsciiMap;
-
+use super::subcommand::SubcommandRegistry;
 use crate::prelude::*;
 
-pub struct CommandInfo {
-    pub arity: i64,
-    pub first_key: i64,
-    pub last_key: i64,
-    pub step: i64,
-    pub summary: &'static str,
-    pub complexity: &'static str,
-    pub since: &'static str,
-}
-
-#[async_trait]
+#[async_trait::async_trait]
 pub trait CommandTrait {
     fn name(&self) -> &'static str;
 
@@ -35,15 +24,14 @@ pub trait CommandTrait {
     ) -> Result<()>;
 }
 
+#[derive(Default)]
 pub struct CommandRegistry {
     commands: AsciiMap<Box<dyn CommandTrait + Send + Sync>>,
 }
 
 impl CommandRegistry {
+    #[must_use]
     pub fn new() -> Self {
-        #[cfg(debug_assertions)]
-        log::debug!("Building global handler");
-
         Self {
             commands: AsciiMap::new(),
         }
@@ -67,6 +55,8 @@ impl CommandRegistry {
         self.commands.iter().map(|(k, v)| (k, v.as_ref()))
     }
 
+    /// # Errors
+    /// - You tell me
     #[inline]
     pub async fn handle(
         &self,
@@ -75,34 +65,28 @@ impl CommandRegistry {
         session: &Session,
     ) -> Result<()> {
         let Some(command) = args.next_string() else {
-            #[cfg(debug_assertions)]
-            log::debug!("Invalid command: {args:?}");
-
             return session
-                .respond(&value_error!("Invalid command"), writer)
+                .respond(&value_error!("ERR No command was specfied"), writer)
                 .await;
         };
 
-        if let Some(command) = self.commands.get(command) {
-            if command.requires_auth() && !session.is_authenticated() {
-                return session
-                    .respond(&value_error!("NOAUTH Authentication required."), writer)
-                    .await;
-            }
-
-            match command.handle(writer, args, session).await {
-                Err(Error::Core(CoreError::Store(store_err))) => {
-                    session.respond(&store_err.into(), writer).await
-                }
-                any => any,
-            }
-        } else {
-            #[cfg(debug_assertions)]
-            log::debug!("Unknown command: {command} {args:?}");
-
-            session
+        let Some(command) = self.commands.get(command) else {
+            return session
                 .respond(&value_error!("ERR Unknown command: {command}"), writer)
-                .await
+                .await;
+        };
+
+        if command.requires_auth() && !session.is_authenticated() {
+            return session
+                .respond(&value_error!("NOAUTH Authentication required."), writer)
+                .await;
+        }
+
+        match command.handle(writer, args, session).await {
+            Err(Error::Core(CoreError::Store(store_error))) => {
+                session.respond(&store_error.into(), writer).await
+            }
+            result => result,
         }
     }
 }

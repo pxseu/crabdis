@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = 3,
+    first_key = 1,
+    last_key = 2,
+    step = 1,
+    summary = "Renames a key only if the new key does not exist",
+    complexity = "O(1)",
+    since = "0.1.34"
+)]
 pub struct RenameNx;
 
 #[async_trait]
-impl CommandTrait for RenameNx {
-    fn name(&self) -> &'static str {
-        "RENAMENX"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 3,
-            first_key: 1,
-            last_key: 2,
-            step: 1,
-            summary: "Renames a key only if the new key does not exist",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for RenameNx {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

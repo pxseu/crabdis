@@ -13,6 +13,7 @@ mod handler;
 mod prelude;
 mod session;
 mod storage;
+mod traits;
 mod utils;
 
 use std::net::{IpAddr, SocketAddr};

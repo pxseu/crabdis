@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Subcommand)]
+#[command(
+    arity = 2,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Lists all client connections.",
+    complexity = "O(N) where N is the number of clients",
+    since = "0.1.34"
+)]
 pub struct List;
 
 #[async_trait]
-impl SubcommandTrait for List {
-    fn name(&self) -> &'static str {
-        "LIST"
-    }
-
-    fn info(&self) -> SubcommandInfo {
-        SubcommandInfo {
-            arity: 2,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Lists all client connections.",
-            complexity: "O(N) where N is the number of clients",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for List {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

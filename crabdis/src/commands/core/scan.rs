@@ -2,26 +2,20 @@ use glob::Pattern;
 
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = -1,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Incrementally iterate the keys space",
+    complexity = "O(N) where N is the number of elements returned",
+    since = "0.1.34",
+)]
 pub struct Scan;
 
 #[async_trait]
-impl CommandTrait for Scan {
-    fn name(&self) -> &'static str {
-        "SCAN"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -1,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Incrementally iterate the keys space",
-            complexity: "O(N) where N is the number of elements returned",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Scan {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

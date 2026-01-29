@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = -2,
+    first_key = 1,
+    last_key = -1,
+    step = 1,
+    summary = "Returns the number of keys existing among the given keys",
+    complexity = "O(N) where N is the number of keys to check",
+    since = "0.1.34",
+)]
 pub struct Exists;
 
 #[async_trait]
-impl CommandTrait for Exists {
-    fn name(&self) -> &'static str {
-        "EXISTS"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: -2,
-            first_key: 1,
-            last_key: -1,
-            step: 1,
-            summary: "Returns the number of keys existing among the given keys",
-            complexity: "O(N) where N is the number of keys to check",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for Exists {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),

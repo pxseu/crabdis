@@ -1,25 +1,19 @@
 use crate::prelude::*;
 
+#[derive(Command)]
+#[command(
+    arity = 1,
+    first_key = 0,
+    last_key = 0,
+    step = 0,
+    summary = "Returns the number of keys in the selected database",
+    complexity = "O(1)",
+    since = "0.1.34"
+)]
 pub struct DBSize;
 
 #[async_trait]
-impl CommandTrait for DBSize {
-    fn name(&self) -> &'static str {
-        "DBSIZE"
-    }
-
-    fn info(&self) -> CommandInfo {
-        CommandInfo {
-            arity: 1,
-            first_key: 0,
-            last_key: 0,
-            step: 0,
-            summary: "Returns the number of keys in the selected database",
-            complexity: "O(1)",
-            since: "0.1.34",
-        }
-    }
-
+impl Handler for DBSize {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
