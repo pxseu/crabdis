@@ -3,15 +3,15 @@ members = ["crabdis", "crabdis-core", "crabdis-macros"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.36"
+version = "0.1.37"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/pxseu/crabdis"
 homepage = "https://github.com/pxseu/crabdis#readme"
 
 [workspace.dependencies]
-crabdis-core = { path = "crabdis-core", version = "0.1.36" }
-crabdis-macros = { path = "crabdis-macros", version = "0.1.36" }
+crabdis-core = { path = "crabdis-core", version = "0.1.37" }
+crabdis-macros = { path = "crabdis-macros", version = "0.1.37" }
 
 [workspace.dependencies.tokio]
 version = "1.48"
