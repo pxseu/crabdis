@@ -1,16 +1,14 @@
-mod default;
-mod docs;
-mod help;
-
 use crate::prelude::*;
 
-pub static SUBCOMMANDS: LazyLock<SubcommandRegistry> = LazyLock::new(|| {
-    let mut commands = SubcommandRegistry::new("COMMAND");
-    commands.register_default(default::Default);
-    commands.register(docs::Docs);
-    commands.register(help::Help);
-    commands
-});
+define_subcommands! {
+    parent: "COMMAND",
+    registry: SUBCOMMANDS,
+    commands: {
+        docs => Docs,
+        help => Help,
+    },
+    default: default => Default,
+}
 
 #[derive(Command)]
 #[command(

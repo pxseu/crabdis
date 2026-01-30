@@ -1,14 +1,13 @@
-mod help;
-mod reload;
-
 use crate::prelude::*;
 
-pub static SUBCOMMANDS: LazyLock<SubcommandRegistry> = LazyLock::new(|| {
-    let mut commands = SubcommandRegistry::new("DEBUG");
-    commands.register(help::Help);
-    commands.register(reload::Reload);
-    commands
-});
+define_subcommands! {
+    parent: "DEBUG",
+    registry: SUBCOMMANDS,
+    commands: {
+        help => Help,
+        reload => Reload,
+    },
+}
 
 #[derive(Command)]
 #[command(

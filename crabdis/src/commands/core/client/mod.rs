@@ -1,18 +1,15 @@
-mod getname;
-mod help;
-mod list;
-mod setname;
-
 use crate::prelude::*;
 
-pub static SUBCOMMANDS: LazyLock<SubcommandRegistry> = LazyLock::new(|| {
-    let mut commands = SubcommandRegistry::new("CLIENT");
-    commands.register(getname::GetName);
-    commands.register(help::Help);
-    commands.register(list::List);
-    commands.register(setname::SetName);
-    commands
-});
+define_subcommands! {
+    parent: "CLIENT",
+    registry: SUBCOMMANDS,
+    commands: {
+        getname => GetName,
+        help => Help,
+        list => List,
+        setname => SetName,
+    },
+}
 
 #[derive(Command)]
 #[command(
