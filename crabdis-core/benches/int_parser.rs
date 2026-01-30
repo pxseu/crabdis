@@ -81,20 +81,16 @@ fn bench_int_to_string_builtin(c: &mut Criterion) {
 
     for input in [0i64, 1, 42, 1234, 1234567890, -100] {
         group.throughput(Throughput::Bytes(input.to_string().len() as u64));
-        group.bench_with_input(
-            BenchmarkId::new("cursor", input),
-            &input,
-            |b, data| {
-                b.to_async(&rt).iter(|| async {
-                    let s = black_box(data).to_string();
-                    let mut writer = Cursor::new(Vec::new());
-                    tokio::io::AsyncWriteExt::write_all(&mut writer, s.as_bytes())
-                        .await
-                        .unwrap();
-                    black_box(writer.into_inner())
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("cursor", input), &input, |b, data| {
+            b.to_async(&rt).iter(|| async {
+                let s = black_box(data).to_string();
+                let mut writer = Cursor::new(Vec::new());
+                tokio::io::AsyncWriteExt::write_all(&mut writer, s.as_bytes())
+                    .await
+                    .unwrap();
+                black_box(writer.into_inner())
+            })
+        });
     }
 
     group.finish();
