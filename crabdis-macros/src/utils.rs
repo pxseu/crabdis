@@ -1,9 +1,7 @@
 use syn::spanned::Spanned;
-use syn::{Expr, Result};
+use syn::{BinOp, Expr, ExprBinary, ExprGroup, ExprLit, ExprParen, ExprUnary, Lit, Result, UnOp};
 
 pub fn validate_int_expr(expr: &Expr) -> Result<()> {
-    use syn::{BinOp, ExprBinary, ExprGroup, ExprLit, ExprParen, ExprUnary, Lit, UnOp};
-
     match expr {
         Expr::Lit(ExprLit { lit, .. }) => match lit {
             Lit::Int(_) => Ok(()),

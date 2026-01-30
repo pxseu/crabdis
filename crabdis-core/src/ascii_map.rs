@@ -44,11 +44,12 @@ impl AsciiKey<str> {
 impl<T: AsRef<str> + ?Sized> Hash for AsciiKey<T> {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        for byte in self.0.as_ref().bytes() {
+        let string_ref = self.0.as_ref();
+        for byte in string_ref.bytes() {
             state.write_u8(byte.to_ascii_uppercase());
         }
         // Hash the length to distinguish "a" from "aa" etc.
-        state.write_usize(self.0.as_ref().len());
+        state.write_usize(string_ref.len());
     }
 }
 

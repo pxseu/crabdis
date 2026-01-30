@@ -23,5 +23,5 @@ name = "int_parser"
 harness = false
 
 [[bench]]
-name = "value_benchmarks"
+name = "value"
 harness = false
