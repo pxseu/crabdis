@@ -22,7 +22,7 @@ impl Handler for MSet {
     ) -> Result<()> {
         if args.len() < 2 || !args.len().is_multiple_of(2) {
             return session
-                .respond(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("ERR Invalid number of arguments"), writer)
                 .await;
         }
 
@@ -36,7 +36,9 @@ impl Handler for MSet {
                 }
 
                 _ => {
-                    return session.respond(&value_error!("Invalid key"), writer).await;
+                    return session
+                        .respond(&value_error!("ERR Invalid key"), writer)
+                        .await;
                 }
             }
         }

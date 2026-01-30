@@ -31,22 +31,28 @@ macro_rules! define_subcommands {
     };
 }
 
-mod core;
-mod exp;
+mod connection;
+mod expiration;
 mod hash;
+mod key;
+mod persistence;
 mod pubsub;
-mod store;
+mod server;
+mod string;
 
 use crate::prelude::*;
 
 pub static COMMANDS: LazyLock<CommandRegistry> = LazyLock::new(|| {
     let mut command_registry = CommandRegistry::new();
 
-    core::register(&mut command_registry);
-    exp::register(&mut command_registry);
+    connection::register(&mut command_registry);
+    expiration::register(&mut command_registry);
     hash::register(&mut command_registry);
+    key::register(&mut command_registry);
+    persistence::register(&mut command_registry);
     pubsub::register(&mut command_registry);
-    store::register(&mut command_registry);
+    server::register(&mut command_registry);
+    string::register(&mut command_registry);
 
     command_registry
 });
