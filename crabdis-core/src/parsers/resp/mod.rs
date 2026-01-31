@@ -469,7 +469,7 @@ mod tests {
         let value = Value::String("".into());
         let mut buff = Vec::new();
         Resp::to2(&value, &mut buff).await.unwrap();
-        assert_eq!(buff, b"$-1\r\n");
+        assert_eq!(buff, b"$0\r\n\r\n");
     }
 
     #[tokio::test]
