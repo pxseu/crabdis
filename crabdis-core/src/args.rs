@@ -55,6 +55,25 @@ impl<'slice> Args<'slice> {
         self.next_string().cloned()
     }
 
+    #[inline]
+    pub fn next_integer(&mut self) -> Option<i64> {
+        match self.peek()? {
+            Value::String(s) => {
+                if let Ok(i) = s.parse::<i64>() {
+                    self.pos += 1;
+                    Some(i)
+                } else {
+                    None
+                }
+            }
+            Value::Integer(i) => {
+                self.pos += 1;
+                Some(*i)
+            }
+            _ => None,
+        }
+    }
+
     /// Returns the number of remaining arguments.
     #[inline]
     #[must_use]

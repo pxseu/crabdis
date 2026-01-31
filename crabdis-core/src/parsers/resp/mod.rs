@@ -102,7 +102,6 @@ impl Resp {
 
                     Ok(())
                 }
-                Value::String(s) if s.is_empty() => Ok(writer.write_all(b"$-1\r\n").await?),
                 Value::String(s) => {
                     writer.write_u8(self::symbols::BULK).await?;
                     self::bulk::serialize(writer, s).await?;
