@@ -1,4 +1,5 @@
 define_commands! {
+    append => Append,
     decr => Decr,
     get => Get,
     incr => Incr,
