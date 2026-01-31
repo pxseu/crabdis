@@ -6,8 +6,6 @@ use crate::prelude::*;
 /// Returns command info as a map.
 pub struct Default;
 
-static EMPTY_ARC_SLICE: LazyLock<Arc<[Value]>> = LazyLock::new(|| Arc::from([]));
-
 #[async_trait]
 impl Handler for Default {
     async fn handle(
@@ -25,13 +23,13 @@ impl Handler for Default {
             let mut cmd_info = vec![
                 Value::String(name.into()),
                 Value::Integer(info.arity),
-                Value::Multi(EMPTY_ARC_SLICE.clone()), // flags
+                value_multi!(), // flags
                 Value::Integer(info.first_key),
                 Value::Integer(info.last_key),
                 Value::Integer(info.step),
-                Value::Multi(EMPTY_ARC_SLICE.clone()), // ACL categories
-                Value::Multi(EMPTY_ARC_SLICE.clone()), // tips
-                Value::Multi(EMPTY_ARC_SLICE.clone()), // key specs
+                value_multi!(), // ACL categories
+                value_multi!(), // tips
+                value_multi!(), // key specs
             ];
 
             // Element 10: subcommands
@@ -44,7 +42,7 @@ impl Handler for Default {
                             vec![
                                 Value::String(sub_name.into()),
                                 Value::Integer(sub_info.arity),
-                                Value::Multi(EMPTY_ARC_SLICE.clone()), // flags
+                                value_multi!(), // flags
                                 Value::Integer(sub_info.first_key),
                                 Value::Integer(sub_info.last_key),
                                 Value::Integer(sub_info.step),
@@ -55,7 +53,7 @@ impl Handler for Default {
                     .collect();
                 cmd_info.push(Value::Multi(sub_array.into()));
             } else {
-                cmd_info.push(Value::Multi(EMPTY_ARC_SLICE.clone()));
+                cmd_info.push(value_multi!());
             }
 
             map.insert(Value::String(name.into()), Value::Multi(cmd_info.into()));

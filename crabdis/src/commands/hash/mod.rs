@@ -3,6 +3,9 @@ define_commands! {
     hexists => HExists,
     hget => HGet,
     hgetall => HGetAll,
+    hkeys => HKeys,
     hlen => HLen,
+    hmget => HMGet,
     hset => HSet,
+    hvals => HVals,
 }

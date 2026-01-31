@@ -22,15 +22,17 @@ impl Handler for HExists {
     ) -> Result<()> {
         if args.len() != 2 {
             return session
-                .respond(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("ERR Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string() else {
-            return session.respond(&value_error!("Invalid key"), writer).await;
+            return session
+                .respond(&value_error!("ERR Invalid key"), writer)
+                .await;
         };
 
-        let Some(field) = args.next_owned() else {
+        let Some(field) = args.next() else {
             return session
                 .respond(&value_error!("Invalid field"), writer)
                 .await;
@@ -39,10 +41,15 @@ impl Handler for HExists {
         let store = session.state.store.read().await;
 
         let count = match store.get_inner_unexpired(key) {
-            Ok(Value::Map(map)) => i64::from(map.contains_key(&field)),
+            Ok(Value::Map(map)) => i64::from(map.contains_key(field)),
             Ok(_) => {
                 return session
-                    .respond(&value_error!("Key is not a hashmap"), writer)
+                    .respond(
+                        &value_error!(
+                            "WRONGTYPE Operation against a key holding the wrong kind of value"
+                        ),
+                        writer,
+                    )
                     .await;
             }
             Err(_) => 0,

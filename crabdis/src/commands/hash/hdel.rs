@@ -22,18 +22,20 @@ impl Handler for HDel {
     ) -> Result<()> {
         if args.len() < 2 {
             return session
-                .respond(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("ERR Invalid number of arguments"), writer)
                 .await;
         }
 
-        let Some(key) = args.next_string_owned() else {
-            return session.respond(&value_error!("Invalid key"), writer).await;
+        let Some(key) = args.next_string() else {
+            return session
+                .respond(&value_error!("ERR Invalid key"), writer)
+                .await;
         };
 
         let mut store = session.state.store.write().await;
 
         // Get mutable access to the map
-        let map = store.get_entry_map_mut(&key)?;
+        let map = store.get_entry_map_mut(key)?;
 
         let mut count = 0;
         for field in args {
@@ -46,8 +48,8 @@ impl Handler for HDel {
         let should_remove = map.is_empty();
 
         if should_remove {
-            store.remove(&key);
-            session.state.expire_keys.write().await.remove(&key);
+            store.remove(key);
+            session.state.expire_keys.write().await.remove(key);
         }
 
         if count > 0 {

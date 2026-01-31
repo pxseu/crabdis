@@ -2,18 +2,18 @@ use crate::prelude::*;
 
 #[derive(Command)]
 #[command(
-    arity = 2,
-    first_key = 1,
-    last_key = 1,
-    step = 1,
-    summary = "Returns the number of fields in a hash",
-    complexity = "O(1)",
-    since = "0.1.34"
+	arity = -2,
+	first_key = 1,
+	last_key = 1,
+	step = 1,
+	summary = "Returns all field names in the hash stored at key",
+	complexity = "O(N) where N is the number of fields in the hash",
+	since = "0.1.38"
 )]
-pub struct HLen;
+pub struct HKeys;
 
 #[async_trait]
-impl Handler for HLen {
+impl Handler for HKeys {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
@@ -28,29 +28,33 @@ impl Handler for HLen {
 
         let Some(key) = args.next_string() else {
             return session
-                .respond(&value_error!("ERRInvalid key"), writer)
+                .respond(&value_error!("ERR Invalid key"), writer)
                 .await;
         };
 
         let store = session.state.store.read().await;
 
-        match store.get_inner_unexpired(key) {
-            Ok(Value::Map(map)) => {
-                session
-                    .respond(&Value::Integer(map.len() as i64), writer)
-                    .await
-            }
+        let map = match store.get_inner_unexpired(key) {
+            Ok(Value::Map(map)) => Some(map),
             Ok(_) => {
-                session
+                return session
                     .respond(
                         &value_error!(
                             "WRONGTYPE Operation against a key holding the wrong kind of value"
                         ),
                         writer,
                     )
-                    .await
+                    .await;
             }
-            Err(_) => session.respond(&Value::Integer(0), writer).await,
-        }
+            Err(_) => None,
+        };
+
+        let Some(map) = map else {
+            return session.respond(&value_multi!(), writer).await;
+        };
+
+        let keys = map.keys().cloned().collect::<Arc<_>>();
+
+        session.respond(&Value::Multi(keys), writer).await
     }
 }

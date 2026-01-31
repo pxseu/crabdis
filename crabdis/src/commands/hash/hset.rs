@@ -24,26 +24,28 @@ impl Handler for HSet {
         // so the number of arguments should be at least 3 and odd
         if args.len() < 3 || args.len() % 2 != 1 {
             return session
-                .respond(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("ERR Invalid number of arguments"), writer)
                 .await;
         }
 
-        let Some(key) = args.next_string_owned() else {
-            return session.respond(&value_error!("Invalid key"), writer).await;
+        let Some(key) = args.next_string() else {
+            return session
+                .respond(&value_error!("ERR Invalid key"), writer)
+                .await;
         };
 
         let mut store = session.state.store.write().await;
 
         // Check if value exists and is expired - if so, remove it first
-        if store.get(&key).is_some_and(Value::expired) {
-            store.remove(&key);
-            session.state.expire_keys.write().await.remove(&key);
+        if store.get(key).is_some_and(Value::expired) {
+            store.remove(key);
+            session.state.expire_keys.write().await.remove(key);
         }
 
         let mut count = 0;
 
         // Get or create the map, then insert fields
-        let map = store.get_entry_map_mut(&key)?;
+        let map = store.get_entry_map_mut(key)?;
 
         while let Some(field) = args.next_owned() {
             let val = args.next_owned().unwrap();

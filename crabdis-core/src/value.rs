@@ -67,6 +67,9 @@ macro_rules! value_error {
 
 #[macro_export]
 macro_rules! value_multi {
+	() => {
+		$crate::value::statics::EMPTY_MULTI.clone()
+	};
     ($($arg:tt)*) => {
         $crate::value::Value::Multi(vec![$($arg)*].into())
     };
@@ -206,4 +209,14 @@ impl From<Option<Arc<str>>> for Value {
     fn from(value: Option<Arc<str>>) -> Self {
         value.map_or(Self::Nil, Self::String)
     }
+}
+
+// global static values
+pub mod statics {
+    use std::sync::{Arc, LazyLock};
+
+    use super::Value;
+
+    static EMPTY_ARC: LazyLock<Arc<[Value]>> = LazyLock::new(|| Arc::from([]));
+    pub static EMPTY_MULTI: LazyLock<Value> = LazyLock::new(|| Value::Multi(EMPTY_ARC.clone()));
 }

@@ -2,25 +2,25 @@ use crate::prelude::*;
 
 #[derive(Command)]
 #[command(
-    arity = 3,
+	arity = -3,
     first_key = 1,
     last_key = 1,
     step = 1,
-    summary = "Get the value of a hash field",
-    complexity = "O(1)",
-    since = "0.1.34"
+    complexity = "O(N) where N is the number of fields being requested",
+	summary = "Get the values of all the given fields.",
+	since = "0.1.38"
 )]
-pub struct HGet;
+pub struct HMGet;
 
 #[async_trait]
-impl Handler for HGet {
+impl Handler for HMGet {
     async fn handle(
         &self,
         writer: &mut (dyn tokio::io::AsyncWrite + Unpin + Send),
         args: &mut Args<'_>,
         session: &Session,
     ) -> Result<()> {
-        if args.len() != 2 {
+        if args.len() < 2 {
             return session
                 .respond(&value_error!("ERR Invalid number of arguments"), writer)
                 .await;
@@ -32,17 +32,11 @@ impl Handler for HGet {
                 .await;
         };
 
-        let Some(field) = args.next() else {
-            return session
-                .respond(&value_error!("ERR Invalid field"), writer)
-                .await;
-        };
-
         let store = session.state.store.read().await;
 
-        let value = match store.get_inner_unexpired(key)? {
-            Value::Map(map) => map.get(field).unwrap_or(&Value::Nil),
-            _ => {
+        let map = match store.get_inner_unexpired(key) {
+            Ok(Value::Map(map)) => Some(map),
+            Ok(_) => {
                 return session
                     .respond(
                         &value_error!(
@@ -52,8 +46,23 @@ impl Handler for HGet {
                     )
                     .await;
             }
+            Err(_) => None,
         };
 
-        session.respond(value, writer).await
+        let mut results = vec![Value::Nil; args.len()];
+
+        let Some(map) = map else {
+            return session.respond(&Value::Multi(results.into()), writer).await;
+        };
+
+        let mut index = 0usize;
+        while let Some(field) = args.next_string_owned() {
+            if let Some(value) = map.get(&Value::String(field)) {
+                results[index] = value.clone();
+            }
+            index += 1;
+        }
+
+        session.respond(&Value::Multi(results.into()), writer).await
     }
 }

@@ -22,12 +22,14 @@ impl Handler for HGetAll {
     ) -> Result<()> {
         if args.len() != 1 {
             return session
-                .respond(&value_error!("Invalid number of arguments"), writer)
+                .respond(&value_error!("ERR Invalid number of arguments"), writer)
                 .await;
         }
 
         let Some(key) = args.next_string() else {
-            return session.respond(&value_error!("Invalid key"), writer).await;
+            return session
+                .respond(&value_error!("ERR Invalid key"), writer)
+                .await;
         };
 
         let store = session.state.store.read().await;
@@ -36,7 +38,12 @@ impl Handler for HGetAll {
 
         if !matches!(value, Value::Map(_)) {
             return session
-                .respond(&value_error!("Key is not a hashmap"), writer)
+                .respond(
+                    &value_error!(
+                        "WRONGTYPE Operation against a key holding the wrong kind of value"
+                    ),
+                    writer,
+                )
                 .await;
         }
 
