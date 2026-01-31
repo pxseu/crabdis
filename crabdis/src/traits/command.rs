@@ -42,7 +42,7 @@ impl CommandRegistry {
         let _ = command.subcommands();
 
         self.commands
-            .insert(command.name().to_uppercase(), Box::new(command));
+            .insert(command.name().to_owned(), Box::new(command));
     }
 
     /// Get a command by name (case-insensitive, zero-allocation lookup).
@@ -53,6 +53,12 @@ impl CommandRegistry {
 
     pub fn iter(&self) -> impl Iterator<Item = (&str, &(dyn CommandTrait + Send + Sync))> {
         self.commands.iter().map(|(k, v)| (k, v.as_ref()))
+    }
+
+    pub fn count(&self) -> i64 {
+        // safe to cast because number of commands will never exceed i64::MAX,
+        // proove me wrong i suppose
+        self.commands.len() as i64
     }
 
     /// # Errors

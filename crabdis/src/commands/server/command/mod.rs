@@ -4,6 +4,7 @@ define_subcommands! {
     parent: "COMMAND",
     registry: SUBCOMMANDS,
     commands: {
+        count => Count,
         docs => Docs,
         help => Help,
     },

@@ -112,7 +112,7 @@ pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
                     log::info!("Data saved successfully");
                 }
 
-                log::info!("Bye bye~!");
+                log::info!("bye bye~!");
                 return Ok(());
             }
 

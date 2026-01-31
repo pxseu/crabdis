@@ -65,7 +65,7 @@ pub fn derive_subcommand(input: TokenStream) -> TokenStream {
         return e.to_compile_error().into();
     }
 
-    let name_tokens = quote!(stringify!(#ident));
+    let name_tokens = LitStr::new(&ident.to_string().to_uppercase(), ident.span());
 
     let expanded = quote! {
         #[::async_trait::async_trait]

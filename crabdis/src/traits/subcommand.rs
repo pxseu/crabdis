@@ -36,8 +36,7 @@ impl SubcommandRegistry {
     }
 
     pub fn register<S: SubcommandTrait + Send + Sync + 'static>(&mut self, sub: S) {
-        self.commands
-            .insert(sub.name().to_uppercase(), Box::new(sub));
+        self.commands.insert(sub.name().to_owned(), Box::new(sub));
     }
 
     pub fn register_default<S: Handler + Send + Sync + 'static>(&mut self, sub: S) {

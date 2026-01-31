@@ -70,7 +70,7 @@ pub fn derive_command(input: TokenStream) -> TokenStream {
         return e.to_compile_error().into();
     }
 
-    let name_tokens = quote!(stringify!(#ident));
+    let name_tokens = LitStr::new(&ident.to_string().to_uppercase(), ident.span());
 
     let requires_auth_fn = if opts.noauth {
         quote! {
