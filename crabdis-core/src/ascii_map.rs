@@ -114,6 +114,11 @@ impl<V> AsciiMap<V> {
         self.inner.iter().map(|(k, v)| (k.0.as_str(), v))
     }
 
+    #[inline]
+    pub fn values(&self) -> impl Iterator<Item = &V> {
+        self.inner.values()
+    }
+
     /// Returns the number of elements in the map.
     #[inline]
     #[must_use]
@@ -209,6 +214,17 @@ mod tests {
         }
 
         assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn test_ascii_map_values() {
+        let mut map: AsciiMap<i32> = AsciiMap::new();
+        map.insert("A".to_string(), 1);
+        map.insert("B".to_string(), 2);
+
+        let values: Vec<i32> = map.values().copied().collect();
+        assert!(values.contains(&1));
+        assert!(values.contains(&2));
     }
 
     #[test]

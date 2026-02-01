@@ -7,6 +7,7 @@ define_subcommands! {
         count => Count,
         docs => Docs,
         help => Help,
+        info => Info,
     },
     default: default => Default,
 }
@@ -17,7 +18,7 @@ define_subcommands! {
     first_key = 0,
     last_key = 0,
     step = 0,
-    summary = "Returns details about all Redis commands.",
+    summary = "Returns details about all commands.",
     complexity = "O(N) where N is the number of commands",
     since = "0.1.34",
     subcommands = SUBCOMMANDS,

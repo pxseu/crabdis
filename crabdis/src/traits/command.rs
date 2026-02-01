@@ -51,8 +51,8 @@ impl CommandRegistry {
         self.commands.get(command).map(Box::as_ref)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&str, &(dyn CommandTrait + Send + Sync))> {
-        self.commands.iter().map(|(k, v)| (k, v.as_ref()))
+    pub fn values(&self) -> impl Iterator<Item = &(dyn CommandTrait + Send + Sync)> {
+        self.commands.values().map(Box::as_ref)
     }
 
     pub fn count(&self) -> i64 {
