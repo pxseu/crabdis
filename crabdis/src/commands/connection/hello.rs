@@ -22,18 +22,15 @@ impl Handler for Hello {
         session: &Session,
     ) -> Result<()> {
         // Parse optional protover
-        if let Some(version) = args.next_string() {
-            if version.as_ref() != "2" && version.as_ref() != "3" {
+        if let Some(raw_version) = args.next() {
+            let Ok(version) = Version::from_value(raw_version) else {
                 return session
                     .respond(
                         &value_error!("NOPROTO unsupported protocol version"),
                         writer,
                     )
                     .await;
-            }
-
-            // above check ensures that the version is either 2 or 3
-            let version = version.as_bytes()[0] - b'0';
+            };
 
             session.set_proto(version);
 
@@ -108,7 +105,7 @@ impl Handler for Hello {
             ),
             (
                 Value::String("proto".into()),
-                Value::Integer(session.proto().into()),
+                Value::Integer(i64::from(session.proto().as_u8())),
             ),
             (
                 Value::String("id".into()),

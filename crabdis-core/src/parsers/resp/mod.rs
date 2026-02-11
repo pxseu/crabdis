@@ -4,6 +4,7 @@ pub mod int;
 pub mod simple;
 pub mod size;
 pub mod symbols;
+pub mod version;
 
 use std::collections::{HashMap, HashSet};
 use std::hint::unreachable_unchecked;
@@ -11,6 +12,7 @@ use std::pin::Pin;
 
 use crate::prelude::*;
 use crate::value::Value;
+use version::Version;
 
 /// RESP parser implementation.
 ///
@@ -39,7 +41,7 @@ impl Resp {
     #[inline]
     pub async fn try_parse<'a, R>(
         reader: &'a mut R,
-        proto: u8,
+        proto: Version,
     ) -> Result<Pin<Box<dyn Future<Output = Result<Option<Value>>> + Send + 'a>>>
     where
         R: AsyncBufRead + Unpin + Send + 'a,
@@ -49,9 +51,8 @@ impl Resp {
         }
 
         Ok(match proto {
-            2 => Self::from2(reader),
-            3 => Self::from3(reader),
-            _ => unsafe { unreachable_unchecked() },
+            Version::RESP2 => Self::from2(reader),
+            Version::RESP3 => Self::from3(reader),
         })
     }
 
@@ -60,15 +61,14 @@ impl Resp {
     pub fn write<'b, T>(
         value: &'b Value,
         writer: &'b mut T,
-        proto: u8,
+        proto: Version,
     ) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'b>>
     where
         T: AsyncWrite + Unpin + Send + 'b + ?Sized,
     {
         match proto {
-            2 => Self::to2(value, writer),
-            3 => Self::to3(value, writer),
-            _ => unsafe { unreachable_unchecked() },
+            Version::RESP2 => Self::to2(value, writer),
+            Version::RESP3 => Self::to3(value, writer),
         }
     }
 
@@ -180,13 +180,15 @@ impl Resp {
                     Ok(())
                 }
 
-                Value::Error(s) => {
-                    writer.write_u8(self::symbols::BULK_ERROR).await?;
-                    self::bulk::serialize(writer, s).await?;
+                // TODO: figure this out
+                // I still don't quite understand why this exists. Whenever
+                // I try to send it as a response REDIS-cli dies?
+                // Value::Error(s) => {
+                //     writer.write_u8(self::symbols::BULK_ERROR).await?;
+                //     self::bulk::serialize(writer, s).await?;
 
-                    Ok(())
-                }
-
+                //     Ok(())
+                // }
                 Value::Push(v) => {
                     writer.write_u8(self::symbols::PUSH).await?;
                     self::size::serialize(writer, v.len()).await?;

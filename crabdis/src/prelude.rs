@@ -1,5 +1,5 @@
 pub use std::collections::{HashMap, HashSet};
-pub use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+pub use std::sync::atomic::{AtomicBool, Ordering};
 pub use std::sync::{Arc, LazyLock};
 
 pub use async_trait::async_trait;

@@ -9,7 +9,7 @@ pub struct Session {
     pub id: u64,
     // private since are rwlocked and accessed via methods
     name: RwLock<Option<Arc<str>>>,
-    proto_version: AtomicU8,
+    proto_version: AtomicVersion,
     authenticated: AtomicBool,
     pub state: state::StateRef,
     pub tx: mpsc::UnboundedSender<Value>,
@@ -34,18 +34,18 @@ impl Session {
             state,
             name: RwLock::new(None),
             // default to RESP2 protocol, can be changed via HELLO command
-            proto_version: AtomicU8::new(2),
+            proto_version: AtomicVersion::new(),
             tx,
         })
     }
 
     #[inline]
-    pub fn proto(&self) -> u8 {
-        self.proto_version.load(Ordering::Relaxed)
+    pub fn proto(&self) -> Version {
+        self.proto_version.get()
     }
 
-    pub fn set_proto(&self, proto: u8) {
-        self.proto_version.store(proto, Ordering::Relaxed);
+    pub fn set_proto(&self, proto: Version) {
+        self.proto_version.set(proto);
     }
 
     #[inline]
