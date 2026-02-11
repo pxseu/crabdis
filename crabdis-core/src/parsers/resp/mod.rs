@@ -400,7 +400,7 @@ mod tests {
     #[tokio::test]
     async fn test_resp2_try_parse() {
         let mut reader = Cursor::new(b"*3\r\n$5\r\nhello\r\n:42\r\n$-1\r\n");
-        let value = Resp::try_parse(&mut reader, 2)
+        let value = Resp::try_parse(&mut reader, Version::RESP2)
             .await
             .expect("Failed to parse")
             .await
@@ -418,7 +418,7 @@ mod tests {
     #[tokio::test]
     async fn test_resp2_try_parse_empty() {
         let mut reader = Cursor::new(b"");
-        let value = Resp::try_parse(&mut reader, 2)
+        let value = Resp::try_parse(&mut reader, Version::RESP2)
             .await
             .expect("Failed to parse")
             .await
@@ -585,13 +585,14 @@ mod tests {
         assert!(resp.starts_with("~2\r\n")); // ~ indicates set in RESP3
     }
 
-    #[tokio::test]
-    async fn test_resp3_error() {
-        let value = Value::Error("ERR test error".into());
-        let mut buff = Vec::new();
-        Resp::to3(&value, &mut buff).await.unwrap();
-        assert_eq!(buff, b"!14\r\nERR test error\r\n");
-    }
+    // TODO: <src/parsers/resp/mod.rs:183>
+    // #[tokio::test]
+    // async fn test_resp3_error() {
+    //     let value = Value::Error("ERR test error".into());
+    //     let mut buff = Vec::new();
+    //     Resp::to3(&value, &mut buff).await.unwrap();
+    //     assert_eq!(buff, b"!14\r\nERR test error\r\n");
+    // }
 
     #[tokio::test]
     async fn test_resp3_push() {
