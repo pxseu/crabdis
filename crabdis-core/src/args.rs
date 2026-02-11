@@ -4,8 +4,8 @@ use crate::prelude::*;
 /// Avoids cloning the entire args vector for each request / response.
 ///
 /// All functions that return an argument will advance the internal position,
-/// so the next call will return the next argument. The `peek` function allows you
-/// to look at the next argument without advancing the position.
+/// so the next call will return the next argument. The `peek` function allows
+/// you to look at the next argument without advancing the position.
 ///
 /// ```
 /// use crabdis_core::args::Args;

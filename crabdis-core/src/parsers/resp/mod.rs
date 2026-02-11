@@ -10,9 +10,10 @@ use std::collections::{HashMap, HashSet};
 use std::hint::unreachable_unchecked;
 use std::pin::Pin;
 
+use version::Version;
+
 use crate::prelude::*;
 use crate::value::Value;
-use version::Version;
 
 /// RESP parser implementation.
 ///
