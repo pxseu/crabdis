@@ -32,7 +32,7 @@ impl Display for InvalidVersion {
 impl std::error::Error for InvalidVersion {}
 
 #[repr(u8)]
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Version {
     RESP2 = 2,
     RESP3,
@@ -114,5 +114,120 @@ impl AtomicVersion {
 impl Default for AtomicVersion {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::convert::TryFrom;
+
+    use super::*;
+
+    #[test]
+    fn invalid_version_display_message() {
+        let msg = InvalidVersion.to_string();
+        assert_eq!(msg, "invalid RESP version, must be one of: 2, 3");
+    }
+
+    #[test]
+    fn version_as_u8_roundtrip() {
+        assert_eq!(Version::RESP2.as_u8(), 2);
+        assert_eq!(Version::RESP3.as_u8(), 3);
+
+        assert_eq!(Version::from_u8(2), Version::RESP2);
+        assert_eq!(Version::from_u8(3), Version::RESP3);
+    }
+
+    #[test]
+    fn try_from_u8_valid_and_invalid() {
+        assert_eq!(Version::try_from(2u8).unwrap(), Version::RESP2);
+        assert_eq!(Version::try_from(3u8).unwrap(), Version::RESP3);
+
+        let err = Version::try_from(0u8).unwrap_err();
+        assert_eq!(err.to_string(), InvalidVersion.to_string());
+
+        let err = Version::try_from(4u8).unwrap_err();
+        assert_eq!(err.to_string(), InvalidVersion.to_string());
+    }
+
+    #[test]
+    fn try_from_i64_valid_and_invalid() {
+        assert_eq!(Version::try_from(2i64).unwrap(), Version::RESP2);
+        assert_eq!(Version::try_from(3i64).unwrap(), Version::RESP3);
+
+        assert!(Version::try_from(-1i64).is_err());
+        assert!(Version::try_from(0i64).is_err());
+        assert!(Version::try_from(4i64).is_err());
+        assert!(Version::try_from(i64::MAX).is_err());
+    }
+
+    #[test]
+    fn try_from_str_valid_and_invalid() {
+        assert_eq!(Version::try_from("2").unwrap(), Version::RESP2);
+        assert_eq!(Version::try_from("3").unwrap(), Version::RESP3);
+
+        assert!(Version::try_from("").is_err());
+        assert!(Version::try_from("0").is_err());
+        assert!(Version::try_from("4").is_err());
+        assert!(Version::try_from("resp2").is_err());
+        assert!(Version::try_from(" 2").is_err());
+        assert!(Version::try_from("2 ").is_err());
+    }
+
+    #[test]
+    fn from_value_integer_valid_and_invalid() {
+        assert_eq!(
+            Version::from_value(&Value::Integer(2)).unwrap(),
+            Version::RESP2
+        );
+        assert_eq!(
+            Version::from_value(&Value::Integer(3)).unwrap(),
+            Version::RESP3
+        );
+
+        assert!(Version::from_value(&Value::Integer(0)).is_err());
+        assert!(Version::from_value(&Value::Integer(4)).is_err());
+        assert!(Version::from_value(&Value::Integer(-1)).is_err());
+    }
+
+    #[test]
+    fn from_value_string_valid_and_invalid() {
+        assert_eq!(
+            Version::from_value(&Value::String("2".into())).unwrap(),
+            Version::RESP2
+        );
+        assert_eq!(
+            Version::from_value(&Value::String("3".into())).unwrap(),
+            Version::RESP3
+        );
+
+        assert!(Version::from_value(&Value::String("".into())).is_err());
+        assert!(Version::from_value(&Value::String("4".into())).is_err());
+        assert!(Version::from_value(&Value::String(" 2".into())).is_err());
+    }
+
+    #[test]
+    fn from_value_non_integer_non_string_is_invalid() {
+        assert!(Version::from_value(&Value::Nil).is_err());
+        assert!(Version::from_value(&Value::Ok).is_err());
+    }
+
+    #[test]
+    fn atomic_version_default_is_resp2() {
+        let av = AtomicVersion::new();
+        assert_eq!(av.get(), Version::RESP2);
+
+        let av2 = AtomicVersion::default();
+        assert_eq!(av2.get(), Version::RESP2);
+    }
+
+    #[test]
+    fn atomic_version_set_and_get() {
+        let av = AtomicVersion::new();
+        av.set(Version::RESP3);
+        assert_eq!(av.get(), Version::RESP3);
+
+        av.set(Version::RESP2);
+        assert_eq!(av.get(), Version::RESP2);
     }
 }
