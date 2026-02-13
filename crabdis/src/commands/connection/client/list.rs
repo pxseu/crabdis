@@ -1,3 +1,5 @@
+use tokio::time::Instant;
+
 use crate::prelude::*;
 
 #[derive(Subcommand)]
@@ -26,8 +28,10 @@ impl Handler for List {
             use std::fmt::Write;
             writeln!(
                 list,
-                "id={id} name={}",
-                session.name().await.unwrap_or_else(|| "(nil)".into())
+                "id={id} addr={} name={} age={} user=default",
+                session.socket_addr,
+                session.name().await.unwrap_or_else(|| "".into()),
+                Instant::now().duration_since(session.age).as_secs()
             )
             .expect("Writing to String should not fail");
         }

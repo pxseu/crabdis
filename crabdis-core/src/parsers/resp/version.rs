@@ -1,4 +1,4 @@
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 use std::hint::unreachable_unchecked;
 use std::sync::atomic::{AtomicU8, Ordering};
 
@@ -88,9 +88,20 @@ impl Version {
 }
 
 #[repr(transparent)]
-#[derive(Debug)]
 pub struct AtomicVersion {
     atom: AtomicU8,
+}
+
+impl Display for AtomicVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.get().fmt(f)
+    }
+}
+
+impl Debug for AtomicVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.get().fmt(f)
+    }
 }
 
 impl AtomicVersion {

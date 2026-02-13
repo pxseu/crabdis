@@ -117,10 +117,10 @@ pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
             }
 
             result = listener.accept() => {
-                let (stream, addr) = result.context("Failed to accept connection")?;
+                let (stream, socket) = result.context("Failed to accept connection")?;
                 let state = state.clone();
 
-                tokio::spawn(handle_client(stream, state, addr));
+                tokio::spawn(handle_client(stream, state, socket));
             }
         }
     }

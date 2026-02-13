@@ -9,11 +9,7 @@ use crate::commands::COMMANDS;
 use crate::prelude::*;
 use crate::session::Session;
 
-pub async fn handle_client(
-    mut stream: TcpStream,
-    state: StateRef,
-    #[cfg_attr(not(debug_assertions), allow(unused_variables))] addr: SocketAddr,
-) {
+pub async fn handle_client(mut stream: TcpStream, state: StateRef, socket: SocketAddr) {
     // Disable Nagle's algorithm to ensure immediate delivery of data
     if let Err(e) = stream.set_nodelay(true) {
         log::error!("Failed to set TCP_NODELAY: {e}");
@@ -22,11 +18,11 @@ pub async fn handle_client(
 
     let (tx, rx) = mpsc::unbounded_channel();
     let session_id = state.get_next_session_id().await;
-    let session = Session::new(session_id, state.clone(), tx);
+    let session = Session::new(session_id, socket, state.clone(), tx);
     state.add_session(session.clone()).await;
 
     #[cfg(debug_assertions)]
-    log::debug!("Accepted connection from {addr} for session: {session:?}");
+    log::debug!("Accepted connection from {socket} for session: {session:?}");
 
     if let Err(e) = handle_connection(&mut stream, session.clone(), rx).await {
         match e {
@@ -47,7 +43,7 @@ pub async fn handle_client(
     session.cleanup().await;
 
     #[cfg(debug_assertions)]
-    log::debug!("Connection from {addr} closed");
+    log::debug!("Connection from {socket} closed");
 }
 
 async fn handle_connection(

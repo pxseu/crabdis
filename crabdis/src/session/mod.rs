@@ -1,4 +1,7 @@
+use std::net::SocketAddr;
+
 use tokio::sync::{RwLock, mpsc};
+use tokio::time::Instant;
 
 use crate::prelude::*;
 
@@ -11,6 +14,8 @@ pub struct Session {
     name: RwLock<Option<Arc<str>>>,
     proto_version: AtomicVersion,
     authenticated: AtomicBool,
+    pub age: Instant,
+    pub socket_addr: SocketAddr,
     pub state: state::StateRef,
     pub tx: mpsc::UnboundedSender<Value>,
 }
@@ -20,18 +25,35 @@ impl std::fmt::Debug for Session {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Session")
             .field("id", &self.id)
-            .field("name", &self.name)
+            .field(
+                "name",
+                &loop {
+                    if let Ok(name) = self.name.try_read() {
+                        break name;
+                    }
+                },
+            )
             .field("proto", &self.proto_version)
+            .field("authenticated", &self.authenticated)
+            .field("age", &Instant::now().duration_since(self.age))
+            .field("socket_addr", &self.socket_addr)
             .finish_non_exhaustive()
     }
 }
 
 impl Session {
-    pub fn new(id: u64, state: StateRef, tx: mpsc::UnboundedSender<Value>) -> Arc<Self> {
+    pub fn new(
+        id: u64,
+        socket: SocketAddr,
+        state: StateRef,
+        tx: mpsc::UnboundedSender<Value>,
+    ) -> Arc<Self> {
         Arc::new(Self {
             authenticated: AtomicBool::new(!state.auth.has_auth()),
             id,
             state,
+            socket_addr: socket,
+            age: Instant::now(),
             name: RwLock::new(None),
             // default to RESP2 protocol, can be changed via HELLO command
             proto_version: AtomicVersion::new(),
