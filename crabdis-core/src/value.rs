@@ -5,7 +5,7 @@ use crate::prelude::*;
 /// Value is the type that can be returned via the RESP protocol.
 /// It is also used to store values in the store.
 /// It is almost free to clone, so we can use it as a reference type.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Value {
     Ok,   // only for response
     Pong, // only for response
@@ -208,6 +208,25 @@ impl From<i64> for Value {
 impl From<Option<Arc<str>>> for Value {
     fn from(value: Option<Arc<str>>) -> Self {
         value.map_or(Self::Nil, Self::String)
+    }
+}
+
+impl std::fmt::Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Ok => write!(f, "OK"),
+            Self::Pong => write!(f, "PONG"),
+            Self::Nil => write!(f, "(nil)"),
+            Self::Simple(s) | Self::String(s) | Self::Error(s) => write!(f, "\"{s}\""),
+            Self::Integer(i) => write!(f, "{i}"),
+            Self::Multi(v) => write!(f, "{v:?}"),
+            Self::Expire((v, expires_at)) => {
+                write!(f, "EXPIRE(value={v:?}, expires_at={expires_at:?})")
+            }
+            Self::Map(m) => write!(f, "%{m:?}"),
+            Self::Set(s) => write!(f, "~{s:?}"),
+            Self::Push(p) => write!(f, ">{p:?}"),
+        }
     }
 }
 
