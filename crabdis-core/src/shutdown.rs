@@ -26,8 +26,8 @@ impl Display for Signal {
     }
 }
 
-fn inner_shutdown() -> broadcast::Sender<Signal> {
-    let tx = SHUTDOWN_TX.get_or_init(|| {
+fn inner_shutdown() -> &'static broadcast::Sender<Signal> {
+    SHUTDOWN_TX.get_or_init(|| {
         let (shutdown_tx, _) = broadcast::channel(1);
 
         // Spawn signal handler task
@@ -42,9 +42,7 @@ fn inner_shutdown() -> broadcast::Sender<Signal> {
         });
 
         shutdown_tx
-    });
-
-    tx.to_owned()
+    })
 }
 
 /// Creates a new signal listener.
@@ -58,10 +56,6 @@ pub fn listen() -> Receiver {
 }
 
 /// Send a shutdown signal
-///
-/// # Panics
-///
-/// Panics if the signal cannot be sent.
 pub fn send_shutdown() {
     let _ = inner_shutdown().send(Signal::Terminate);
 }
