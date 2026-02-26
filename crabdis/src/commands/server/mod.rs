@@ -4,5 +4,6 @@ define_commands! {
     echo => Echo,
     flushdb => FlushDB,
     info => Info,
+    shutdown => Shutdown,
     time => Time,
 }

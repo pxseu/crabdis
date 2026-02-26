@@ -51,6 +51,7 @@ async fn handle_connection(
     session: SessionRef,
     mut rx: mpsc::UnboundedReceiver<Value>,
 ) -> Result<()> {
+    let mut shutdown_rx = shutdown::listen();
     let (mut read, mut writer) = stream.split();
     let mut reader = BufReader::new(&mut read);
     let mut writer = BufWriter::new(&mut writer);
@@ -59,6 +60,11 @@ async fn handle_connection(
     loop {
         tokio::select! {
             biased;
+
+            _ = shutdown_rx.recv() => {
+                return Ok(());
+            }
+
             // Handle incoming messages from the channel
             Some(value) = rx.recv() => {
                 #[cfg(debug_assertions)]

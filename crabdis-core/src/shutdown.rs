@@ -26,12 +26,7 @@ impl Display for Signal {
     }
 }
 
-/// Creates a new signal listener.
-///
-/// # Panics
-///
-/// Panics if the signal listener cannot be created.
-pub fn listen() -> Receiver {
+fn inner_shutdown() -> broadcast::Sender<Signal> {
     let tx = SHUTDOWN_TX.get_or_init(|| {
         let (shutdown_tx, _) = broadcast::channel(1);
 
@@ -49,7 +44,26 @@ pub fn listen() -> Receiver {
         shutdown_tx
     });
 
-    tx.subscribe()
+    tx.to_owned()
+}
+
+/// Creates a new signal listener.
+///
+/// # Panics
+///
+/// Panics if the signal listener cannot be created.
+#[must_use]
+pub fn listen() -> Receiver {
+    inner_shutdown().subscribe()
+}
+
+/// Send a shutdown signal
+///
+/// # Panics
+///
+/// Panics if the signal cannot be sent.
+pub fn send_shutdown() {
+    let _ = inner_shutdown().send(Signal::Terminate);
 }
 
 #[cfg(unix)]

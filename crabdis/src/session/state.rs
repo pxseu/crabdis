@@ -23,6 +23,8 @@ impl State {
     pub fn new(cli: &CLI) -> Arc<Self> {
         // Ensure commands are initialized
         LazyLock::force(&COMMANDS);
+        // Initialize client counter to make it faster
+        LazyLock::force(&CLIENT_COUNTER);
 
         // Check if user explicitly disabled RDB persistence with --save ""
         let rdb_disabled = cli.save_points.iter().any(|s| s.trim().is_empty());

@@ -4,6 +4,7 @@
 
 pub mod args;
 pub mod ascii_map;
+pub mod counter;
 pub mod eq;
 pub mod error;
 pub mod parsers;

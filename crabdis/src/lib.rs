@@ -21,7 +21,6 @@ use std::num::{NonZeroU16, NonZeroUsize};
 use std::path::PathBuf;
 
 use clap::Parser;
-use crabdis_core::shutdown::Receiver;
 use tokio::net::TcpListener;
 
 use self::prelude::*;
@@ -78,7 +77,7 @@ pub struct CLI {
 ///
 /// Returns an error if binding to the specified address fails or if the
 /// server encounters an unrecoverable I/O error.
-pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
+pub async fn run(cli: CLI, mut shutdown_rx: shutdown::Receiver) -> Result<()> {
     utils::logger::init(cfg!(debug_assertions) || cli.verbose);
 
     utils::bootlog(&cli);
@@ -100,8 +99,13 @@ pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
             biased;
 
             signal = shutdown_rx.recv() => {
-                let signal = signal.context("Failed to receive shutdown signal")?;
+                let signal = signal.unwrap_or(shutdown::Signal::Terminate);
                 log::warn!("Received {signal}, preparing to shut down...");
+
+                drop(listener);
+
+                // wait for clients to drain
+                CLIENT_COUNTER.wait_for_zero().await;
 
                 // Perform final save if RDB is enabled
                 if state.rdb_config.is_enabled() {
@@ -113,6 +117,7 @@ pub async fn run(cli: CLI, mut shutdown_rx: Receiver) -> Result<()> {
                 }
 
                 log::info!("bye bye~");
+
                 return Ok(());
             }
 
