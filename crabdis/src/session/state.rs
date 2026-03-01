@@ -1,10 +1,15 @@
+use std::net::SocketAddr;
+
 use tokio::sync::RwLock;
+use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
 
 use super::auth::{Auth, AuthRef};
 use crate::CLI;
 use crate::commands::COMMANDS;
 use crate::prelude::*;
 use crate::storage::{ExpireKey, rdb};
+
+pub static CLIENT_COUNTER: LazyLock<Counter> = LazyLock::new(Counter::new);
 
 pub struct State {
     pub loaded: AtomicBool,
@@ -113,6 +118,18 @@ impl State {
             *next_id = if id == u64::MAX { 1 } else { id + 1 };
             id
         }
+    }
+
+    pub async fn new_session(
+        self: Arc<Self>,
+        socket: SocketAddr,
+    ) -> (SessionRef, UnboundedReceiver<Value>) {
+        let guard = CLIENT_COUNTER.guard();
+        let (tx, rx) = unbounded_channel();
+        let session_id = self.get_next_session_id().await;
+        let session = Session::new(session_id, socket, self.clone(), tx, guard);
+        self.add_session(session.clone()).await;
+        (session, rx)
     }
 
     #[inline]

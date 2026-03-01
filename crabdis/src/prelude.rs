@@ -9,8 +9,8 @@ pub use crabdis_macros::{Command, Subcommand};
 pub use tokio::io::AsyncWriteExt;
 
 pub use super::error::{Context as ErrorContext, Error, Result};
-pub use super::session::state::StateRef;
-pub use super::session::{CLIENT_COUNTER, Session, SessionRef};
+pub use super::session::state::{CLIENT_COUNTER, StateRef};
+pub use super::session::{Session, SessionRef};
 pub use super::storage::{RdbConfig, SavePoint, Store};
 pub use super::traits::command::{CommandRegistry, CommandTrait};
 pub use super::traits::subcommand::{SubcommandRegistry, SubcommandTrait};

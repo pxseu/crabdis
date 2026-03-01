@@ -8,8 +8,6 @@ use crate::prelude::*;
 pub mod auth;
 pub mod state;
 
-pub static CLIENT_COUNTER: LazyLock<Counter> = LazyLock::new(Counter::new);
-
 pub struct Session {
     pub id: u64,
     // private since are rwlocked and accessed via methods
@@ -20,6 +18,8 @@ pub struct Session {
     pub socket_addr: SocketAddr,
     pub state: state::StateRef,
     pub tx: mpsc::UnboundedSender<Value>,
+    // Static refers to the Counter itself, defined above
+    _counter_guard: CounterGuard<'static>,
 }
 
 #[cfg(debug_assertions)]
@@ -49,9 +49,8 @@ impl Session {
         socket: SocketAddr,
         state: StateRef,
         tx: mpsc::UnboundedSender<Value>,
+        guard: CounterGuard<'static>,
     ) -> Arc<Self> {
-        CLIENT_COUNTER.increment();
-
         Arc::new(Self {
             authenticated: AtomicBool::new(!state.auth.has_auth()),
             id,
@@ -62,6 +61,7 @@ impl Session {
             // default to RESP2 protocol, can be changed via HELLO command
             proto_version: AtomicVersion::new(),
             tx,
+            _counter_guard: guard,
         })
     }
 
@@ -112,12 +112,6 @@ impl Session {
 
     pub async fn cleanup(&self) {
         self.state.remove_session(self.id).await;
-    }
-}
-
-impl Drop for Session {
-    fn drop(&mut self) {
-        CLIENT_COUNTER.decrement();
     }
 }
 

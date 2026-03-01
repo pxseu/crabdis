@@ -7,7 +7,7 @@ pub(crate) use tokio::io::{
 
 pub use super::args::Args;
 pub use super::ascii_map::{AsciiKey, AsciiMap};
-pub use super::counter::Counter;
+pub use super::counter::{Counter, CounterGuard};
 pub(crate) use super::error::Result;
 pub use super::parsers::resp::Resp;
 pub use super::parsers::resp::version::{AtomicVersion, InvalidVersion, Version};

@@ -87,7 +87,7 @@ pub async fn run(cli: CLI, mut shutdown_rx: shutdown::Receiver) -> Result<()> {
     let listener = TcpListener::bind(SocketAddr::new(cli.address, cli.port.get())).await?;
 
     log::info!(
-        "Listening on {}",
+        "Listening on redis://{}",
         listener
             .local_addr()
             .context("Failed to get local address")?
@@ -99,10 +99,9 @@ pub async fn run(cli: CLI, mut shutdown_rx: shutdown::Receiver) -> Result<()> {
             biased;
 
             signal = shutdown_rx.recv() => {
+                drop(listener);
                 let signal = signal.unwrap_or(shutdown::Signal::Terminate);
                 log::warn!("Received {signal}, preparing to shut down...");
-
-                drop(listener);
 
                 // wait for clients to drain
                 CLIENT_COUNTER.wait_for_zero().await;
@@ -123,9 +122,9 @@ pub async fn run(cli: CLI, mut shutdown_rx: shutdown::Receiver) -> Result<()> {
 
             result = listener.accept() => {
                 let (stream, socket) = result.context("Failed to accept connection")?;
-                let state = state.clone();
+                let (session, rx) = state.clone().new_session(socket).await;
 
-                tokio::spawn(handle_client(stream, state, socket));
+                tokio::spawn(handle_client(stream, session, rx));
             }
         }
     }
