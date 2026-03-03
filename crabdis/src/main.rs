@@ -9,5 +9,5 @@ fn main() -> crabdis::error::Result<()> {
         .enable_io()
         .enable_time()
         .build()?
-        .block_on(async { crabdis::run(cli, crabdis_core::shutdown::listen()).await })
+        .block_on(async { crabdis::run(cli).await })
 }

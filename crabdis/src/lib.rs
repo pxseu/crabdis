@@ -77,7 +77,7 @@ pub struct CLI {
 ///
 /// Returns an error if binding to the specified address fails or if the
 /// server encounters an unrecoverable I/O error.
-pub async fn run(cli: CLI, mut shutdown_rx: shutdown::Receiver) -> Result<()> {
+pub async fn run(cli: CLI) -> Result<()> {
     utils::logger::init(cfg!(debug_assertions) || cli.verbose);
 
     utils::bootlog(&cli);
@@ -98,9 +98,8 @@ pub async fn run(cli: CLI, mut shutdown_rx: shutdown::Receiver) -> Result<()> {
             // biased, since we want to prioritize shutdown signals and remove randomness overhead
             biased;
 
-            signal = shutdown_rx.recv() => {
+            signal = shutdown::listen() => {
                 drop(listener);
-                let signal = signal.unwrap_or(shutdown::Signal::Terminate);
                 log::warn!("Received {signal}, preparing to shut down...");
 
                 // wait for clients to drain

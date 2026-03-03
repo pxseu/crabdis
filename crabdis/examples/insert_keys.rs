@@ -1,24 +1,22 @@
 use clap::Parser;
 use crabdis::error::Result;
 use crabdis_core::prelude::*;
+use crabdis_core::shutdown::send_shutdown;
 use tokio::io::{AsyncWriteExt, BufReader, BufWriter};
 use tokio::net::TcpStream;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let thread = tokio::spawn(async move {
-        if let Err(e) = crabdis::run(
-            crabdis::CLI::parse_from([
-                "crabdis",
-                "--address",
-                "127.0.0.1",
-                "--port",
-                "6379",
-                "--save",
-                "\"\"",
-            ]),
-            crabdis_core::shutdown::listen(),
-        )
+        if let Err(e) = crabdis::run(crabdis::CLI::parse_from([
+            "crabdis",
+            "--address",
+            "127.0.0.1",
+            "--port",
+            "6379",
+            "--save",
+            "\"\"",
+        ]))
         .await
         {
             println!("Failed to start crabdis: {e}");
@@ -60,6 +58,7 @@ async fn main() -> Result<()> {
     let duration = start.elapsed();
     println!("Time taken: {:?}, count: {}", duration, count);
 
+    send_shutdown();
     thread.abort();
 
     Ok(())

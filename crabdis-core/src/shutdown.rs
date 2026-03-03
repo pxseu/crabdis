@@ -1,19 +1,80 @@
 use std::fmt::{self, Display};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicU8, Ordering};
 
-use tokio::sync::broadcast;
+use tokio::sync::Notify;
 
 use crate::prelude::*;
 
-pub type Receiver = broadcast::Receiver<Signal>;
+static SHUTDOWN_TX: OnceLock<Arc<ShutdownHandler>> = OnceLock::new();
 
-static SHUTDOWN_TX: OnceLock<broadcast::Sender<Signal>> = OnceLock::new();
+struct ShutdownHandler {
+    signal: AtomicU8,
+    notify: Notify,
+}
 
-#[derive(Debug, Clone)]
+impl ShutdownHandler {
+    fn new() -> Self {
+        Self {
+            signal: AtomicU8::new(Signal::NONE),
+            notify: Notify::new(),
+        }
+    }
+
+    fn signal(&self, s: Signal) {
+        // Keep the first signal that arrives.
+        let _ = self.signal.compare_exchange(
+            Signal::NONE,
+            s as u8,
+            Ordering::AcqRel,
+            Ordering::Acquire,
+        );
+        self.notify.notify_waiters();
+    }
+
+    async fn wait_for_exit(&self) -> Signal {
+        let signal_num = loop {
+            let future = self.notify.notified();
+            let signal = self.signal.load(Ordering::Acquire);
+
+            if signal != Signal::NONE {
+                break signal;
+            }
+
+            future.await;
+        };
+
+        Signal::from_u8(signal_num).unwrap_or_default()
+    }
+}
+
+impl Default for ShutdownHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+#[repr(u8)]
 pub enum Signal {
-    Terminate,
+    #[default]
+    Terminate = 1,
     Interrupt,
     Hangup,
+}
+
+impl Signal {
+    /// Used to identify an empty atomic value for the signal
+    const NONE: u8 = 0;
+
+    const fn from_u8(s: u8) -> Option<Self> {
+        Some(match s {
+            1 => Self::Terminate,
+            2 => Self::Interrupt,
+            3 => Self::Hangup,
+            _ => return None,
+        })
+    }
 }
 
 impl Display for Signal {
@@ -26,38 +87,28 @@ impl Display for Signal {
     }
 }
 
-fn inner_shutdown() -> &'static broadcast::Sender<Signal> {
+fn inner_shutdown() -> &'static ShutdownHandler {
     SHUTDOWN_TX.get_or_init(|| {
-        let (shutdown_tx, _) = broadcast::channel(1);
+        let handler = Arc::new(ShutdownHandler::default());
+        let h = handler.clone();
 
-        // Spawn signal handler task
         tokio::spawn(async move {
-            let result = wait_for_signal().await.expect("Failed to wait for signal");
-
-            // Send shutdown signal, there could technically be a race condition here if the
-            // sender is not saved yet, but it's unlikely to happen.
-            if let Some(tx) = SHUTDOWN_TX.get() {
-                let _ = tx.send(result);
-            }
+            h.signal(wait_for_signal().await.expect("Could not bind a listener"));
         });
 
-        shutdown_tx
+        handler
     })
 }
 
 /// Creates a new signal listener.
-///
-/// # Panics
-///
-/// Panics if the signal listener cannot be created.
 #[must_use]
-pub fn listen() -> Receiver {
-    inner_shutdown().subscribe()
+pub async fn listen() -> Signal {
+    inner_shutdown().wait_for_exit().await
 }
 
 /// Send a shutdown signal
 pub fn send_shutdown() {
-    let _ = inner_shutdown().send(Signal::Terminate);
+    inner_shutdown().signal(Signal::default());
 }
 
 #[cfg(unix)]
