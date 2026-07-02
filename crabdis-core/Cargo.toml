@@ -17,11 +17,14 @@ tokio = { workspace = true, features = ["io-util", "time", "sync", "signal"] }
 criterion = { version = "0.8", features = ["async_tokio"] }
 tokio = { workspace = true, features = ["full", "tracing"] }
 
-
 [[bench]]
 name = "int_parser"
 harness = false
 
 [[bench]]
 name = "value"
+harness = false
+
+[[bench]]
+name = "ascii_map"
 harness = false

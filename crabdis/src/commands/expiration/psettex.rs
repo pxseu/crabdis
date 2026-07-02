@@ -32,7 +32,7 @@ impl Handler for PSetEx {
         let milliseconds = args.next_owned().unwrap();
         let value = args.next_owned().unwrap();
 
-        let set_args = vec![key, value, Value::String("PX".into()), milliseconds];
+        let set_args = [key, value, Value::String("PX".into()), milliseconds];
         let mut set_args = Args::new(&set_args);
 
         let set_cmd = COMMANDS.get("SET").unwrap();

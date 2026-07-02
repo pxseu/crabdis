@@ -36,53 +36,44 @@ impl Handler for Hello {
 
             // Parse optional arguments: AUTH username password, SETNAME clientname
             while let Some(option) = args.next_string() {
-                let option_upper = option.to_ascii_uppercase();
-                match option_upper.as_str() {
-                    "AUTH" => {
-                        let first = args.next_string();
-                        let second = args.next_string();
+                if option.eq_ignore_ascii_case("AUTH") {
+                    let first = args.next_string();
+                    let second = args.next_string();
 
-                        let (Some(username), Some(password)) = (first, second) else {
-                            return session
-                                .respond(
-                                    &value_error!(
-                                        "ERR wrong number of arguments for 'AUTH' in HELLO"
-                                    ),
-                                    writer,
-                                )
-                                .await;
-                        };
-
-                        if session.state.auth.login(username, password).is_err() {
-                            return session
-                                .respond(
-                                    &value_error!("WRONGPASS invalid username-password pair"),
-                                    writer,
-                                )
-                                .await;
-                        }
-
-                        session.set_authenticated(true);
-                    }
-                    "SETNAME" => {
-                        let Some(name) = args.next_string_owned() else {
-                            return session
-                                .respond(
-                                    &value_error!(
-                                        "ERR wrong number of arguments for 'SETNAME' in HELLO"
-                                    ),
-                                    writer,
-                                )
-                                .await;
-                        };
-
-                        session.set_name(name).await;
-                    }
-                    _ => {
+                    let (Some(username), Some(password)) = (first, second) else {
                         return session
-                            .respond(&value_error!("ERR unknown option '{option_upper}'"), writer)
+                            .respond(
+                                &value_error!("ERR wrong number of arguments for 'AUTH' in HELLO"),
+                                writer,
+                            )
+                            .await;
+                    };
+
+                    if session.state.auth.login(username, password).is_err() {
+                        return session
+                            .respond(
+                                &value_error!("WRONGPASS invalid username-password pair"),
+                                writer,
+                            )
                             .await;
                     }
+
+                    session.set_authenticated(true);
+                } else if option.eq_ignore_ascii_case("SETNAME") {
+                    let Some(name) = args.next_string_owned() else {
+                        return session
+                            .respond(
+                                &value_error!("ERR wrong number of arguments for 'SETNAME' in HELLO"),
+                                writer,
+                            )
+                            .await;
+                    };
+
+                    session.set_name(name).await;
+                } else {
+                    return session
+                        .respond(&value_error!("ERR unknown option '{option}'"), writer)
+                        .await;
                 }
             }
         }

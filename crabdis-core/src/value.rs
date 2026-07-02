@@ -102,7 +102,7 @@ impl Value {
     pub fn is_some(&self) -> bool {
         match self {
             Self::Nil => false,
-            _ if Self::expired(self) => false,
+            Self::Expire((_, expires_at)) => Instant::now() <= *expires_at,
             _ => true,
         }
     }

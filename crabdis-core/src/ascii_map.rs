@@ -1,84 +1,129 @@
-use std::borrow::Borrow;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::mem::MaybeUninit;
 
-/// A wrapper for ASCII strings that provides case-insensitive hashing and
-/// equality.
-///
-/// This is designed for zero-allocation lookups: when you have a
-/// `HashMap<AsciiKey<String>, V>`, you can look up with `&AsciiKey<str>`
-/// (for example via `AsciiKey::new("get")`) without allocating a new `String`.
-///
-/// # Example
-///
-/// ```
-/// use std::collections::HashMap;
-///
-/// use crabdis_core::ascii_map::AsciiKey;
-///
-/// let mut map: HashMap<AsciiKey<String>, i32> = HashMap::new();
-/// map.insert(AsciiKey("GET".to_owned()), 1);
-///
-/// // Zero-allocation lookup with &str
-/// assert_eq!(map.get(AsciiKey::new("get")), Some(&1));
-/// assert_eq!(map.get(AsciiKey::new("GET")), Some(&1));
-/// assert_eq!(map.get(AsciiKey::new("Get")), Some(&1));
-/// ```
-#[derive(Debug, Clone, Copy)]
-#[repr(transparent)]
-pub struct AsciiKey<T: ?Sized>(pub T);
+const STACK_KEY_LEN: usize = 256;
 
-impl AsciiKey<str> {
-    /// Creates a borrowed `AsciiKey` from a `&str` without allocating.
+#[inline]
+fn normalize_ascii_string(mut key: String) -> String {
+    if let Some(first_uppercase) = key.bytes().position(|byte| byte.is_ascii_uppercase()) {
+        key[first_uppercase..].make_ascii_lowercase();
+    }
+
+    key
+}
+
+#[inline]
+fn normalized_ascii_cow(key: &str) -> Cow<'_, str> {
+    key.bytes()
+        .position(|byte| byte.is_ascii_uppercase())
+        .map_or(Cow::Borrowed(key), |first_uppercase| {
+            let mut normalized = key.as_bytes().to_vec();
+            normalized[first_uppercase..].make_ascii_lowercase();
+
+            // SAFETY: `normalized` starts as valid UTF-8 from `key`, and ASCII
+            // lowercasing only changes ASCII bytes to other ASCII bytes.
+            unsafe { Cow::Owned(String::from_utf8_unchecked(normalized)) }
+        })
+}
+
+#[inline]
+fn with_normalized_ascii_key<T>(key: &str, f: impl FnOnce(&str) -> T) -> T {
+    match key.bytes().position(|byte| byte.is_ascii_uppercase()) {
+        Some(first_uppercase) => {
+            let bytes = key.as_bytes();
+
+            if bytes.len() <= STACK_KEY_LEN {
+                let len = bytes.len();
+                let mut buffer = [MaybeUninit::<u8>::uninit(); STACK_KEY_LEN];
+
+                // SAFETY: copy `len <= STACK_KEY_LEN` source bytes into the
+                // uninitialized buffer, then view exactly those `len` bytes as an
+                // initialized slice. The source is valid UTF-8 and ASCII lowercasing
+                // only rewrites ASCII bytes, so the slice stays valid UTF-8.
+                let normalized = unsafe {
+                    std::ptr::copy_nonoverlapping(
+                        bytes.as_ptr(),
+                        buffer.as_mut_ptr().cast::<u8>(),
+                        len,
+                    );
+                    std::slice::from_raw_parts_mut(buffer.as_mut_ptr().cast::<u8>(), len)
+                };
+                normalized[first_uppercase..].make_ascii_lowercase();
+
+                f(unsafe { std::str::from_utf8_unchecked(normalized) })
+            } else {
+                let mut normalized = bytes.to_vec();
+                normalized[first_uppercase..].make_ascii_lowercase();
+
+                // SAFETY: `normalized` starts as valid UTF-8 from `key`, and
+                // ASCII lowercasing only changes ASCII bytes to other ASCII bytes.
+                let normalized = unsafe { String::from_utf8_unchecked(normalized) };
+                f(&normalized)
+            }
+        }
+        None => f(key),
+    }
+}
+
+/// A normalized ASCII lookup key.
+///
+/// Already-lowercase ASCII-compatible inputs are borrowed directly. Inputs with
+/// ASCII uppercase bytes are copied and lowercased.
+#[derive(Debug, Clone)]
+pub struct AsciiKey<'a>(Cow<'a, str>);
+
+impl<'a> AsciiKey<'a> {
+    /// Creates a normalized ASCII key for lookup.
     #[inline]
     #[must_use]
-    pub const fn new(key: &str) -> &Self {
-        // SAFETY: AsciiKey is #[repr(transparent)] so AsciiKey<str> has the same
-        // layout as `str` when referenced. We convert &str to &AsciiKey<str> by
-        // casting the underlying pointer. The returned reference is tied to the
-        // input's lifetime, so it remains valid for as long as `key` does.
-        unsafe { &*(std::ptr::from_ref(key) as *const Self) }
+    pub fn new(key: &'a str) -> Self {
+        Self(normalized_ascii_cow(key))
+    }
+
+    /// Returns the normalized lookup key.
+    #[inline]
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_ref()
+    }
+
+    /// Returns true when this key borrowed the original input without copying.
+    #[inline]
+    #[must_use]
+    pub const fn is_borrowed(&self) -> bool {
+        matches!(self.0, Cow::Borrowed(_))
     }
 }
 
-impl<T: AsRef<str> + ?Sized> Hash for AsciiKey<T> {
+impl AsRef<str> for AsciiKey<'_> {
+    #[inline]
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl Hash for AsciiKey<'_> {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let string_ref = self.0.as_ref();
-        for byte in string_ref.bytes() {
-            state.write_u8(byte.to_ascii_uppercase());
-        }
-        // Hash the length to distinguish "a" from "aa" etc.
-        state.write_usize(string_ref.len());
+        self.as_str().hash(state);
     }
 }
 
-impl<T: AsRef<str> + ?Sized, U: AsRef<str> + ?Sized> PartialEq<AsciiKey<U>> for AsciiKey<T> {
+impl PartialEq for AsciiKey<'_> {
     #[inline]
-    fn eq(&self, other: &AsciiKey<U>) -> bool {
-        self.0.as_ref().eq_ignore_ascii_case(other.0.as_ref())
+    fn eq(&self, other: &Self) -> bool {
+        self.as_str() == other.as_str()
     }
 }
 
-impl<T: AsRef<str> + ?Sized> Eq for AsciiKey<T> {}
+impl Eq for AsciiKey<'_> {}
 
-// This is the magic that enables zero-allocation lookups.
-// It allows `HashMap<AsciiKey<String>, V>` to be queried with `&AsciiKey<str>`.
-impl Borrow<AsciiKey<str>> for AsciiKey<String> {
-    #[inline]
-    fn borrow(&self) -> &AsciiKey<str> {
-        AsciiKey::new(self.0.as_str())
-    }
-}
-
-/// A case-insensitive ASCII string map.
-///
-/// This is a thin wrapper around `HashMap` that uses `AsciiKey` for
-/// case-insensitive lookups. Commands like "GET", "get", and "Get" will all map
-/// to the same entry.
+/// A case-insensitive ASCII string map backed by lowercase `String` keys.
 #[derive(Debug)]
 pub struct AsciiMap<V> {
-    inner: HashMap<AsciiKey<String>, V>,
+    inner: HashMap<String, V>,
 }
 
 impl<V> AsciiMap<V> {
@@ -93,25 +138,26 @@ impl<V> AsciiMap<V> {
 
     /// Inserts a key-value pair into the map.
     ///
-    /// The key will be stored as-is, but lookups are case-insensitive.
+    /// The key is stored as an ASCII-lowercase `String`.
     #[inline]
     pub fn insert(&mut self, key: String, value: V) -> Option<V> {
-        self.inner.insert(AsciiKey(key), value)
+        self.inner.insert(normalize_ascii_string(key), value)
     }
 
     /// Returns a reference to the value corresponding to the key.
     ///
-    /// The lookup is case-insensitive and does not allocate.
+    /// Already-normalized lookup keys are borrowed directly. Mixed-case lookup
+    /// keys up to 256 bytes use a stack buffer; longer keys allocate.
     #[inline]
     #[must_use]
     pub fn get(&self, key: &str) -> Option<&V> {
-        self.inner.get(AsciiKey::new(key))
+        with_normalized_ascii_key(key, |key| self.inner.get(key))
     }
 
-    /// Returns an iterator over the key-value pairs.
+    /// Returns an iterator over the normalized key-value pairs.
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = (&str, &V)> {
-        self.inner.iter().map(|(k, v)| (k.0.as_str(), v))
+        self.inner.iter().map(|(key, value)| (key.as_str(), value))
     }
 
     #[inline]
@@ -146,39 +192,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_ascii_key_case_insensitive_hash() {
-        use std::collections::hash_map::DefaultHasher;
+    fn ascii_key_borrows_normalized_input() {
+        let key = AsciiKey::new("get:001");
 
-        fn hash(s: &str) -> u64 {
-            let mut hasher = DefaultHasher::new();
-            AsciiKey(s).hash(&mut hasher);
-            hasher.finish()
-        }
-
-        assert_eq!(hash("GET"), hash("get"));
-        assert_eq!(hash("GET"), hash("Get"));
-        assert_eq!(hash("GET"), hash("gEt"));
-        assert_eq!(hash("HELLO"), hash("hello"));
-        assert_eq!(hash("Hello"), hash("hElLo"));
-
-        // Different strings should have different hashes (usually)
-        assert_ne!(hash("GET"), hash("SET"));
-        assert_ne!(hash("GET"), hash("GETS"));
+        assert!(key.is_borrowed());
+        assert_eq!(key.as_str(), "get:001");
     }
 
     #[test]
-    fn test_ascii_key_equality() {
-        assert_eq!(AsciiKey("GET"), AsciiKey("get"));
-        assert_eq!(AsciiKey("GET"), AsciiKey("Get"));
-        assert_eq!(AsciiKey("HELLO"), AsciiKey("hello"));
+    fn ascii_key_allocates_mixed_case_input() {
+        let key = AsciiKey::new("GeT:001");
 
-        assert_ne!(AsciiKey("GET"), AsciiKey("SET"));
-        assert_ne!(AsciiKey("GET"), AsciiKey("GETS"));
+        assert!(!key.is_borrowed());
+        assert_eq!(key.as_str(), "get:001");
     }
 
     #[test]
-    fn test_ascii_map_insert_and_get() {
-        let mut map: AsciiMap<i32> = AsciiMap::new();
+    fn insert_and_get_are_case_insensitive() {
+        let mut map = AsciiMap::new();
         map.insert("GET".to_string(), 1);
         map.insert("SET".to_string(), 2);
 
@@ -191,61 +222,66 @@ mod tests {
     }
 
     #[test]
-    fn test_ascii_map_overwrite() {
-        let mut map: AsciiMap<i32> = AsciiMap::new();
+    fn insert_overwrites_with_different_case() {
+        let mut map = AsciiMap::new();
         map.insert("GET".to_string(), 1);
 
-        // Inserting with different case should overwrite
         let old = map.insert("get".to_string(), 2);
+
         assert_eq!(old, Some(1));
         assert_eq!(map.get("GET"), Some(&2));
+        assert_eq!(map.len(), 1);
     }
 
     #[test]
-    fn test_ascii_map_iter() {
-        let mut map: AsciiMap<i32> = AsciiMap::new();
-        map.insert("A".to_string(), 1);
-        map.insert("B".to_string(), 2);
+    fn iter_returns_normalized_keys() {
+        let mut map = AsciiMap::new();
+        map.insert("OriginalCase".to_string(), 1);
 
-        let mut count = 0u8;
+        let keys: Vec<_> = map.iter().map(|(key, _)| key).collect();
 
-        for _ in map.iter() {
-            count += 1;
-        }
-
-        assert_eq!(count, 2);
+        assert_eq!(keys, ["originalcase"]);
     }
 
     #[test]
-    fn test_ascii_map_values() {
-        let mut map: AsciiMap<i32> = AsciiMap::new();
+    fn values_returns_values() {
+        let mut map = AsciiMap::new();
         map.insert("A".to_string(), 1);
         map.insert("B".to_string(), 2);
 
-        let values: Vec<i32> = map.values().copied().collect();
+        let values: Vec<_> = map.values().copied().collect();
+
         assert!(values.contains(&1));
         assert!(values.contains(&2));
     }
 
     #[test]
-    fn test_ascii_map_len_and_empty() {
-        let mut map: AsciiMap<i32> = AsciiMap::new();
-        assert!(map.is_empty());
-        assert_eq!(map.len(), 0);
+    fn long_lookup_uses_heap_fallback() {
+        let key = "A".repeat(STACK_KEY_LEN + 1);
+        let lookup = "a".repeat(STACK_KEY_LEN + 1);
+        let mut map = AsciiMap::new();
+        map.insert(key, 1);
 
-        map.insert("GET".to_string(), 1);
-        assert!(!map.is_empty());
-        assert_eq!(map.len(), 1);
+        assert_eq!(map.get(&lookup), Some(&1));
     }
 
     #[test]
-    fn test_zero_allocation_lookup() {
-        // This test verifies that we can look up with &str without allocating
-        let mut map: AsciiMap<i32> = AsciiMap::new();
-        map.insert("COMMAND".to_string(), 42);
+    fn oversized_lookup_is_rejected() {
+        let mut map = AsciiMap::new();
+        map.insert("GET".to_string(), 1);
 
-        // This lookup should not allocate a String
-        let key: &str = "command";
-        assert_eq!(map.get(key), Some(&42));
+        // Longer than the longest stored key ("get", 3 bytes): guaranteed miss,
+        // rejected by the length guard without normalizing the input.
+        assert_eq!(map.get(&"a".repeat(1 << 20)), None);
+        // A key the same length as the longest stored key still matches.
+        assert_eq!(map.get("get"), Some(&1));
+    }
+
+    #[test]
+    fn empty_map_rejects_any_lookup() {
+        let map: AsciiMap<i32> = AsciiMap::new();
+
+        assert_eq!(map.get(""), None);
+        assert_eq!(map.get("anything"), None);
     }
 }

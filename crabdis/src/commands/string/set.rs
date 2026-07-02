@@ -29,6 +29,68 @@ struct Arguments {
     pub keepttl: bool,
 }
 
+#[derive(Clone, Copy)]
+enum ExpireArg {
+    Ex,
+    Px,
+    ExAt,
+    PxAt,
+}
+
+fn parse_arguments(args: &mut Args<'_>) -> std::result::Result<Arguments, Value> {
+    let mut arguments = Arguments::default();
+    let mut prev_ex_arg = None;
+
+    for arg in args {
+        match arg {
+            Value::String(arg) => {
+                if arg.eq_ignore_ascii_case("NX") && !arguments.set_xx {
+                    arguments.set_nx = true;
+                } else if arg.eq_ignore_ascii_case("XX") && !arguments.set_nx {
+                    arguments.set_xx = true;
+                } else if arg.eq_ignore_ascii_case("GET") {
+                    arguments.get = true;
+                } else if arg.eq_ignore_ascii_case("KEEPTTL") && prev_ex_arg.is_none() {
+                    arguments.keepttl = true;
+                } else if !arguments.keepttl && prev_ex_arg.is_none() {
+                    prev_ex_arg = if arg.eq_ignore_ascii_case("EX") {
+                        Some(ExpireArg::Ex)
+                    } else if arg.eq_ignore_ascii_case("PX") {
+                        Some(ExpireArg::Px)
+                    } else if arg.eq_ignore_ascii_case("EXAT") {
+                        Some(ExpireArg::ExAt)
+                    } else if arg.eq_ignore_ascii_case("PXAT") {
+                        Some(ExpireArg::PxAt)
+                    } else {
+                        None
+                    };
+
+                    if prev_ex_arg.is_none() {
+                        return Err(value_error!("Invalid argument {arg}"));
+                    }
+                } else {
+                    if let Some(prev) = prev_ex_arg {
+                        match prev {
+                            ExpireArg::Ex => arguments.ex = arg.parse::<i64>().ok(),
+                            ExpireArg::Px => arguments.px = arg.parse::<i64>().ok(),
+                            ExpireArg::ExAt => arguments.exat = arg.parse::<i64>().ok(),
+                            ExpireArg::PxAt => arguments.pxat = arg.parse::<i64>().ok(),
+                        }
+
+                        prev_ex_arg = None;
+                        continue;
+                    }
+
+                    return Err(value_error!("Invalid argument {arg}"));
+                }
+            }
+            _ => return Err(value_error!("Invalid argument")),
+        }
+    }
+
+    Ok(arguments)
+}
+
 #[async_trait]
 impl Handler for Set {
     async fn handle(
@@ -53,54 +115,10 @@ impl Handler for Set {
                 .await;
         };
 
-        let mut arguments = Arguments::default();
-        let mut prev_ex_arg = None;
-
-        for arg in args {
-            match arg {
-                Value::String(arg) => match arg.to_uppercase().as_str() {
-                    "NX" if !arguments.set_xx => {
-                        arguments.set_nx = true;
-                    }
-                    "XX" if !arguments.set_nx => {
-                        arguments.set_xx = true;
-                    }
-                    "GET" => arguments.get = true,
-                    "KEEPTTL" if prev_ex_arg.is_none() => {
-                        arguments.keepttl = true;
-                    }
-
-                    // also check if the previous argument was EX, PX, EXAT, PXAT
-                    "EX" | "PX" | "EXAT" | "PXAT"
-                        if !arguments.keepttl && prev_ex_arg.is_none() =>
-                    {
-                        prev_ex_arg = Some(arg);
-                    }
-                    arg => {
-                        if let Some(prev) = prev_ex_arg {
-                            match prev.as_ref() {
-                                "EX" => arguments.ex = arg.parse::<i64>().ok(),
-                                "PX" => arguments.px = arg.parse::<i64>().ok(),
-                                "EXAT" => arguments.exat = arg.parse::<i64>().ok(),
-                                "PXAT" => arguments.pxat = arg.parse::<i64>().ok(),
-                                _ => {}
-                            }
-
-                            continue;
-                        }
-
-                        return session
-                            .respond(&value_error!("Invalid argument {arg}"), writer)
-                            .await;
-                    }
-                },
-                _ => {
-                    return session
-                        .respond(&value_error!("Invalid argument"), writer)
-                        .await;
-                }
-            }
-        }
+        let arguments = match parse_arguments(args) {
+            Ok(arguments) => arguments,
+            Err(error) => return session.respond(&error, writer).await,
+        };
 
         let mut lock = session.state.store.write().await;
 
@@ -158,5 +176,27 @@ impl Handler for Set {
         session.state.notify_change();
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_expiration_followed_by_condition() {
+        let values = [
+            Value::String("ex".into()),
+            Value::String("10".into()),
+            Value::String("nx".into()),
+            Value::String("get".into()),
+        ];
+        let mut args = Args::new(&values);
+
+        let parsed = parse_arguments(&mut args).unwrap();
+
+        assert_eq!(parsed.ex, Some(10));
+        assert!(parsed.set_nx);
+        assert!(parsed.get);
     }
 }

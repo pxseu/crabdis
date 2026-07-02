@@ -118,9 +118,33 @@ impl<'slice> Iterator for Args<'slice> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.peek().inspect(|_| {
-            self.pos += 1;
-        })
+        let value = self.slice.get(self.pos)?;
+        self.pos += 1;
+        Some(value)
+    }
+
+    #[inline]
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.pos = self.pos.saturating_add(n);
+        let value = self.slice.get(self.pos)?;
+        self.pos += 1;
+        Some(value)
+    }
+
+    #[inline]
+    fn count(self) -> usize {
+        self.len()
+    }
+
+    #[inline]
+    fn last(mut self) -> Option<Self::Item> {
+        if !self.is_empty() {
+            self.pos = self.slice.len();
+
+            return self.slice.last();
+        }
+
+        None
     }
 
     #[inline]

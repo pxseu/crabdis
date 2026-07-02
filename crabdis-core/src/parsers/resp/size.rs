@@ -29,18 +29,16 @@ pub async fn deserialize_first<T>(first: u8, reader: &mut T) -> Result<usize>
 where
     T: AsyncRead + Unpin,
 {
-    let mut value: usize = 0;
-    let mut seen_digit = false;
-    let mut current = first;
+    if !first.is_ascii_digit() {
+        return Err(IoError::from(ErrorKind::InvalidData).into());
+    }
+
+    let mut value = first.wrapping_sub(b'0') as usize;
 
     loop {
-        match current {
+        match reader.read_u8().await? {
             b'\r' => {
                 super::crlf::deserialize_lf(reader).await?;
-
-                if !seen_digit {
-                    return Err(IoError::from(ErrorKind::InvalidData).into());
-                }
                 return Ok(value);
             }
             byte @ b'0'..=b'9' => {
@@ -52,12 +50,9 @@ where
                     return Err(IoError::new(ErrorKind::InvalidData, "Size too large").into());
                 }
                 value = value * 10 + digit;
-                seen_digit = true;
             }
             _ => return Err(IoError::from(ErrorKind::InvalidData).into()),
         }
-
-        current = reader.read_u8().await?;
     }
 }
 

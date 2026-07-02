@@ -32,7 +32,7 @@ impl Handler for SetEx {
         let seconds = args.next_owned().unwrap();
         let value = args.next_owned().unwrap();
 
-        let set_args = vec![key, value, Value::String("EX".into()), seconds];
+        let set_args = [key, value, Value::String("EX".into()), seconds];
         let mut set_args = Args::new(&set_args);
 
         let set_cmd = COMMANDS.get("SET").unwrap();
