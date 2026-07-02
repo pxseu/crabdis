@@ -45,6 +45,12 @@ jobs:
           - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
 
+          - target: armv7-unknown-linux-musleabihf
+            os: ubuntu-latest
+
+          - target: arm-unknown-linux-musleabihf
+            os: ubuntu-latest
+
           - target: x86_64-apple-darwin
             os: macOS-latest
 

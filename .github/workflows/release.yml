@@ -55,6 +55,17 @@ jobs:
           - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
             platform: aarch64-Linux
+
+          # rpi 2+ (32-bit)
+          - target: armv7-unknown-linux-musleabihf
+            os: ubuntu-latest
+            platform: armv7-Linux
+
+          # rpi 1 / zero (armv6 hard-float)
+          - target: arm-unknown-linux-musleabihf
+            os: ubuntu-latest
+            platform: armhf-Linux
+
           - target: x86_64-apple-darwin
             os: macOS-latest
             platform: x86_64-Darwin
