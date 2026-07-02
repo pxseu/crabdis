@@ -275,7 +275,7 @@ impl Resp {
                     let len = self::size::deserialize(reader).await?;
 
                     if len == 0 {
-                        return Ok(Some(Value::Map(HashMap::with_capacity(0))));
+                        return Ok(Some(Value::Map(HashMap::new())));
                     }
 
                     let mut map = HashMap::with_capacity(len);
