@@ -82,6 +82,18 @@ macro_rules! value_push {
     };
 }
 
+#[macro_export]
+macro_rules! value_map {
+    () => {
+		$crate::value::statics::EMPTY_MAP.clone()
+	};
+	($($key:expr => $value:expr),* $(,)?) => {
+		$crate::value::Value::Map(
+			vec![$(($key.into(), $value.into())),*].into_iter().collect()
+		)
+	};
+}
+
 impl Value {
     #[must_use]
     pub fn expired(&self) -> bool {
@@ -232,10 +244,12 @@ impl std::fmt::Debug for Value {
 
 // global static values
 pub mod statics {
+    use std::collections::HashMap;
     use std::sync::{Arc, LazyLock};
 
     use super::Value;
 
     static EMPTY_ARC: LazyLock<Arc<[Value]>> = LazyLock::new(|| Arc::from([]));
     pub static EMPTY_MULTI: LazyLock<Value> = LazyLock::new(|| Value::Multi(EMPTY_ARC.clone()));
+    pub static EMPTY_MAP: LazyLock<Value> = LazyLock::new(|| Value::Map(HashMap::default()));
 }

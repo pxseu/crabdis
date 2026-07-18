@@ -34,18 +34,20 @@ impl Handler for HGetAll {
 
         let store = session.state.store.read().await;
 
-        let value = store.get_inner_unexpired(key)?;
-
-        if !matches!(value, Value::Map(_)) {
-            return session
-                .respond(
-                    &value_error!(
-                        "WRONGTYPE Operation against a key holding the wrong kind of value"
-                    ),
-                    writer,
-                )
-                .await;
-        }
+        let value = match store.get_inner_unexpired(key) {
+            Ok(value @ Value::Map(_)) => value,
+            Ok(_) => {
+                return session
+                    .respond(
+                        &value_error!(
+                            "WRONGTYPE Operation against a key holding the wrong kind of value"
+                        ),
+                        writer,
+                    )
+                    .await;
+            }
+            Err(_) => return session.respond(&value_map!(), writer).await,
+        };
 
         session.respond(value, writer).await
     }

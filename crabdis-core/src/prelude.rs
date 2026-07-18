@@ -13,4 +13,4 @@ pub use super::parsers::resp::Resp;
 pub use super::parsers::resp::version::{AtomicVersion, InvalidVersion, Version};
 pub use super::store::StoreTraits;
 pub use super::value::Value;
-pub use super::{shutdown, value_error, value_multi, value_push};
+pub use super::{shutdown, value_error, value_map, value_multi, value_push};

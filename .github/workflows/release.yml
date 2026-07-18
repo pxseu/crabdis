@@ -33,7 +33,7 @@ jobs:
           fi
 
       - name: Create new release
-        uses: "softprops/action-gh-release@v2"
+        uses: "softprops/action-gh-release@v3"
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           prerelease: ${{ steps.tag.outputs.pre_release == 'true' }}
