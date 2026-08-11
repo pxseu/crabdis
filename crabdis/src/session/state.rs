@@ -48,18 +48,9 @@ impl State {
         } else if save_points.is_empty() {
             (
                 vec![
-                    SavePoint {
-                        seconds: 3600,
-                        changes: 1,
-                    }, // After 1 hour if at least 1 change
-                    SavePoint {
-                        seconds: 300,
-                        changes: 100,
-                    }, // After 5 mins if at least 100 changes
-                    SavePoint {
-                        seconds: 60,
-                        changes: 10000,
-                    }, // After 1 min if at least 10000 changes
+                    SavePoint::new(3600, 1),   // After 1 hour if at least 1 change
+                    SavePoint::new(300, 100),  // After 5 mins if at least 100 changes
+                    SavePoint::new(60, 10000), // After 1 min if at least 10000 changes
                 ],
                 true,
             )

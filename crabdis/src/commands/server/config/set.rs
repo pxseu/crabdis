@@ -138,7 +138,7 @@ impl Handler for Set {
                             .await;
                     };
 
-                    save_points.push(SavePoint { seconds, changes });
+                    save_points.push(SavePoint::new(seconds, changes));
                 }
 
                 *session.state.rdb_config.save_points.write().await = save_points;

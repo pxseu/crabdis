@@ -1,7 +1,7 @@
 use log::{Level, LevelFilter};
 
 pub fn init(verbose: bool) {
-    fern::Dispatch::new()
+    let _ = fern::Dispatch::new()
         .format(move |out, message, record| {
             let level = record.level();
 
@@ -36,6 +36,5 @@ pub fn init(verbose: bool) {
                 .level(log::LevelFilter::Warn)
                 .chain(std::io::stderr()),
         )
-        .apply()
-        .ok();
+        .apply();
 }

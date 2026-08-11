@@ -13,11 +13,17 @@ pub type ExpireKey = Arc<RwLock<HashSet<Arc<str>>>>;
 /// A save point configuration (seconds, changes).
 #[derive(Debug, Clone)]
 pub struct SavePoint {
-    pub seconds: u64,
-    pub changes: u64,
+    seconds: u64,
+    changes: u64,
 }
 
 impl SavePoint {
+    /// Creates a save point from a duration and minimum change count.
+    #[must_use]
+    pub const fn new(seconds: u64, changes: u64) -> Self {
+        Self { seconds, changes }
+    }
+
     /// Parses a save point from a string like "900 1".
     #[must_use]
     pub fn parse(s: &str) -> Option<Self> {
@@ -25,10 +31,22 @@ impl SavePoint {
         if parts.len() == 2 {
             let seconds = parts[0].parse().ok()?;
             let changes = parts[1].parse().ok()?;
-            Some(Self { seconds, changes })
+            Some(Self::new(seconds, changes))
         } else {
             None
         }
+    }
+
+    /// Returns the duration in seconds.
+    #[must_use]
+    pub const fn seconds(&self) -> u64 {
+        self.seconds
+    }
+
+    /// Returns the minimum number of changes.
+    #[must_use]
+    pub const fn changes(&self) -> u64 {
+        self.changes
     }
 }
 
@@ -135,7 +153,7 @@ impl RdbConfig {
 
         let save_points = self.save_points.read().await;
         for sp in save_points.iter() {
-            if elapsed >= sp.seconds && changes >= sp.changes {
+            if elapsed >= sp.seconds() && changes >= sp.changes() {
                 return true;
             }
         }

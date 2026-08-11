@@ -32,7 +32,7 @@ pub async fn handle_client(
         }
     }
 
-    stream.shutdown().await.ok();
+    let _ = stream.shutdown().await;
 
     #[cfg(debug_assertions)]
     log::debug!("Session closed: {session:?}");

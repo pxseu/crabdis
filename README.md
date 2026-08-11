@@ -66,7 +66,7 @@ Run `crabdis --help` for the full list. Common flags:
 - `--verbose`: enable verbose logging
 - `--dir` / `--dbfilename`: RDB location (defaults to `./dump.rdb`)
 - `--save "SECONDS CHANGES"`: auto-save points; pass `--save ""` to disable RDB persistence
-  - If you don’t specify any `--save` points, Crabdis uses defaults: `3600 1`, `300 100`, `60 10000`
+    - If you don’t specify any `--save` points, Crabdis uses defaults: `3600 1`, `300 100`, `60 10000`
 
 ## Supported commands
 
@@ -91,6 +91,8 @@ For client compatibility, prefer discovering capabilities via `COMMAND`/`COMMAND
 
 ## Development
 
+- Lint: `cargo clippy --all-targets --all-features`
+- [Mordant](https://github.com/scarletindustries/mordant): `cargo dylint --all`
 - Build: `cargo build --release`
 - Run: `cargo run -p crabdis`
 - Test: `cargo test`

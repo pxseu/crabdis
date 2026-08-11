@@ -33,3 +33,6 @@ strip = false
 debug = true
 opt-level = 3
 panic = "unwind"
+
+[workspace.metadata.dylint]
+libraries = [{ git = "https://github.com/scarletindustries/mordant" }]

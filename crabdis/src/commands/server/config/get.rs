@@ -66,7 +66,7 @@ impl Handler for Get {
             } else {
                 save_points
                     .iter()
-                    .map(|sp| format!("{} {}", sp.seconds, sp.changes))
+                    .map(|sp| format!("{} {}", sp.seconds(), sp.changes()))
                     .collect::<Vec<_>>()
                     .join(" ")
             };
