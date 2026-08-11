@@ -1,225 +1,225 @@
 name: Release
 on:
-  push:
-    tags:
-      - "v*"
+    push:
+        tags:
+            - "v*"
 
 permissions:
-  contents: write
+    contents: write
 
 env:
-  MACOSX_DEPLOYMENT_TARGET: 10.7
-  EXECUTABLE_NAME: crabdis
+    MACOSX_DEPLOYMENT_TARGET: 10.7
+    EXECUTABLE_NAME: crabdis
 
 jobs:
-  draft-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      tag_name: ${{ steps.tag.outputs.tag_name }}
-    steps:
-      - name: Checkout the repo
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
+    draft-release:
+        name: Create Release
+        runs-on: ubuntu-latest
+        outputs:
+            tag_name: ${{ steps.tag.outputs.tag_name }}
+        steps:
+            - name: Checkout the repo
+              uses: actions/checkout@v5
+              with:
+                  fetch-depth: 1
 
-      - name: Get tag data
-        id: tag
-        run: |
-          echo "tag_name=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+            - name: Get tag data
+              id: tag
+              run: |
+                  echo "tag_name=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
 
-          if [[ ${{ github.event.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
-            echo "pre_release=true" >> $GITHUB_OUTPUT
-          fi
+                  if [[ ${{ github.event.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
+                    echo "pre_release=true" >> $GITHUB_OUTPUT
+                  fi
 
-      - name: Create new release
-        uses: "softprops/action-gh-release@v3"
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: ${{ steps.tag.outputs.pre_release == 'true' }}
-          name: "Version: ${{ steps.tag.outputs.tag_name }}"
-          draft: true
+            - name: Create new release
+              uses: "softprops/action-gh-release@v3"
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  prerelease: ${{ steps.tag.outputs.pre_release == 'true' }}
+                  name: "Version: ${{ steps.tag.outputs.tag_name }}"
+                  draft: true
 
-  build-release:
-    name: Build Release Assets
-    needs: ["draft-release"]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
-            platform: x86_64-Linux
+    build-release:
+        name: Build Release Assets
+        needs: ["draft-release"]
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - target: x86_64-unknown-linux-musl
+                      os: ubuntu-latest
+                      platform: x86_64-Linux
 
-          - target: aarch64-unknown-linux-musl
-            os: ubuntu-latest
-            platform: aarch64-Linux
+                    - target: aarch64-unknown-linux-musl
+                      os: ubuntu-latest
+                      platform: aarch64-Linux
 
-          # rpi 2+ (32-bit)
-          - target: armv7-unknown-linux-musleabihf
-            os: ubuntu-latest
-            platform: armv7-Linux
+                    # rpi 2+ (32-bit)
+                    - target: armv7-unknown-linux-musleabihf
+                      os: ubuntu-latest
+                      platform: armv7-Linux
 
-          # rpi 1 / zero (armv6 hard-float)
-          - target: arm-unknown-linux-musleabihf
-            os: ubuntu-latest
-            platform: armhf-Linux
+                    # rpi 1 / zero (armv6 hard-float)
+                    - target: arm-unknown-linux-musleabihf
+                      os: ubuntu-latest
+                      platform: armhf-Linux
 
-          - target: x86_64-apple-darwin
-            os: macOS-latest
-            platform: x86_64-Darwin
+                    - target: x86_64-apple-darwin
+                      os: macOS-latest
+                      platform: x86_64-Darwin
 
-          - target: aarch64-apple-darwin
-            os: macOS-latest
-            platform: aarch64-Darwin
+                    - target: aarch64-apple-darwin
+                      os: macOS-latest
+                      platform: aarch64-Darwin
 
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            platform: x86_64-Windows
+                    - target: x86_64-pc-windows-msvc
+                      os: windows-latest
+                      platform: x86_64-Windows
 
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            platform: aarch64-Windows
+                    - target: aarch64-pc-windows-msvc
+                      os: windows-latest
+                      platform: aarch64-Windows
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v5
+              with:
+                  fetch-depth: 1
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          toolchain: nightly
-          targets: ${{ matrix.target }}
-          components: rustfmt, clippy
+            - name: Install Rust
+              uses: dtolnay/rust-toolchain@nightly
+              with:
+                  toolchain: nightly
+                  targets: ${{ matrix.target }}
+                  components: rustfmt, clippy
 
-      # - name: Install Wix [Windows]
-      #   if: matrix.os == 'windows-latest'
-      #   run: cargo install cargo-wix
+            # - name: Install Wix [Windows]
+            #   if: matrix.os == 'windows-latest'
+            #   run: cargo install cargo-wix
 
-      - name: Install Cross [Linux]
-        if: matrix.os == 'ubuntu-latest'
-        run: cargo install cross
+            - name: Install Cross [Linux]
+              if: matrix.os == 'ubuntu-latest'
+              run: cargo install cross
 
-      - name: Build release binary
-        run: ${{ matrix.os == 'ubuntu-latest' && 'cross' || 'cargo'  }} build --release --locked --all-features --target ${{ matrix.target }} --package ${{ env.EXECUTABLE_NAME }}
+            - name: Build release binary
+              run: ${{ matrix.os == 'ubuntu-latest' && 'cross' || 'cargo'  }} build --release --locked --all-features --target ${{ matrix.target }} --package ${{ env.EXECUTABLE_NAME }}
 
-      - name: Prepare binaries [*nix]
-        if: matrix.os != 'windows-latest'
-        run: |
-          cd target/${{ matrix.target }}/release
-          strip ${{ env.EXECUTABLE_NAME }} || true
-          tar czvf ../../../${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.tar.gz ${{ env.EXECUTABLE_NAME }}
-          cd -
+            - name: Prepare binaries [*nix]
+              if: matrix.os != 'windows-latest'
+              run: |
+                  cd target/${{ matrix.target }}/release
+                  strip ${{ env.EXECUTABLE_NAME }} || true
+                  tar czvf ../../../${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.tar.gz ${{ env.EXECUTABLE_NAME }}
+                  cd -
 
-      - name: Prepare binaries [Windows]
-        if: matrix.os == 'windows-latest'
-        run: |
-          cd target/${{ matrix.target }}/release
-          strip ${{ env.EXECUTABLE_NAME }}.exe
-          7z a ../../../${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.zip ${{ env.EXECUTABLE_NAME }}.exe
-          cd -
+            - name: Prepare binaries [Windows]
+              if: matrix.os == 'windows-latest'
+              run: |
+                  cd target/${{ matrix.target }}/release
+                  strip ${{ env.EXECUTABLE_NAME }}.exe
+                  7z a ../../../${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.zip ${{ env.EXECUTABLE_NAME }}.exe
+                  cd -
 
-      # - name: Build installer [Windows]
-      #   if: matrix.os == 'windows-latest'
-      #   run: cargo wix -I .\build\windows\main.wxs -v --no-build --nocapture --target ${{ matrix.target }} --output target\wix\${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi --package ${{ env.EXECUTABLE_NAME }}-cli
+            # - name: Build installer [Windows]
+            #   if: matrix.os == 'windows-latest'
+            #   run: cargo wix -I .\build\windows\main.wxs -v --no-build --nocapture --target ${{ matrix.target }} --output target\wix\${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi --package ${{ env.EXECUTABLE_NAME }}-cli
 
-      - name: Upload binaries
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
-          path: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
+            - name: Upload binaries
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
+                  path: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
 
-      # - name: Upload installer [Windows]
-      #   if: matrix.os == 'windows-latest'
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi
-      #     path: target/wix/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi
+            # - name: Upload installer [Windows]
+            #   if: matrix.os == 'windows-latest'
+            #   uses: actions/upload-artifact@v4
+            #   with:
+            #     name: ${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi
+            #     path: target/wix/${{ env.EXECUTABLE_NAME }}-${{ matrix.platform }}.msi
 
-  publish-release:
-    name: Publish Release
-    needs: ["draft-release", "build-release"]
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    environment: prod
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
+    publish-release:
+        name: Publish Release
+        needs: ["draft-release", "build-release"]
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        environment: prod
+        steps:
+            - name: Download Artifacts
+              uses: actions/download-artifact@v4
 
-      - name: Create Checksums
-        run: for file in ${{ env.EXECUTABLE_NAME }}-*/${{ env.EXECUTABLE_NAME }}-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
+            - name: Create Checksums
+              run: for file in ${{ env.EXECUTABLE_NAME }}-*/${{ env.EXECUTABLE_NAME }}-*; do openssl dgst -sha256 -r "$file" | awk '{print $1}' > "${file}.sha256"; done
 
-      - name: Add Artifacts to Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ env.EXECUTABLE_NAME }}-*/${{ env.EXECUTABLE_NAME }}-*
-          tag_name: ${{ needs.draft-release.outputs.tag_name }}
+            - name: Add Artifacts to Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: ${{ env.EXECUTABLE_NAME }}-*/${{ env.EXECUTABLE_NAME }}-*
+                  tag_name: ${{ needs.draft-release.outputs.tag_name }}
 
-      - name: Update Release
-        run: gh release edit ${{ needs.draft-release.outputs.tag_name }} --draft=false --repo=${{ github.repository }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Update Release
+              run: gh release edit ${{ needs.draft-release.outputs.tag_name }} --draft=false --repo=${{ github.repository }}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-crates:
-    name: Publish Crates
-    needs: ["draft-release", "build-release"]
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    environment: prod
-    steps:
-      - name: Checkout the repo
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
+    publish-crates:
+        name: Publish Crates
+        needs: ["draft-release", "build-release"]
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        environment: prod
+        steps:
+            - name: Checkout the repo
+              uses: actions/checkout@v5
+              with:
+                  fetch-depth: 1
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          toolchain: nightly
-          components: rustfmt, clippy
+            - name: Install Rust
+              uses: dtolnay/rust-toolchain@nightly
+              with:
+                  toolchain: nightly
+                  components: rustfmt, clippy
 
-      - name: Login to Crates
-        run: echo "$CARGO_REGISTRY_TOKEN" | cargo login
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            - name: Login to Crates
+              run: echo "$CARGO_REGISTRY_TOKEN" | cargo login
+              env:
+                  CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-      - name: Publish Crates
-        run: cargo publish --locked --no-verify --workspace
+            - name: Publish Crates
+              run: cargo publish --locked --no-verify --workspace
 
-  publish-docker:
-    name: Publish Docker
-    needs: ["draft-release", "build-release"]
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    environment: prod
-    steps:
-      - name: Checkout the repo
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
+    publish-docker:
+        name: Publish Docker
+        needs: ["draft-release", "build-release"]
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        environment: prod
+        steps:
+            - name: Checkout the repo
+              uses: actions/checkout@v5
+              with:
+                  fetch-depth: 1
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+            - name: Login to Docker
+              uses: docker/login-action@v3
+              with:
+                  username: ${{ secrets.DOCKER_USERNAME }}
+                  password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: crabdis/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/${{ env.EXECUTABLE_NAME }}:${{ needs.draft-release.outputs.tag_name }}
-            ${{ secrets.DOCKER_USERNAME }}/${{ env.EXECUTABLE_NAME }}:latest
+            - name: Build and push Docker image
+              uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  file: crabdis/Dockerfile
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  tags: |
+                      ${{ secrets.DOCKER_USERNAME }}/${{ env.EXECUTABLE_NAME }}:${{ needs.draft-release.outputs.tag_name }}
+                      ${{ secrets.DOCKER_USERNAME }}/${{ env.EXECUTABLE_NAME }}:latest
