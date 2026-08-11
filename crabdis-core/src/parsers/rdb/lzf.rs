@@ -275,7 +275,7 @@ mod tests {
     fn test_decompress_empty() {
         let compressed: [u8; 0] = [];
         let result = decompress(&compressed, 0).unwrap();
-        assert!(result.is_empty());
+        assert_eq!(result, [] as [u8; 0]);
     }
 
     #[test]
