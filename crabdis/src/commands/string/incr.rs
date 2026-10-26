@@ -31,9 +31,19 @@ impl Handler for Incr {
         };
 
         let mut store = session.state.store.write().await;
-        let mut value = match store.get_inner_unexpired(&key) {
+        let value = match store.get_inner_unexpired(&key) {
             Ok(v) => match v {
-                Value::String(s) => s.parse::<i64>().unwrap_or(0),
+                Value::String(s) => match s.parse::<i64>() {
+                    Ok(i) => i,
+                    Err(_) => {
+                        return session
+                            .respond(
+                                &value_error!("ERR value is not an integer or out of range"),
+                                writer,
+                            )
+                            .await;
+                    }
+                },
                 Value::Integer(i) => *i,
                 _ => {
                     return session
@@ -47,7 +57,14 @@ impl Handler for Incr {
             Err(_) => 0,
         };
 
-        value += 1;
+        let Some(value) = value.checked_add(1) else {
+            return session
+                .respond(
+                    &value_error!("ERR increment or decrement would overflow"),
+                    writer,
+                )
+                .await;
+        };
 
         // store it as int at some point
         store.insert(key, Value::String(value.to_string().into()));
